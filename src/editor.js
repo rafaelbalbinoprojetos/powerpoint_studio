@@ -86,6 +86,7 @@ function renderRail(){
   rail.innerHTML=d.slides.map((s,i)=>`<button class="thumb${i===sel?' sel':''}" data-i="${i}" aria-label="Slide ${i+1}: ${esc((T[s.t]||{}).name||s.t)}"><div class="tv"></div><div class="meta"><span>${String(i+1).padStart(2,'0')}</span><span>${s.notes?'<i class="has-notes" title="Tem notas do apresentador"></i>':''}${esc((T[s.t]||{}).name||s.t)}</span></div></button>`).join('')+`<button class="addslide" id="addSlide">+ Adicionar slide</button>`;
   rail.querySelectorAll('.thumb').forEach(b=>{ const i=+b.dataset.i; thumbCleanup.set(i,D.renderStatic(b.querySelector('.tv'),d,i)); b.onclick=()=>select(i); });
   $('#addSlide').onclick=()=>gallery('add');
+  railDrag();
 }
 function refreshThumb(i){
   const b=$('#rail').querySelector(`.thumb[data-i="${i}"] .tv`); if(!b) return;
@@ -103,12 +104,82 @@ let pvT=null;
 /* edição ao vivo: troca só o slide editado na prévia */
 function liveEdit(){ touch(); clearTimeout(pvT); pvT=setTimeout(()=>{ if(player&&player.count===deck().slides.length) player.update(sel,deck()); else renderPreview(false); refreshThumb(sel); },200); }
 function select(i){
+  if(inl) closeInline(true);
   const d=deck(); if(i<0||i>=d.slides.length) return;
   const dir=i>sel?1:-1; sel=i;
   $('#rail').querySelectorAll('.thumb').forEach(b=>b.classList.toggle('sel',+b.dataset.i===i));
   const b=$('#rail').querySelector(`.thumb[data-i="${i}"]`); if(b) b.scrollIntoView({block:'nearest',inline:'nearest',behavior:'smooth'});
   if(player) player.go(i,dir); $('#pvN').textContent=(i+1)+' / '+d.slides.length;
   if(tab==='content') renderPane();
+}
+
+/* ---------- edição direto no slide ---------- */
+const getPath=(o,p)=>p.split('.').reduce((a,k)=>a==null?a:a[k],o);
+function setPath(o,p,v){ const ks=p.split('.'); let a=o; for(let i=0;i<ks.length-1;i++){ if(a[ks[i]]==null) a[ks[i]]=/^\d+$/.test(ks[i+1])?[]:{}; a=a[ks[i]]; } a[ks[ks.length-1]]=v; }
+let inl=null;
+function inlineEdit(el){
+  const s=deck().slides[sel]; if(!s) return; const path=el.dataset.f; const orig=getPath(s.d,path);
+  if(typeof orig!=='string'&&orig!=null) return;
+  closeInline(true);
+  const r=el.getBoundingClientRect(), pv=$('#pv').getBoundingClientRect();
+  const ta=document.createElement('textarea'); ta.className='inl'; ta.value=orig||''; ta.setAttribute('aria-label','Editar texto do slide');
+  const w=Math.min(Math.max(r.width+24,260),pv.width-16);
+  ta.style.left=Math.max(pv.left+8,Math.min(r.left-12,pv.right-w-8))+'px'; ta.style.top=Math.max(8,r.top-10)+'px'; ta.style.width=w+'px';
+  document.body.appendChild(ta);
+  const fit=()=>{ ta.style.height='auto'; ta.style.height=Math.min(ta.scrollHeight+2,320)+'px'; };
+  fit(); ta.focus(); ta.select();
+  inl={ta,path,orig,slide:s};
+  ta.oninput=()=>{ setPath(s.d,path,ta.value); fit(); liveEdit(); };
+  ta.onkeydown=e=>{ if(e.key==='Escape'){ e.preventDefault(); e.stopPropagation(); closeInline(false); } else if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); closeInline(true); } };
+  ta.onblur=()=>setTimeout(()=>{ if(inl&&inl.ta===ta) closeInline(true); },0);
+}
+function closeInline(keep){
+  if(!inl) return; const {ta,path,orig,slide}=inl; inl=null; ta.remove();
+  if(!keep){ setPath(slide.d,path,orig??''); liveEdit(); }
+  if(tab==='content') renderPane();
+}
+$('#pv').addEventListener('click',e=>{ const el=e.target.closest('[data-f]'); if(el&&$('#pv').contains(el)){ e.preventDefault(); inlineEdit(el); } });
+
+/* soltar imagens do computador direto no slide */
+async function readImage(file){
+  if(assets){ try{ const r=await assets.upload(file); return 'asset:'+r.id; }catch(err){ /* cai para o modo local */ } }
+  return shrink(file,1400,.82);
+}
+async function dropImages(files){
+  const s=deck().slides[sel]; if(!s) return; const tpl=T[s.t]; if(!tpl) return;
+  const imgs=[...files].filter(f=>/^image\//.test(f.type)); if(!imgs.length) return;
+  setStatus('Enviando imagem…'); let placed=0;
+  const top=tpl.fields.filter(f=>f.t==='image'), list=tpl.fields.find(f=>f.t==='items'&&f.sub.some(x=>x.t==='image'));
+  for(const file of imgs){
+    let val; try{ val=await readImage(file); }catch(_){ continue; }
+    const emptyTop=top.find(f=>!s.d[f.k]);
+    if(list){ const sub=list.sub.find(x=>x.t==='image'), arr=s.d[list.k]=s.d[list.k]||[]; const slot=arr.find(it=>!it[sub.k]);
+      if(slot){ slot[sub.k]=val; placed++; continue; }
+      if(arr.length<(list.max||6)){ const n={}; list.sub.forEach(x=>n[x.k]=x.t==='bool'?false:''); n[sub.k]=val; arr.push(n); placed++; continue; } }
+    const f=emptyTop||top[0]; if(f){ s.d[f.k]=val; placed++; }
+  }
+  if(placed){ touch(); renderPreview(false); refreshThumb(sel); renderPane(); setStatus(placed===1?'Imagem colocada no slide':placed+' imagens colocadas',true); }
+  else setStatus('Este modelo não tem lugar para imagem');
+}
+const pvBox=$('#pv');
+pvBox.addEventListener('dragover',e=>{ if([...e.dataTransfer.types].includes('Files')){ e.preventDefault(); pvBox.classList.add('drop'); } });
+pvBox.addEventListener('dragleave',e=>{ if(e.target===pvBox||!pvBox.contains(e.relatedTarget)) pvBox.classList.remove('drop'); });
+pvBox.addEventListener('drop',e=>{ e.preventDefault(); pvBox.classList.remove('drop'); if(e.dataTransfer.files.length) dropImages(e.dataTransfer.files); });
+
+/* arrastar miniaturas para reordenar */
+function moveSlide(from,to){
+  const s=deck().slides; if(from===to||from<0||to<0||from>=s.length||to>s.length) return;
+  const [it]=s.splice(from,1); if(to>from) to--; s.splice(to,0,it); sel=to; touch(); renderRail(); renderPreview(false); renderPane();
+}
+function railDrag(){
+  let from=null; const rail=$('#rail');
+  rail.querySelectorAll('.thumb').forEach(b=>{
+    b.draggable=true;
+    b.ondragstart=e=>{ from=+b.dataset.i; b.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; try{ e.dataTransfer.setData('text/plain',String(from)); }catch(_){} };
+    b.ondragend=()=>{ from=null; rail.querySelectorAll('.thumb').forEach(x=>x.classList.remove('dragging','before','after')); };
+    b.ondragover=e=>{ if(from==null) return; e.preventDefault(); const r=b.getBoundingClientRect(), after=e.clientY>r.top+r.height/2; rail.querySelectorAll('.thumb').forEach(x=>x.classList.remove('before','after')); b.classList.add(after?'after':'before'); };
+    b.ondrop=e=>{ if(from==null) return; e.preventDefault(); const r=b.getBoundingClientRect(), i=+b.dataset.i; moveSlide(from,e.clientY>r.top+r.height/2?i+1:i); };
+  });
 }
 
 /* ---------- inspetor ---------- */
@@ -141,7 +212,7 @@ function renderPane(){
   $('#o-dur').oninput=e=>{ const v=parseFloat(e.target.value); if(v>0) s.dur=v; else delete s.dur; touch(); };
   $('#o-notes').oninput=e=>{ s.notes=e.target.value; if(!s.notes) delete s.notes; touch(); };
   const tip=document.createElement('p'); tip.className='tip';
-  tip.innerHTML='Use <code>*palavra*</code> para destacar com a cor do tema e <code>`SQ01`</code> para um código. Quebra de linha no título vira quebra no slide. <code>Ctrl+Z</code> desfaz.';
+  tip.innerHTML='Use <code>*palavra*</code> para destacar com a cor do tema e <code>`SQ01`</code> para um código. Clique num texto do slide para editar ali mesmo (Enter confirma, Esc cancela). Arraste imagens do computador para o slide e as miniaturas para reordenar. <code>Ctrl+Z</code> desfaz.';
   pane.appendChild(tip);
 }
 function field(f,obj,id,onCh){

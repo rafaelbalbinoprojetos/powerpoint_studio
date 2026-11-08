@@ -168,3 +168,12 @@ textarea{resize:vertical;min-height:62px;line-height:1.45}
   *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
 .sheet .row{display:flex;gap:8px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap}
+
+/* edição direto no slide */
+#pv [data-f]{cursor:text}
+#pv [data-f]:hover{outline:5px dashed color-mix(in srgb,var(--ui-acc) 75%,transparent);outline-offset:12px;border-radius:8px}
+.inl{position:fixed;z-index:45;font:inherit;font-size:14px;line-height:1.45;padding:10px 12px;border-radius:10px;border:2px solid var(--ui-acc);background:var(--ui-panel);color:var(--ui-fg);box-shadow:0 18px 40px rgba(0,0,0,.35);resize:none;box-sizing:border-box}
+.pvbox.drop{outline:3px dashed var(--ui-acc);outline-offset:6px}
+.thumb.dragging{opacity:.4}
+.thumb.before{box-shadow:0 -4px 0 var(--ui-acc)}
+.thumb.after{box-shadow:0 4px 0 var(--ui-acc)}

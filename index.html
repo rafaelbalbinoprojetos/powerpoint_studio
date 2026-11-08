@@ -436,6 +436,15 @@ textarea{resize:vertical;min-height:62px;line-height:1.45}
   *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
 .sheet .row{display:flex;gap:8px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap}
+
+/* edição direto no slide */
+#pv [data-f]{cursor:text}
+#pv [data-f]:hover{outline:5px dashed color-mix(in srgb,var(--ui-acc) 75%,transparent);outline-offset:12px;border-radius:8px}
+.inl{position:fixed;z-index:45;font:inherit;font-size:14px;line-height:1.45;padding:10px 12px;border-radius:10px;border:2px solid var(--ui-acc);background:var(--ui-panel);color:var(--ui-fg);box-shadow:0 18px 40px rgba(0,0,0,.35);resize:none;box-sizing:border-box}
+.pvbox.drop{outline:3px dashed var(--ui-acc);outline-offset:6px}
+.thumb.dragging{opacity:.4}
+.thumb.before{box-shadow:0 -4px 0 var(--ui-acc)}
+.thumb.after{box-shadow:0 4px 0 var(--ui-acc)}
 </style>
 
 </head>
@@ -553,7 +562,7 @@ function styleVars(t){
 }
 
 /* ---------- blocos comuns ---------- */
-const head=(d,h='h2')=>`${d.kicker?`<div class="dk-kicker" data-a="left">${esc(d.kicker)}</div>`:''}${d.title?`<${h==='h1'?'h1':'h2'} class="dk-${h}" data-a="words">${rich(d.title)}</${h==='h1'?'h1':'h2'}>`:''}${d.lead?`<p class="dk-lead" data-a="up">${rich(d.lead)}</p>`:''}`;
+const head=(d,h='h2')=>`${d.kicker?`<div class="dk-kicker" data-a="left" data-f="kicker">${esc(d.kicker)}</div>`:''}${d.title?`<${h==='h1'?'h1':'h2'} class="dk-${h}" data-a="words" data-f="title">${rich(d.title)}</${h==='h1'?'h1':'h2'}>`:''}${d.lead?`<p class="dk-lead" data-a="up" data-f="lead">${rich(d.lead)}</p>`:''}`;
 const cols=n=>`grid-template-columns:repeat(${n},minmax(0,1fr))`;
 function parseNum(v){
   const s=String(v??'').trim(); if(!/^[\d.,]+$/.test(s)||!/\d/.test(s)) return null;
@@ -590,12 +599,12 @@ const TEMPLATES={
  cartoes:{name:'Cartões',desc:'De 2 a 4 blocos lado a lado, entrando em sequência',
   fields:[{k:'kicker',t:'text',l:'Rótulo'},{k:'title',t:'area',l:'Título'},{k:'lead',t:'area',l:'Subtítulo'},{k:'numbered',t:'bool',l:'Numerar cartões'},{k:'cards',t:'items',l:'Cartões',max:4,sub:[{k:'label',t:'text',l:'Rótulo'},{k:'title',t:'text',l:'Título'},{k:'text',t:'area',l:'Texto'}]}],
   sample:{kicker:'O desafio',title:'Três frentes para *organizar*',lead:'',numbered:false,cards:[{label:'Custos',title:'Valores claros',text:'Identificar o que precisa de análise.'},{label:'Materiais',title:'Sem duplicidade',text:'Enxergar faltas e repetições.'},{label:'Acompanhamento',title:'Visão comum',text:'Todas as áreas no mesmo painel.'}]},
-  render(d){ const c=arr(d.cards).slice(0,4); return `${head(d)}<div class="dk-grid" style="${cols(Math.max(1,c.length))}" data-a="cards">${c.map((x,i)=>`<div class="dk-card">${d.numbered?`<span class="dk-num">${String(i+1).padStart(2,'0')}</span>`:''}${x.label?`<span class="dk-ix">${esc(x.label)}</span>`:''}<h3>${rich(x.title)}</h3><p>${rich(x.text)}</p></div>`).join('')}</div>`; }},
+  render(d){ const c=arr(d.cards).slice(0,4); return `${head(d)}<div class="dk-grid" style="${cols(Math.max(1,c.length))}" data-a="cards">${c.map((x,i)=>`<div class="dk-card">${d.numbered?`<span class="dk-num">${String(i+1).padStart(2,'0')}</span>`:''}${x.label?`<span class="dk-ix" data-f="cards.${i}.label">${esc(x.label)}</span>`:''}<h3 data-f="cards.${i}.title">${rich(x.title)}</h3><p data-f="cards.${i}.text">${rich(x.text)}</p></div>`).join('')}</div>`; }},
  fluxo:{name:'Fluxo',desc:'Etapas conectadas por setas que se desenham, com nota de alerta opcional',
   fields:[{k:'kicker',t:'text',l:'Rótulo'},{k:'title',t:'area',l:'Título'},{k:'lead',t:'area',l:'Subtítulo'},{k:'steps',t:'items',l:'Etapas',max:5,sub:[{k:'tag',t:'text',l:'Rótulo'},{k:'title',t:'text',l:'Título'},{k:'text',t:'area',l:'Texto'},{k:'hot',t:'bool',l:'Destacar etapa'}]},{k:'noteTitle',t:'text',l:'Nota: destaque'},{k:'note',t:'area',l:'Nota: texto'}],
   sample:{kicker:'Papéis',title:'Como a informação *percorre*',steps:[{tag:'Origem',title:'Sistema A',text:'Fonte oficial dos dados.'},{tag:'Governança',title:'Nosso sistema',text:'Importa e analisa.',hot:true},{tag:'Gestão',title:'Decisão',text:'Apoio com contexto.'},{tag:'Histórico',title:'Registro',text:'Tudo rastreável.'}],noteTitle:'Atenção:',note:'decisões aqui não alteram o sistema de origem.'},
   render(d){ const s=arr(d.steps).slice(0,5); const tpl=s.map((_,i)=>i?'70px minmax(0,1fr)':'minmax(0,1fr)').join(' ');
-    return `${head(d)}<div class="dk-flow" style="grid-template-columns:${tpl}">${s.map((x,i)=>`${i?'<div class="dk-arrow" data-a="arrow"></div>':''}<div class="dk-node${x.hot?' hot':''}" data-a="node">${x.tag?`<span class="tag">${esc(x.tag)}</span>`:''}<b>${rich(x.title)}</b><p>${rich(x.text)}</p></div>`).join('')}</div>${d.note?`<div class="dk-note" data-a="up"><svg width="54" height="54" viewBox="0 0 54 54" fill="none" stroke="var(--alert)" stroke-width="3" style="flex:none"><path d="M27 5l24 42H3z"/><path d="M27 21v12M27 39v2"/></svg><p>${d.noteTitle?`<strong>${esc(d.noteTitle)}</strong> `:''}${rich(d.note)}</p></div>`:''}`; }},
+    return `${head(d)}<div class="dk-flow" style="grid-template-columns:${tpl}">${s.map((x,i)=>`${i?'<div class="dk-arrow" data-a="arrow"></div>':''}<div class="dk-node${x.hot?' hot':''}" data-a="node">${x.tag?`<span class="tag" data-f="steps.${i}.tag">${esc(x.tag)}</span>`:''}<b data-f="steps.${i}.title">${rich(x.title)}</b><p data-f="steps.${i}.text">${rich(x.text)}</p></div>`).join('')}</div>${d.note?`<div class="dk-note" data-a="up"><svg width="54" height="54" viewBox="0 0 54 54" fill="none" stroke="var(--alert)" stroke-width="3" style="flex:none"><path d="M27 5l24 42H3z"/><path d="M27 21v12M27 39v2"/></svg><p>${d.noteTitle?`<strong>${esc(d.noteTitle)}</strong> `:''}${rich(d.note)}</p></div>`:''}`; }},
  convergencia:{name:'Convergência',desc:'Fontes que fluem para um núcleo central com pulsos animados',
   fields:[{k:'kicker',t:'text',l:'Rótulo'},{k:'title',t:'area',l:'Título'},{k:'sources',t:'items',l:'Fontes',max:4,sub:[{k:'title',t:'text',l:'Título'},{k:'text',t:'area',l:'Texto'}]},{k:'core',t:'text',l:'Texto do núcleo (vazio = logo)'},{k:'checksTitle',t:'text',l:'Título da lista'},{k:'checks',t:'list',l:'Itens verificados'},{k:'statValue',t:'text',l:'Número'},{k:'statLabel',t:'text',l:'Legenda do número'}],
   sample:{kicker:'Fontes de dados',title:'Tudo em *uma visão comum*',sources:[{title:'Reservas',text:'Extração diária do `SAP`'},{title:'Estoque',text:'Saldo e dados de materiais'},{title:'Orçamento',text:'Budget por área e mês'}],core:'',checksTitle:'Qualidade da carga',checks:['Validação antes da gravação','Detecção de duplicidades'],statValue:'30',statLabel:'mil linhas por dia'},
@@ -613,12 +622,12 @@ const TEMPLATES={
   fields:[{k:'kicker',t:'text',l:'Rótulo'},{k:'title',t:'area',l:'Título'},{k:'lead',t:'area',l:'Subtítulo'},{k:'stats',t:'items',l:'Indicadores',max:4,sub:[{k:'label',t:'text',l:'Rótulo'},{k:'prefix',t:'text',l:'Prefixo (ex.: R$)'},{k:'value',t:'text',l:'Valor (ex.: 3.116.719,02)'},{k:'suffix',t:'text',l:'Sufixo (ex.: mil, %)'},{k:'text',t:'area',l:'Descrição'},{k:'badge',t:'text',l:'Selo (ex.: dado de 2023)'}]}],
   sample:{kicker:'Resultados',title:'O que *já mudou*',stats:[{label:'Economia',prefix:'R$',value:'1.250.000',suffix:'',text:'Valor evitado no período.',badge:''},{label:'Decisões',prefix:'',value:'832',suffix:'',text:'Reservas analisadas em três meses.',badge:'Recorte histórico'}]},
   render(d){ const s=arr(d.stats).slice(0,4), n=Math.max(1,s.length); const c=n===4?2:n; const fs=n===1?150:n===2?110:n===3?84:96;
-    return `${head(d)}<div class="dk-stats" style="${cols(c)}" data-a="cards">${s.map(x=>`<div class="dk-card dk-stat"><small>${esc(x.label)}</small><div class="v" style="font-size:${fs}px">${x.prefix?`<span>${esc(x.prefix)}</span>`:''}<b${countAttr(x.value)}>${esc(x.value)}</b>${x.suffix?`<span class="suf">${esc(x.suffix)}</span>`:''}</div><p>${rich(x.text)}</p>${x.badge?`<span class="dk-badge">${esc(x.badge)}</span>`:''}</div>`).join('')}</div>`; }},
+    return `${head(d)}<div class="dk-stats" style="${cols(c)}" data-a="cards">${s.map((x,i)=>`<div class="dk-card dk-stat"><small data-f="stats.${i}.label">${esc(x.label)}</small><div class="v" style="font-size:${fs}px">${x.prefix?`<span>${esc(x.prefix)}</span>`:''}<b${countAttr(x.value)}>${esc(x.value)}</b>${x.suffix?`<span class="suf">${esc(x.suffix)}</span>`:''}</div><p data-f="stats.${i}.text">${rich(x.text)}</p>${x.badge?`<span class="dk-badge">${esc(x.badge)}</span>`:''}</div>`).join('')}</div>`; }},
  agenda:{name:'Linha do tempo',desc:'Marcos ou rotinas numa linha que se desenha',
   fields:[{k:'kicker',t:'text',l:'Rótulo'},{k:'title',t:'area',l:'Título'},{k:'lead',t:'area',l:'Subtítulo'},{k:'events',t:'items',l:'Marcos',max:5,sub:[{k:'when',t:'text',l:'Quando'},{k:'title',t:'text',l:'Título'},{k:'text',t:'area',l:'Texto'}]}],
   sample:{kicker:'Rotina',title:'A informação chega a *quem acompanha*',events:[{when:'Diariamente',title:'Gerência',text:'Resumo do dia anterior.'},{when:'Toda segunda',title:'Aprovadores',text:'Itens dentro da alçada.'},{when:'Toda quarta',title:'Alto impacto',text:'Reunião de análise.'},{when:'Início do mês',title:'Pendências',text:'Itens parados há meses.'}]},
   render(d,t){ const e=arr(d.events).slice(0,5); const cs=[t.accent,t.ok,t.alert,t.bad,t.accent];
-    return `${head(d)}<div class="dk-tl" data-a="timeline"><div class="dk-tl-line"></div><div class="dk-tl-cols" style="${cols(Math.max(1,e.length))}">${e.map((x,i)=>`<div class="dk-ev" style="--c:${cs[i]}"><small>${esc(x.when)}</small><b>${rich(x.title)}</b><p>${rich(x.text)}</p></div>`).join('')}</div></div>`; }},
+    return `${head(d)}<div class="dk-tl" data-a="timeline"><div class="dk-tl-line"></div><div class="dk-tl-cols" style="${cols(Math.max(1,e.length))}">${e.map((x,i)=>`<div class="dk-ev" style="--c:${cs[i]}"><small data-f="events.${i}.when">${esc(x.when)}</small><b data-f="events.${i}.title">${rich(x.title)}</b><p data-f="events.${i}.text">${rich(x.text)}</p></div>`).join('')}</div></div>`; }},
  imagem:{name:'Imagem',desc:'Texto à esquerda e uma imagem grande em moldura',
   fields:[{k:'kicker',t:'text',l:'Rótulo'},{k:'title',t:'area',l:'Título'},{k:'lead',t:'area',l:'Texto'},{k:'bullets',t:'list',l:'Tópicos'},{k:'image',t:'image',l:'Imagem'}],
   sample:{kicker:'Na prática',title:'Como fica *no dia a dia*',lead:'Uma imagem vale pelo slide inteiro.',bullets:['Primeiro ponto','Segundo ponto'],image:''},
@@ -626,7 +635,7 @@ const TEMPLATES={
  encerramento:{name:'Encerramento',desc:'Benefícios, próximos passos e mensagem final com imagem',
   fields:[{k:'kicker',t:'text',l:'Rótulo'},{k:'title',t:'area',l:'Título'},{k:'bullets',t:'list',l:'Benefícios'},{k:'nextTitle',t:'text',l:'Próximos passos: título'},{k:'next',t:'list',l:'Próximos passos'},{k:'closing',t:'area',l:'Mensagem final'},{k:'showLogo',t:'bool',l:'Mostrar logo do tema'},{k:'image',t:'image',l:'Imagem (PNG transparente)'}],
   sample:{kicker:'Próximos passos',title:'Uma base clara para *decidir melhor*',bullets:['Mais visibilidade','Decisões justificadas','Rastreabilidade','Menos excessos'],nextTitle:'',next:[],closing:'Mensagem final que resume a apresentação.',showLogo:true,image:''},
-  render(d,t){ return `<div class="dk-l">${head(d)}${arr(d.bullets).length?`<div class="dk-bens" data-a="stagger">${arr(d.bullets).map(b=>`<div class="dk-ben"><i></i>${rich(b)}</div>`).join('')}</div>`:''}${arr(d.next).length?`<div data-a="up" style="margin-top:30px"><span class="dk-ix" style="color:var(--alert)">${esc(d.nextTitle||'Próximos passos')}</span><div class="dk-bens" style="margin-top:0">${arr(d.next).map(b=>`<div class="dk-ben" style="font-size:21px;padding:14px 20px"><i style="background:var(--alert);box-shadow:0 0 12px var(--alert)"></i>${rich(b)}</div>`).join('')}</div></div>`:''}${d.closing?`<p class="dk-closing" data-a="up">${rich(d.closing)}</p>`:''}</div>${d.showLogo&&t.logo?`<img class="dk-endlogo" src="${im(t.logo)}" alt="" data-a="logo">`:''}${d.image?`<img class="dk-hero" src="${im(d.image)}" alt="" data-a="hero" data-float>`:''}`; }}
+  render(d,t){ return `<div class="dk-l">${head(d)}${arr(d.bullets).length?`<div class="dk-bens" data-a="stagger">${arr(d.bullets).map((b,i)=>`<div class="dk-ben" data-f="bullets.${i}"><i></i>${rich(b)}</div>`).join('')}</div>`:''}${arr(d.next).length?`<div data-a="up" style="margin-top:30px"><span class="dk-ix" style="color:var(--alert)">${esc(d.nextTitle||'Próximos passos')}</span><div class="dk-bens" style="margin-top:0">${arr(d.next).map(b=>`<div class="dk-ben" style="font-size:21px;padding:14px 20px"><i style="background:var(--alert);box-shadow:0 0 12px var(--alert)"></i>${rich(b)}</div>`).join('')}</div></div>`:''}${d.closing?`<p class="dk-closing" data-a="up" data-f="closing">${rich(d.closing)}</p>`:''}</div>${d.showLogo&&t.logo?`<img class="dk-endlogo" src="${im(t.logo)}" alt="" data-a="logo">`:''}${d.image?`<img class="dk-hero" src="${im(d.image)}" alt="" data-a="hero" data-float>`:''}`; }}
 };
 
 /* ---------- modelos novos ---------- */
@@ -634,8 +643,8 @@ Object.assign(TEMPLATES,{
  comparacao:{name:'Comparação',desc:'Antes e depois (ou opção A × B) em duas colunas',
   fields:[{k:'kicker',t:'text',l:'Rótulo'},{k:'title',t:'area',l:'Título'},{k:'leftTitle',t:'text',l:'Coluna 1: título'},{k:'left',t:'list',l:'Coluna 1: itens'},{k:'rightTitle',t:'text',l:'Coluna 2: título'},{k:'right',t:'list',l:'Coluna 2: itens'}],
   sample:{kicker:'Antes e depois',title:'O que *muda* na rotina',leftTitle:'Hoje',left:['Planilhas soltas','Decisão sem histórico','Retrabalho mensal'],rightTitle:'Com o sistema',right:['Uma base única','Cada decisão justificada','Alertas automáticos']},
-  render(d){ const col=(ti,it,cls)=>`<div class="dk-card dk-cmp-col ${cls}"><span class="dk-ix">${esc(ti)}</span>${arr(it).map(x=>`<div class="dk-cmp-i"><i></i>${rich(x)}</div>`).join('')}</div>`;
-    return `${head(d)}<div class="dk-cmp" data-a="cards">${col(d.leftTitle,d.left,'a')}${col(d.rightTitle,d.right,'b')}</div>`; }},
+  render(d){ const col=(ti,it,cls,k)=>`<div class="dk-card dk-cmp-col ${cls}"><span class="dk-ix" data-f="${k}Title">${esc(ti)}</span>${arr(it).map((x,i)=>`<div class="dk-cmp-i" data-f="${k}.${i}"><i></i>${rich(x)}</div>`).join('')}</div>`;
+    return `${head(d)}<div class="dk-cmp" data-a="cards">${col(d.leftTitle,d.left,'a','left')}${col(d.rightTitle,d.right,'b','right')}</div>`; }},
  grafico:{name:'Gráfico',desc:'Barras que crescem com os valores informados',
   fields:[{k:'kicker',t:'text',l:'Rótulo'},{k:'title',t:'area',l:'Título'},{k:'lead',t:'area',l:'Subtítulo'},{k:'unit',t:'text',l:'Unidade (ex.: R$ mil, %)'},{k:'bars',t:'items',l:'Barras',max:8,sub:[{k:'label',t:'text',l:'Rótulo'},{k:'value',t:'text',l:'Valor'},{k:'hot',t:'bool',l:'Destacar barra'}]}],
   sample:{kicker:'Evolução',title:'Custo evitado *por trimestre*',lead:'',unit:'R$ mil',bars:[{label:'T1',value:'120'},{label:'T2',value:'210'},{label:'T3',value:'260'},{label:'T4',value:'410',hot:true}]},
@@ -644,7 +653,7 @@ Object.assign(TEMPLATES,{
  citacao:{name:'Citação',desc:'Uma frase marcante com autor e foto',
   fields:[{k:'quote',t:'area',l:'Citação'},{k:'author',t:'text',l:'Autor'},{k:'role',t:'text',l:'Cargo ou contexto'},{k:'image',t:'image',l:'Foto do autor (opcional)'}],
   sample:{quote:'Pela primeira vez, a gente *decide olhando o mesmo número*.',author:'Nome da pessoa',role:'Gerente de área',image:''},
-  render(d){ return `<div class="dk-quote"><div class="dk-qmark" data-a="logo">“</div><blockquote class="dk-h1" data-a="words">${rich(d.quote)}</blockquote><div class="dk-qby" data-a="up">${d.image?`<img src="${im(d.image)}" alt="">`:''}<div><b>${esc(d.author)}</b><small>${esc(d.role)}</small></div></div></div>`; }},
+  render(d){ return `<div class="dk-quote"><div class="dk-qmark" data-a="logo">“</div><blockquote class="dk-h1" data-a="words" data-f="quote">${rich(d.quote)}</blockquote><div class="dk-qby" data-a="up">${d.image?`<img src="${im(d.image)}" alt="">`:''}<div><b data-f="author">${esc(d.author)}</b><small data-f="role">${esc(d.role)}</small></div></div></div>`; }},
  equipe:{name:'Equipe',desc:'De 1 a 6 pessoas com foto, nome e papel',
   fields:[{k:'kicker',t:'text',l:'Rótulo'},{k:'title',t:'area',l:'Título'},{k:'people',t:'items',l:'Pessoas',max:6,sub:[{k:'name',t:'text',l:'Nome'},{k:'role',t:'text',l:'Papel'},{k:'photo',t:'image',l:'Foto'}]}],
   sample:{kicker:'Quem faz',title:'A *equipe* por trás',people:[{name:'Pessoa 1',role:'Coordenação',photo:''},{name:'Pessoa 2',role:'Dados',photo:''},{name:'Pessoa 3',role:'Desenvolvimento',photo:''}]},
@@ -690,7 +699,7 @@ const FX={
     const L=[...el.querySelectorAll('.dk-dl')], n=L.length, DZ=1400, caps=L.map(l=>l.querySelector('.cap')), end=el.parentNode.querySelector('.dk-dive-end');
     const o={z:-600};
     const apply=()=>L.forEach((l,i)=>{ const rel=o.z-i*DZ; const op=rel<=0?1:Math.max(0,1-rel/650);
-      l.style.opacity=op; l.style.visibility=op<=.01?'hidden':'visible'; l.style.transform=`translate3d(-50%,-50%,${rel}px)`;
+      l.style.opacity=op; l.style.visibility=op<=.01?'hidden':''; l.style.transform=`translate3d(-50%,-50%,${rel}px)`;
       l.style.filter=rel<-150?`brightness(${Math.max(.4,1+rel/2800).toFixed(3)})`:'none'; });
     apply(); caps.forEach(c=>c&&tl.set(c,{opacity:0},0)); if(end) tl.set(end,{opacity:0},0);
     tl.to(o,{z:0,duration:1.5,ease:'power3.out',onUpdate:apply},at);
@@ -1015,6 +1024,7 @@ function renderRail(){
   rail.innerHTML=d.slides.map((s,i)=>`<button class="thumb${i===sel?' sel':''}" data-i="${i}" aria-label="Slide ${i+1}: ${esc((T[s.t]||{}).name||s.t)}"><div class="tv"></div><div class="meta"><span>${String(i+1).padStart(2,'0')}</span><span>${s.notes?'<i class="has-notes" title="Tem notas do apresentador"></i>':''}${esc((T[s.t]||{}).name||s.t)}</span></div></button>`).join('')+`<button class="addslide" id="addSlide">+ Adicionar slide</button>`;
   rail.querySelectorAll('.thumb').forEach(b=>{ const i=+b.dataset.i; thumbCleanup.set(i,D.renderStatic(b.querySelector('.tv'),d,i)); b.onclick=()=>select(i); });
   $('#addSlide').onclick=()=>gallery('add');
+  railDrag();
 }
 function refreshThumb(i){
   const b=$('#rail').querySelector(`.thumb[data-i="${i}"] .tv`); if(!b) return;
@@ -1032,12 +1042,82 @@ let pvT=null;
 /* edição ao vivo: troca só o slide editado na prévia */
 function liveEdit(){ touch(); clearTimeout(pvT); pvT=setTimeout(()=>{ if(player&&player.count===deck().slides.length) player.update(sel,deck()); else renderPreview(false); refreshThumb(sel); },200); }
 function select(i){
+  if(inl) closeInline(true);
   const d=deck(); if(i<0||i>=d.slides.length) return;
   const dir=i>sel?1:-1; sel=i;
   $('#rail').querySelectorAll('.thumb').forEach(b=>b.classList.toggle('sel',+b.dataset.i===i));
   const b=$('#rail').querySelector(`.thumb[data-i="${i}"]`); if(b) b.scrollIntoView({block:'nearest',inline:'nearest',behavior:'smooth'});
   if(player) player.go(i,dir); $('#pvN').textContent=(i+1)+' / '+d.slides.length;
   if(tab==='content') renderPane();
+}
+
+/* ---------- edição direto no slide ---------- */
+const getPath=(o,p)=>p.split('.').reduce((a,k)=>a==null?a:a[k],o);
+function setPath(o,p,v){ const ks=p.split('.'); let a=o; for(let i=0;i<ks.length-1;i++){ if(a[ks[i]]==null) a[ks[i]]=/^\d+$/.test(ks[i+1])?[]:{}; a=a[ks[i]]; } a[ks[ks.length-1]]=v; }
+let inl=null;
+function inlineEdit(el){
+  const s=deck().slides[sel]; if(!s) return; const path=el.dataset.f; const orig=getPath(s.d,path);
+  if(typeof orig!=='string'&&orig!=null) return;
+  closeInline(true);
+  const r=el.getBoundingClientRect(), pv=$('#pv').getBoundingClientRect();
+  const ta=document.createElement('textarea'); ta.className='inl'; ta.value=orig||''; ta.setAttribute('aria-label','Editar texto do slide');
+  const w=Math.min(Math.max(r.width+24,260),pv.width-16);
+  ta.style.left=Math.max(pv.left+8,Math.min(r.left-12,pv.right-w-8))+'px'; ta.style.top=Math.max(8,r.top-10)+'px'; ta.style.width=w+'px';
+  document.body.appendChild(ta);
+  const fit=()=>{ ta.style.height='auto'; ta.style.height=Math.min(ta.scrollHeight+2,320)+'px'; };
+  fit(); ta.focus(); ta.select();
+  inl={ta,path,orig,slide:s};
+  ta.oninput=()=>{ setPath(s.d,path,ta.value); fit(); liveEdit(); };
+  ta.onkeydown=e=>{ if(e.key==='Escape'){ e.preventDefault(); e.stopPropagation(); closeInline(false); } else if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); closeInline(true); } };
+  ta.onblur=()=>setTimeout(()=>{ if(inl&&inl.ta===ta) closeInline(true); },0);
+}
+function closeInline(keep){
+  if(!inl) return; const {ta,path,orig,slide}=inl; inl=null; ta.remove();
+  if(!keep){ setPath(slide.d,path,orig??''); liveEdit(); }
+  if(tab==='content') renderPane();
+}
+$('#pv').addEventListener('click',e=>{ const el=e.target.closest('[data-f]'); if(el&&$('#pv').contains(el)){ e.preventDefault(); inlineEdit(el); } });
+
+/* soltar imagens do computador direto no slide */
+async function readImage(file){
+  if(assets){ try{ const r=await assets.upload(file); return 'asset:'+r.id; }catch(err){ /* cai para o modo local */ } }
+  return shrink(file,1400,.82);
+}
+async function dropImages(files){
+  const s=deck().slides[sel]; if(!s) return; const tpl=T[s.t]; if(!tpl) return;
+  const imgs=[...files].filter(f=>/^image\//.test(f.type)); if(!imgs.length) return;
+  setStatus('Enviando imagem…'); let placed=0;
+  const top=tpl.fields.filter(f=>f.t==='image'), list=tpl.fields.find(f=>f.t==='items'&&f.sub.some(x=>x.t==='image'));
+  for(const file of imgs){
+    let val; try{ val=await readImage(file); }catch(_){ continue; }
+    const emptyTop=top.find(f=>!s.d[f.k]);
+    if(list){ const sub=list.sub.find(x=>x.t==='image'), arr=s.d[list.k]=s.d[list.k]||[]; const slot=arr.find(it=>!it[sub.k]);
+      if(slot){ slot[sub.k]=val; placed++; continue; }
+      if(arr.length<(list.max||6)){ const n={}; list.sub.forEach(x=>n[x.k]=x.t==='bool'?false:''); n[sub.k]=val; arr.push(n); placed++; continue; } }
+    const f=emptyTop||top[0]; if(f){ s.d[f.k]=val; placed++; }
+  }
+  if(placed){ touch(); renderPreview(false); refreshThumb(sel); renderPane(); setStatus(placed===1?'Imagem colocada no slide':placed+' imagens colocadas',true); }
+  else setStatus('Este modelo não tem lugar para imagem');
+}
+const pvBox=$('#pv');
+pvBox.addEventListener('dragover',e=>{ if([...e.dataTransfer.types].includes('Files')){ e.preventDefault(); pvBox.classList.add('drop'); } });
+pvBox.addEventListener('dragleave',e=>{ if(e.target===pvBox||!pvBox.contains(e.relatedTarget)) pvBox.classList.remove('drop'); });
+pvBox.addEventListener('drop',e=>{ e.preventDefault(); pvBox.classList.remove('drop'); if(e.dataTransfer.files.length) dropImages(e.dataTransfer.files); });
+
+/* arrastar miniaturas para reordenar */
+function moveSlide(from,to){
+  const s=deck().slides; if(from===to||from<0||to<0||from>=s.length||to>s.length) return;
+  const [it]=s.splice(from,1); if(to>from) to--; s.splice(to,0,it); sel=to; touch(); renderRail(); renderPreview(false); renderPane();
+}
+function railDrag(){
+  let from=null; const rail=$('#rail');
+  rail.querySelectorAll('.thumb').forEach(b=>{
+    b.draggable=true;
+    b.ondragstart=e=>{ from=+b.dataset.i; b.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; try{ e.dataTransfer.setData('text/plain',String(from)); }catch(_){} };
+    b.ondragend=()=>{ from=null; rail.querySelectorAll('.thumb').forEach(x=>x.classList.remove('dragging','before','after')); };
+    b.ondragover=e=>{ if(from==null) return; e.preventDefault(); const r=b.getBoundingClientRect(), after=e.clientY>r.top+r.height/2; rail.querySelectorAll('.thumb').forEach(x=>x.classList.remove('before','after')); b.classList.add(after?'after':'before'); };
+    b.ondrop=e=>{ if(from==null) return; e.preventDefault(); const r=b.getBoundingClientRect(), i=+b.dataset.i; moveSlide(from,e.clientY>r.top+r.height/2?i+1:i); };
+  });
 }
 
 /* ---------- inspetor ---------- */
@@ -1070,7 +1150,7 @@ function renderPane(){
   $('#o-dur').oninput=e=>{ const v=parseFloat(e.target.value); if(v>0) s.dur=v; else delete s.dur; touch(); };
   $('#o-notes').oninput=e=>{ s.notes=e.target.value; if(!s.notes) delete s.notes; touch(); };
   const tip=document.createElement('p'); tip.className='tip';
-  tip.innerHTML='Use <code>*palavra*</code> para destacar com a cor do tema e <code>`SQ01`</code> para um código. Quebra de linha no título vira quebra no slide. <code>Ctrl+Z</code> desfaz.';
+  tip.innerHTML='Use <code>*palavra*</code> para destacar com a cor do tema e <code>`SQ01`</code> para um código. Clique num texto do slide para editar ali mesmo (Enter confirma, Esc cancela). Arraste imagens do computador para o slide e as miniaturas para reordenar. <code>Ctrl+Z</code> desfaz.';
   pane.appendChild(tip);
 }
 function field(f,obj,id,onCh){
