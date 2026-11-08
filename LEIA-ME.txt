@@ -143,3 +143,7 @@ aparece "Layout" no topo da aba Conteúdo, com miniaturas: o mesmo texto em
 arranjos diferentes (título ao lado, lista, primeiro em destaque, números
 gigantes, versus, fluxo vertical, centralizado...). Um clique troca, nada do
 conteúdo é perdido.
+
+FUNDOS DE PARTÍCULAS
+Aba Tema > Fundo animado ganhou: Poeira estelar 3D, Galáxia de partículas,
+Vaga-lumes e Fluxo de partículas. Usam as cores do tema.

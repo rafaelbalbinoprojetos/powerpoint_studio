@@ -869,7 +869,7 @@ const PRESETS={
 const SHAPES={round:'Arredondados',soft:'Suaves',sharp:'Retos'};
 const CARDS={vidro:'Vidro',solido:'Sólido',contorno:'Contorno'};
 const FONTS=['Lexend','Manrope','Sora','Outfit','Plus Jakarta Sans','DM Sans','Inter','Space Grotesk','Archivo','Bricolage Grotesque','Fraunces','Playfair Display','Space Mono','IBM Plex Sans','Rubik','Montserrat','Poppins'];
-const BACKGROUNDS={fibras:'Fibras de dados',grade:'Grade em perspectiva',particulas:'Constelação',aurora:'Aurora',malha:'Malha de cor',topografia:'Topografia',pontos:'Pontos em onda',luz:'Feixes de luz',bokeh:'Bokeh',liso:'Liso com brilho'};
+const BACKGROUNDS={fibras:'Fibras de dados',grade:'Grade em perspectiva',particulas:'Constelação',poeira:'Poeira estelar 3D',galaxia:'Galáxia de partículas',vagalumes:'Vaga-lumes',fluxo:'Fluxo de partículas',aurora:'Aurora',malha:'Malha de cor',topografia:'Topografia',pontos:'Pontos em onda',luz:'Feixes de luz',bokeh:'Bokeh',liso:'Liso com brilho'};
 const fontsLoaded=new Set();
 function ensureFonts(list, doc=document){
   const need=[...new Set([...list,'JetBrains Mono'])].filter(f=>f&&!fontsLoaded.has(f));
@@ -1544,7 +1544,15 @@ function background(cv,t,reduce){
   const col=(c,al)=>`rgba(${c[0]},${c[1]},${c[2]},${al})`;
   const lo=['malha','aurora'].includes(kind)?document.createElement('canvas'):null, lx=lo&&lo.getContext('2d'); // desenha em baixa resolução e amplia: desfoque natural e barato
   const bok=[...Array(26)].map((_,i)=>({x:Math.random(),y:Math.random(),r:Math.random()*.08+.025,s:Math.random()*.015+.004,p:Math.random()*6,c:PAL[i%3],o:Math.random()*.5+.35}));
-  function size(){ const r=cv.getBoundingClientRect(); dpr=Math.min(devicePixelRatio||1,1.5); W=cv.width=Math.max(2,r.width*dpr); H=cv.height=Math.max(2,r.height*dpr); if(lo){ lo.width=Math.max(2,Math.round(W/8)); lo.height=Math.max(2,Math.round(H/8)); } }
+  /* partículas: cada fundo cria só o que usa */
+  const R=Math.random;
+  const stars=kind==='poeira'?[...Array(700)].map(()=>({x:R()*2-1,y:R()*2-1,z:R(),c:PAL[R()<.7?0:R()<.5?1:2],tw:R()*6})):null;
+  const gal=kind==='galaxia'?[...Array(3000)].map((_,i)=>{ const arm=i%3, d=Math.pow(R(),.7), sp=(R()-.5)*(1.1-d*.5)*(R()<.3?2:1); return {d,a:arm*2.094+d*5.2+sp,h:(R()-.5)*.09*(1-d*.7),r:R()*1.7+.4,c:d<.18?b2:PAL[arm===2?2:0],tw:R()*6}; }):null;
+  const fly=kind==='vagalumes'?[...Array(60)].map(()=>({x:R(),y:R(),s:R()*.02+.008,p:R()*6,r:R()*2.4+1.2,c:PAL[R()<.6?1:R()<.5?0:2]})):null;
+  const flow=kind==='fluxo'?[...Array(1100)].map(()=>({x:R(),y:R(),l:R()*200,c:PAL[R()<.6?0:R()<.5?1:2]})):null;
+  const tr=flow?document.createElement('canvas'):null, tx=tr&&tr.getContext('2d');
+  const noise=(x,y,t)=>Math.sin(x*1.7+t*.21)*Math.cos(y*2.3-t*.17)+Math.sin((x+y)*1.1+t*.13)*.6+Math.cos(x*3.1-y*1.3+t*.09)*.35;
+  function size(){ const r=cv.getBoundingClientRect(); dpr=Math.min(devicePixelRatio||1,1.5); W=cv.width=Math.max(2,r.width*dpr); H=cv.height=Math.max(2,r.height*dpr); if(lo){ lo.width=Math.max(2,Math.round(W/8)); lo.height=Math.max(2,Math.round(H/8)); } if(tr){ tr.width=W; tr.height=H; } }
   const ro=new ResizeObserver(size); ro.observe(cv); size();
   function draw(now){
     if(!alive) return; const tt=(now-t0)/1000;
@@ -1590,6 +1598,32 @@ function background(cv,t,reduce){
       for(let k=0;k<6;k++){ const ang=.5+k*.14+Math.sin(tt*.15+k*1.7)*.05, wd=.03+.018*Math.sin(tt*.3+k*2);
         const gg=cx.createLinearGradient(ox,oy,ox+Math.cos(ang)*len*.8,oy+Math.sin(ang)*len*.8); gg.addColorStop(0,rgba(light?.13:.2)); gg.addColorStop(1,rgba(0));
         cx.fillStyle=gg; cx.beginPath(); cx.moveTo(ox,oy); cx.lineTo(ox+Math.cos(ang-wd)*len,oy+Math.sin(ang-wd)*len); cx.lineTo(ox+Math.cos(ang+wd)*len,oy+Math.sin(ang+wd)*len); cx.closePath(); cx.fill(); }
+    } else if(kind==='poeira'){ // estrelas em profundidade vindo na direção da câmera
+      const fx=W*(.5-cam.x*.01), fy=H*.5, F=Math.max(W,H)*.55, v=reduce?0:.011*cam.amp;
+      stars.forEach(st=>{ st.z-=v/60; if(st.z<=.02){ st.z=1; st.x=R()*2-1; st.y=R()*2-1; }
+        const k=1/st.z, x=fx+st.x*F*k*.5, y=fy+st.y*F*k*.5; if(x<-20||x>W+20||y<-20||y>H+20){ st.z=1; return; }
+        const near=1-st.z, r=(.3+near*near*2.6)*dpr, o=Math.min(1,near*1.6)*(.55+.45*Math.sin(tt*2+st.tw));
+        const k2=1/(st.z+v*.9), x2=fx+st.x*F*k2*.5, y2=fy+st.y*F*k2*.5;
+        cx.strokeStyle=col(st.c,o*(light?.5:.8)); cx.lineWidth=r; cx.lineCap='round'; cx.beginPath(); cx.moveTo(x,y); cx.lineTo(x2+(x2-x)*.4,y2+(y2-y)*.4); cx.stroke(); });
+    } else if(kind==='galaxia'){ // espiral girando, inclinada, à direita
+      const gx=W*(.68+cam.x*.01), gy=H*.5, S=Math.min(W,H)*.62, rot=tt*.05, tilt=.42;
+      const core=cx.createRadialGradient(gx,gy,0,gx,gy,S*.32); core.addColorStop(0,col(b2,light?.18:.32)); core.addColorStop(1,col(b2,0)); cx.fillStyle=core; cx.fillRect(0,0,W,H);
+      gal.forEach(q=>{ const an=q.a+rot*(1.4-q.d), rr=q.d*S, x=gx+Math.cos(an)*rr, y=gy+Math.sin(an)*rr*tilt+q.h*S;
+        const o=(1-q.d*.6)*(.5+.5*Math.sin(tt*1.5+q.tw))*(light?.55:.85); cx.fillStyle=col(q.c,o); cx.fillRect(x,y,q.r*dpr,q.r*dpr); });
+    } else if(kind==='vagalumes'){ // luzes que sobem, piscam e brilham
+      fly.forEach(f=>{ const x=((f.x+Math.sin(tt*f.s*9+f.p)*.035+cam.x*.02)%1+1)%1*W, y=((f.y-tt*f.s*.5)%1+1)%1*H;
+        const pulse=Math.max(0,Math.sin(tt*(.8+f.s*20)+f.p)); const o=pulse*pulse*(light?.5:.9), r=f.r*dpr*(1+pulse*.4);
+        const gg=cx.createRadialGradient(x,y,0,x,y,r*7); gg.addColorStop(0,col(f.c,o*.55)); gg.addColorStop(1,col(f.c,0)); cx.fillStyle=gg; cx.beginPath(); cx.arc(x,y,r*7,0,6.2832); cx.fill();
+        cx.fillStyle=light?col(f.c,o):`rgba(255,255,240,${o})`; cx.beginPath(); cx.arc(x,y,r*.7,0,6.2832); cx.fill(); });
+    } else if(kind==='fluxo'){ // partículas seguindo correntes, com rastro
+      tx.globalCompositeOperation='destination-out'; tx.fillStyle='rgba(0,0,0,.075)'; tx.fillRect(0,0,W,H);
+      tx.globalCompositeOperation=light?'source-over':'lighter'; tx.lineWidth=1.1*dpr;
+      const sp=(reduce?0:1.4)*dpr*cam.amp;
+      flow.forEach(f=>{ const px=f.x*W, py=f.y*H, an=noise(f.x*2.2,f.y*2.2,tt)*2.4+cam.x*.2;
+        f.x+=Math.cos(an)*sp/W; f.y+=Math.sin(an)*sp/H; f.l-=1;
+        if(f.l<0||f.x<0||f.x>1||f.y<0||f.y>1){ f.x=R(); f.y=R(); f.l=120+R()*160; return; }
+        tx.strokeStyle=col(f.c,light?.14:.2); tx.beginPath(); tx.moveTo(px,py); tx.lineTo(f.x*W,f.y*H); tx.stroke(); });
+      cx.drawImage(tr,0,0);
     } else if(kind==='bokeh'){ // luzes desfocadas flutuando
       bok.forEach(b=>{ const x=((b.x+Math.sin(tt*b.s*4+b.p)*.04+cam.x*.03)%1+1)%1*W, y=((b.y-tt*b.s*.6)%1+1)%1*H, r=b.r*Math.max(W,H)*(1+.1*Math.sin(tt+b.p));
         const o=b.o*(light?.3:.45)*(.7+.3*Math.sin(tt*.7+b.p)); const gg=cx.createRadialGradient(x,y,r*.5,x,y,r);
