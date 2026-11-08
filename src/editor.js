@@ -372,7 +372,7 @@ function gallery(kind){
 }
 $('#deckMenu').onclick=()=>{
   const m=modal(`<h3>Apresentações</h3><p class="sub">${mode==='db'?'Salvas na sua conta, disponíveis em qualquer aparelho.':'Salvas só neste navegador.'}</p><div class="menu">
-  <button class="btn" data-a="new">+ Nova apresentação</button><button class="btn" data-a="vitrine">Começar de uma apresentação pronta</button><button class="btn" data-a="script">Criar a partir de um roteiro (texto)</button><button class="btn" data-a="dup">Duplicar esta apresentação</button>
+  <button class="btn" data-a="new">+ Nova apresentação</button><button class="btn" data-a="vitrine">Começar de uma apresentação pronta</button><button class="btn" data-a="texto">Criar a partir de um texto corrido (relatório, e-mail, ata)</button><button class="btn" data-a="script">Criar a partir de um roteiro (texto)</button><button class="btn" data-a="dup">Duplicar esta apresentação</button>
   <div class="sec">Qualidade</div><button class="btn" data-a="review">Revisar apresentação (nota de qualidade)</button>
   <div class="sec">Apresentar</div><button class="btn" data-a="ensaio">Ensaiar com cronômetro (tempo por slide e relatório)</button><button class="btn" data-a="stage">Modo palco (tela de espera com contagem regressiva)</button>
   <div class="sec">Exportar</div><button class="btn" data-a="pdf">Salvar em PDF (um slide por página)</button><button class="btn" data-a="rec">Gravar vídeo (narração, trilha, horizontal ou vertical)</button>
@@ -387,7 +387,7 @@ $('#deckMenu').onclick=()=>{
     }catch(e){ setStatus('Arquivo de backup inválido'); } };
     inp.click(); });
   on('new',()=>{ const id=uid(); decks[id]=starter(); curId=id; sel=0; touch(); renderAll(); });
-  on('script',scriptDialog);
+  on('script',()=>scriptDialog()); on('texto',textDialog);
   on('vitrine',showcaseDialog);
   on('pdf',exportPDF);
   on('rec',recordVideo);
@@ -415,14 +415,14 @@ Nota: lembrar de citar o caso de março.
 # Obrigado!
 - Mais visibilidade
 - Decisões justificadas`;
-function scriptDialog(){
+function scriptDialog(init){
   const m=modal(`<h3>Criar a partir de um roteiro</h3><p class="sub">Cada <code>#</code> começa um slide. O modelo é escolhido sozinho, ou force com <code>{cartoes}</code>, <code>{fluxo}</code>, <code>{numeros}</code>… <code>[Rótulo]</code> vira o rótulo, <code>- item</code> vira tópico (use <code>Título: texto</code> para cartões e números) e <code>Nota:</code> vai para as notas do apresentador.</p>
   <textarea id="scr" rows="16" style="width:100%;font-family:var(--ui-m);font-size:12px" placeholder="${esc(SCRIPT_HELP)}"></textarea>
   <p class="hint">Modelos: ${Object.entries(T).map(([k,t])=>`<code>${k}</code> (${esc(t.name)})`).join(', ')}</p>
   <div class="row"><button class="btn" data-c>Cancelar</button><button class="btn" data-add>Adicionar ao final desta</button><button class="btn pri" data-new>Criar nova apresentação</button></div>`);
-  const ta=m.el.querySelector('#scr'); ta.focus();
+  const ta=m.el.querySelector('#scr'); if(init) ta.value=init; ta.focus();
   m.el.querySelector('[data-c]').onclick=m.close;
-  const run=asNew=>{ const slides=parseScript(ta.value||''); if(!slides.length){ ta.value=ta.value||SCRIPT_HELP; return; }
+  const run=asNew=>{ const slides=varyLayouts(parseScript(ta.value||'')); if(!slides.length){ ta.value=ta.value||SCRIPT_HELP; return; }
     m.close();
     if(asNew){ const id=uid(); const title=String(slides[0].d.title||'Nova apresentação').replace(/[*`\n]/g,' ').trim(); decks[id]={name:title,theme:clone(deck().theme||{preset:'eletrico'}),footerText:'',updatedAt:Date.now(),slides}; curId=id; sel=0; }
     else { const d=deck(); d.slides.push(...slides.map(s=>s.t==='capa'?Object.assign(s,{t:'destaque',d:D.fillDefaults({t:'destaque',d:{kicker:s.d.kicker,title:s.d.title,lead:s.d.lead}}).d}):s)); sel=d.slides.length-slides.length; }
@@ -444,6 +444,75 @@ function showcaseDialog(){
   const build=buildShowcase;
   m.el.querySelectorAll('.gcard').forEach(c=>{ const x=SHOWCASES[+c.dataset.v], dk=build(x); D.renderStatic(c.querySelector('.tv'),dk,dk.slides.findIndex(s=>s.t==='onepage')>0?1:0);
     c.onclick=()=>{ m.close(); const id=uid(); decks[id]=build(x); curId=id; sel=0; touch(); renderAll(); setStatus('“'+x.name+'” criada',true); }; });
+}
+/* ---------- texto corrido vira apresentação (sem IA: regras locais) ---------- */
+const NUM_RE=/(R\$\s*)?\d[\d.,]*\s*(%|mil\b|milhões|milhão|mi\b|bi\b|bilhões|x\b|vezes)?/i;
+function varyLayouts(slides){
+  const L=D.LAYOUTS||{}; let prev=null, k=0;
+  slides.forEach(s=>{ const opts=L[s.t]?Object.keys(L[s.t]):null;
+    if(opts&&prev&&prev.t===s.t){ k=(k+1)%opts.length; if(opts[k]) s.lay=opts[k]; else delete s.lay; }
+    else k=opts?Math.max(0,opts.indexOf(s.lay||'')):0;
+    prev=s; });
+  return slides;
+}
+function textToScript(txt){
+  const clean=String(txt||'').replace(/\r/g,'').replace(/[ \t]+/g,' ').trim(); if(!clean) return '';
+  const sentences=t=>(t.match(/(?:[^.!?;]|[.,](?=\d))+[.!?;]?/g)||[]).map(x=>x.trim()).filter(x=>x.length>2);
+  const words=t=>t.split(/\s+/).filter(Boolean).length;
+  const shorten=(t,n)=>{ const w=t.replace(/[.:;!?]+$/,'').split(/\s+/); return w.length<=n?w.join(' '):w.slice(0,n).join(' ')+'…'; };
+  const accent=t=>{ const w=t.split(' '); if(w.length<3||/\*/.test(t)) return t; const n=w.length>6?3:2; return w.slice(0,-n).join(' ')+' *'+w.slice(-n).join(' ')+'*'; };
+  const isHead=l=>/^#{1,3}\s/.test(l)||(/:$/.test(l)&&words(l)<=10)||(words(l)<=10&&!/[.;,!?]$/.test(l)&&l.length<80&&!/^[-*•\d]/.test(l))||(l===l.toUpperCase()&&/[A-ZÁÉÍÓÚÇ]{3}/.test(l)&&words(l)<=10);
+  const lines=clean.split('\n').map(l=>l.trim());
+  /* blocos: um título (se houver) + parágrafos e tópicos até o próximo título */
+  const blocks=[]; let cur=null, para=[];
+  const flush=()=>{ if(para.length){ (cur||(cur={head:'',items:[],paras:[]},blocks.push(cur),cur)).paras.push(para.join(' ')); para=[]; } };
+  lines.forEach(l=>{ if(!l){ flush(); return; }
+    if(/^([-*•]|\d+[.)])\s+/.test(l)){ flush(); if(!cur){ cur={head:'',items:[],paras:[]}; blocks.push(cur); } cur.items.push(l.replace(/^([-*•]|\d+[.)])\s+/,'')); return; }
+    if(isHead(l)){ flush(); cur={head:l.replace(/^#+\s*/,'').replace(/:$/,''),items:[],paras:[]}; blocks.push(cur); return; }
+    para.push(l); });
+  flush();
+  /* sem títulos: cada parágrafo vira um bloco */
+  const out=[]; let docTitle='';
+  if(blocks.length===1&&!blocks[0].head&&blocks[0].paras.length>1){ const b=blocks[0]; blocks.length=0; b.paras.forEach(pp=>blocks.push({head:'',items:b.items.splice(0),paras:[pp]})); }
+  if(blocks[0]&&blocks[0].head&&!blocks[0].items.length&&blocks[0].paras.length<=1){ docTitle=blocks[0].head; const sub=blocks[0].paras[0]||''; blocks.shift(); out.push('# '+accent(docTitle)); if(sub) out.push(shorten(sentences(sub)[0]||sub,22)); if(sub) out.push('Nota: '+sub); }
+  else { const first=blocks[0]&&(blocks[0].head||sentences(blocks[0].paras[0]||'')[0]||''); docTitle=shorten(first||'Apresentação',8); out.push('# '+accent(docTitle)); }
+  const seq=/\b(primeir[oa]|segund[oa]|terceir[oa]|depois|em seguida|por fim|finalmente|etapa|fase|passo)\b/i;
+  blocks.forEach((b,bi)=>{
+    const text=b.paras.join(' '), ss=sentences(text);
+    let title=b.head||shorten(ss[0]||'',9); if(!b.head) ss.shift();
+    const items=b.items.slice();
+    /* frases com números viram indicadores "37%: texto" */
+    const numS=ss.filter(x=>NUM_RE.test(x)&&/\d/.test(x));
+    out.push('');
+    if(!items.length&&numS.length>=2&&numS.length<=4){
+      out.push('# '+accent(title)+' {numeros}');
+      numS.forEach(x=>{ const m=x.match(/(R\$\s*)?\d[\d.,]*(?:\s*(%|mil\b|milhões|milhão|bi\b|x\b))?(?:\s+([a-zà-ú]{3,}))?/i); const stop=/^(de|do|da|em|no|na|por|para|com|que|e|ou)$/i; const unit=!m[2]&&m[3]&&!stop.test(m[3])?' '+m[3]:''; out.push('- '+(m[1]||'')+m[0].replace(m[1]||'','').replace(m[3]?new RegExp('\\s+'+m[3]+'$'):/$^/,'').trim()+unit+': '+shorten(x,16)); });
+    } else if(!items.length&&ss.filter(x=>seq.test(x)).length>=2){
+      out.push('# '+accent(title)+' {fluxo}');
+      ss.slice(0,5).forEach(x=>out.push('- '+shorten(x.replace(seq,'').replace(/^[\s,]+/,''),6)+': '+shorten(x,12)+' ->'));
+    } else if(items.length||ss.length>=3){
+      const its=items.length?items:ss.slice(0,4);
+      out.push('# '+accent(title));
+      its.slice(0,6).forEach(x=>{ const m=/^(.{3,40}?)\s*[:–—]\s*(.+)$/.exec(x); out.push('- '+(m?m[1]+': '+shorten(m[2],16):shorten(x,4)+': '+shorten(x,16))); });
+    } else {
+      out.push('# '+accent(title));
+      if(ss[0]) out.push(shorten(ss.join(' '),26));
+    }
+    if(text) out.push('Nota: '+text);
+  });
+  return out.join('\n');
+}
+function textDialog(){
+  const m=modal(`<h3>Criar a partir de um texto corrido</h3><p class="sub">Cole um relatório, e-mail, ata ou artigo. O sistema separa em slides, escolhe o modelo de cada um (números, fluxo, cartões…), varia os layouts e coloca o texto completo nas notas do apresentador. Funciona sem internet e sem IA.</p>
+  <textarea id="tx" rows="14" style="width:100%" placeholder="Cole aqui o seu texto. Títulos curtos em linhas separadas viram slides; frases com números viram indicadores; frases com primeiro, depois, por fim viram fluxo."></textarea>
+  <p class="hint" id="txInfo">&nbsp;</p>
+  <div class="row"><button class="btn" data-c>Cancelar</button><button class="btn" data-edit>Ver e ajustar o roteiro</button><button class="btn pri" data-ok>Criar apresentação</button></div>`);
+  const ta=m.el.querySelector('#tx'), info=m.el.querySelector('#txInfo'); ta.focus();
+  ta.oninput=()=>{ const sc=textToScript(ta.value); const n=sc?parseScript(sc).length:0; info.textContent=n?n+' slides serão criados':' '; };
+  m.el.querySelector('[data-c]').onclick=m.close;
+  m.el.querySelector('[data-edit]').onclick=()=>{ const sc=textToScript(ta.value); if(!sc) return ta.focus(); m.close(); scriptDialog(sc); };
+  m.el.querySelector('[data-ok]').onclick=()=>{ const sc=textToScript(ta.value); if(!sc) return ta.focus(); const slides=varyLayouts(parseScript(sc)); m.close();
+    const id=uid(); const title=String(slides[0].d.title||'Nova apresentação').replace(/[*`\n]/g,' ').replace(/\s+/g,' ').trim(); decks[id]={name:title,theme:clone(deck().theme||{preset:'eletrico'}),footerText:title,updatedAt:Date.now(),slides}; curId=id; sel=0; touch(); renderAll(); setStatus(slides.length+' slides criados a partir do texto',true); };
 }
 function parseScript(txt){
   const out=[]; let cur=null; const blank=title=>({title,tpl:null,kicker:'',lead:[],bullets:[],notes:[]});
@@ -567,7 +636,7 @@ async function brandKit(src,light){
 
 /* ---------- revisão de qualidade ---------- */
 function review(d){
-  const out=[], add=(sev,i,msg,fix)=>out.push({sev,i,msg,fix}), th=D.themeOf(d);
+  const out=[], add=(sev,i,msg,fix,x)=>out.push(Object.assign({sev,i,msg,fix},x||{})), th=D.themeOf(d), arr0=v=>Array.isArray(v)?v:[];
   [['text','Texto',4.5],['title','Títulos',4.5],['muted','Texto suave',3],['accent','Destaque',3]].forEach(([k,l,min])=>{ if(!/^#[0-9a-f]{3,6}$/i.test(th[k]||'')||!/^#[0-9a-f]{3,6}$/i.test(th.bg||'')) return; const r=contrast(th[k],th.bg); if(r<min) add(r<min*.7?3:2,-1,'Contraste baixo: “'+l+'” sobre o fundo ('+r.toFixed(1)+':1; o recomendado é '+min+':1).','Ajuste as cores no painel Tema.'); });
   const SKIP=['image','src','video','link','icon','shape','style','lat','lon','go'];
   const strs=o=>typeof o==='string'?[o]:Array.isArray(o)?o.flatMap(strs):o&&typeof o==='object'?Object.entries(o).filter(([k])=>!SKIP.includes(k)).flatMap(([,v])=>strs(v)):[];
@@ -583,6 +652,9 @@ function review(d){
       if(f.t==='items'){ const it=dd[f.k]||[]; if(f.max&&it.length>f.max) add(2,i,(it.length-f.max)+' item(ns) não aparecem: o modelo mostra '+f.max+'.','Remova itens ou troque de modelo.');
         if(!it.length) add(2,i,'“'+f.l+'” está vazio.','Adicione itens.');
         const im=f.sub.find(x=>x.t==='image'); if(im&&it.length&&it.some(x=>!x[im.k])) add(2,i,'Há itens sem imagem.','Complete as imagens.'); } });
+    if(i>0&&d.slides[i-1].t===s.t&&(d.slides[i-1].lay||'')===(s.lay||'')&&(D.LAYOUTS||{})[s.t]) add(1,i,'Mesmo modelo e mesmo layout do slide anterior.','Troque o layout para variar o visual.',{act:'vary',label:'Variar layouts'});
+    const tw=plain(dd.title||'').split(/\s+/).filter(Boolean).length; if(tw>12) add(2,i,'Título longo ('+tw+' palavras).','Títulos com até 10 palavras são lidos de relance. Leve o resto para o texto de apoio.');
+    if(s.t==='numeros') arr0(dd.stats).forEach(st=>{ if(st&&st.value&&!st.prefix&&!st.suffix&&!/[a-z%$]/i.test(String(st.value))&&!(st.label||'').trim()) add(1,i,'Número “'+st.value+'” sem unidade nem rótulo.','Diga o que é: %, R$, mil, pessoas… ou preencha o rótulo.'); });
     if(i>0&&d.slides[i-1].t===s.t){ run++; if(run===3) add(1,i,'Três slides seguidos com o mesmo modelo ('+tpl.name+').','Varie o modelo para manter a atenção.'); } else run=1;
     if(s.hidden&&!d.slides.some(o=>o!==s&&JSON.stringify(o.d||{}).includes('"'+s.id+'"'))) add(2,i,'Slide oculto sem nenhum link: ninguém consegue chegar nele.','Ligue-o num OnePage ou desmarque “oculto”.');
     JSON.stringify(dd).replace(/"(?:link|go)":"([^"]+)"/g,(m,id)=>{ if(!d.slides.some(o=>o.id===id)) add(3,i,'Link para um slide que foi excluído.','Escolha outro destino no campo de link.'); return m; });
@@ -600,9 +672,10 @@ function reviewDialog(){
   const d=deck(), r=review(d), mins=Math.max(1,Math.round(r.secs/60));
   const grade=r.score>=90?'Excelente':r.score>=75?'Boa':r.score>=55?'Precisa de ajustes':'Revise com atenção', lab={3:'Importante',2:'Atenção',1:'Dica'};
   const m=modal(`<h3>Revisão da apresentação</h3><div class="rv-top"><div class="rv-score" style="--p:${r.score}"><b>${r.score}</b><small>de 100</small></div><div><b>${grade}</b><p class="sub">${d.slides.length} slides · cerca de ${mins} min de fala · ${r.out.length?r.out.length+' ponto(s) a melhorar':'nada a corrigir'}</p></div></div>
-  <div class="rv-list">${r.out.map(x=>`<div class="rv-i s${x.sev}"><span class="rv-tag">${lab[x.sev]}</span><div class="rv-t"><b>${x.i===-1?'Tema':x.i===-2?'Geral':'Slide '+(x.i+1)}</b> ${esc(x.msg)}<small>${esc(x.fix)}</small></div>${x.i===-2?'<span></span>':`<button class="btn sm" data-go="${x.i<0?'tema':x.i}">${x.i<0?'Abrir':'Ir'}</button>`}</div>`).join('')||'<p class="sub">Tudo certo. Boa apresentação!</p>'}</div>
+  <div class="rv-list">${r.out.map(x=>`<div class="rv-i s${x.sev}"><span class="rv-tag">${lab[x.sev]}</span><div class="rv-t"><b>${x.i===-1?'Tema':x.i===-2?'Geral':'Slide '+(x.i+1)}</b> ${esc(x.msg)}<small>${esc(x.fix)}</small></div>${x.act?`<button class="btn sm pri" data-act="${x.act}">${esc(x.label)}</button>`:x.i===-2?'<span></span>':`<button class="btn sm" data-go="${x.i<0?'tema':x.i}">${x.i<0?'Abrir':'Ir'}</button>`}</div>`).join('')||'<p class="sub">Tudo certo. Boa apresentação!</p>'}</div>
   <div class="row"><button class="btn pri" data-c>Fechar</button></div>`,'confirm review');
   m.el.querySelector('[data-c]').onclick=m.close;
+  m.el.querySelectorAll('[data-act="vary"]').forEach(b=>b.onclick=()=>{ const dd=deck(); let pv=null; dd.slides.forEach(sl=>{ const o=(D.LAYOUTS||{})[sl.t]; if(o&&pv&&pv.t===sl.t&&(pv.lay||'')===(sl.lay||'')){ const ks=Object.keys(o); const k=ks[(ks.indexOf(pv.lay||'')+1)%ks.length]; if(k) sl.lay=k; else delete sl.lay; } pv=sl; }); touch(); renderAll(); m.close(); reviewDialog(); setStatus('Layouts variados',true); });
   m.el.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{ m.close(); if(b.dataset.go==='tema'){ tab='theme'; renderPane(); } else { select(+b.dataset.go); tab='content'; renderPane(); } });
 }
 
