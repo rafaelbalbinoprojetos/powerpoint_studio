@@ -42,6 +42,10 @@ async function localSave(){
   try{ await IDB.set('decks',clone(decks)); return true; }
   catch(_){ return lsSet(LS,JSON.stringify(decks)); }
 }
+/* biblioteca de slides reutilizáveis (fica neste navegador, vale para todas as apresentações) */
+let myLib=[];
+async function loadLib(){ try{ myLib=(await IDB.get('library'))||[]; }catch(_){ try{ myLib=JSON.parse(lsGet(LS+'-library')||'[]'); }catch(e){ myLib=[]; } } }
+async function saveLib(){ try{ await IDB.set('library',clone(myLib)); }catch(_){ lsSet(LS+'-library',JSON.stringify(myLib)); } }
 async function loadThemes(){ try{ myThemes=(await IDB.get('themes'))||[]; }catch(_){ try{ myThemes=JSON.parse(lsGet(LS+'-themes')||'[]'); }catch(e){ myThemes=[]; } } }
 async function saveThemes(){ try{ await IDB.set('themes',clone(myThemes)); }catch(_){ lsSet(LS+'-themes',JSON.stringify(myThemes)); } }
 
@@ -363,8 +367,13 @@ function modal(html,cls){ const m=document.createElement('div'); m.className='mo
 function confirmBox(msg,okTxt,fn){ const m=modal(`<h3>${esc(msg)}</h3><p class="sub">Essa ação não pode ser desfeita.</p><div class="row"><button class="btn" data-c>Cancelar</button><button class="btn pri" data-ok style="background:var(--ui-danger);border-color:var(--ui-danger)">${esc(okTxt)}</button></div>`,'confirm'); m.el.querySelector('[data-c]').onclick=m.close; m.el.querySelector('[data-ok]').onclick=()=>{ m.close(); fn(); }; }
 function gallery(kind){
   const d=deck();
-  const m=modal(`<h3>${kind==='swap'?'Trocar modelo do slide':'Escolha um modelo'}</h3><p class="sub">${kind==='swap'?'Título, rótulo e texto de apoio são mantidos.':'O slide entra depois do selecionado, com texto de exemplo para você editar.'}</p><div class="gal">${Object.entries(T).map(([k,t])=>`<button class="gcard" data-t="${k}"><div class="tv"></div><b>${esc(t.name)}</b><small>${esc(t.desc)}</small></button>`).join('')}</div>`);
-  m.el.querySelectorAll('.gcard').forEach(c=>{ const k=c.dataset.t; D.renderStatic(c.querySelector('.tv'),{theme:d.theme,name:d.name,footerText:d.footerText,footer:d.footer,slides:[{t:k,d:T[k].sample}]},0);
+  const lib=kind!=='swap'&&myLib.length?`<div class="sec" style="padding:4px 0 8px">Minha biblioteca</div><div class="gal lib">${myLib.map((x,i)=>`<div class="gcard libc" data-lib="${i}" role="button" tabindex="0"><div class="tv"></div><b>${esc(x.name)}</b><small>${esc((T[x.slide.t]||{}).name||'')} · guardado em ${new Date(x.at).toLocaleDateString('pt-BR')}</small><button class="lib-del" data-del="${i}" title="Remover da biblioteca" aria-label="Remover da biblioteca">×</button></div>`).join('')}</div><div class="sec" style="padding:14px 0 8px">Modelos</div>`:'';
+  const m=modal(`<h3>${kind==='swap'?'Trocar modelo do slide':'Escolha um modelo'}</h3><p class="sub">${kind==='swap'?'Título, rótulo e texto de apoio são mantidos.':'O slide entra depois do selecionado, com texto de exemplo para você editar.'}</p>${lib}<div class="gal">${Object.entries(T).map(([k,t])=>`<button class="gcard" data-t="${k}"><div class="tv"></div><b>${esc(t.name)}</b><small>${esc(t.desc)}</small></button>`).join('')}</div>`);
+  m.el.querySelectorAll('.libc').forEach(c=>{ const x=myLib[+c.dataset.lib]; try{ D.renderStatic(c.querySelector('.tv'),{theme:d.theme,name:d.name,footerText:d.footerText,footer:d.footer,slides:[clone(x.slide)]},0); }catch(_){}
+    const ins=()=>{ m.close(); const ns=Object.assign(clone(x.slide),{id:uid()}); D.fillDefaults(ns); d.slides.splice(sel+1,0,ns); sel=Math.min(sel+1,d.slides.length-1); touch(); renderRail(); renderPreview(true); tab='content'; renderPane(); setStatus('“'+x.name+'” inserido',true); };
+    c.onclick=e=>{ if(e.target.closest('[data-del]')) return; ins(); }; c.onkeydown=e=>{ if(e.key==='Enter') ins(); };
+    c.querySelector('[data-del]').onclick=async e=>{ e.stopPropagation(); myLib.splice(+c.dataset.lib,1); await saveLib(); m.close(); gallery(kind); }; });
+  m.el.querySelectorAll('.gcard[data-t]').forEach(c=>{ const k=c.dataset.t; D.renderStatic(c.querySelector('.tv'),{theme:d.theme,name:d.name,footerText:d.footerText,footer:d.footer,slides:[{t:k,d:T[k].sample}]},0);
     c.onclick=()=>{ m.close();
       if(kind==='swap'){ const s=d.slides[sel]; const keep={}; ['kicker','title','lead','image','showLogo'].forEach(x=>{ if(s.d&&s.d[x]!=null&&T[k].fields.some(f=>f.k===x)) keep[x]=s.d[x]; }); s.t=k; s.d=Object.assign(clone(T[k].sample),keep); }
       else { d.slides.splice(sel+1,0,{id:uid(),t:k,d:clone(T[k].sample)}); sel=Math.min(sel+1,d.slides.length-1); }
@@ -583,6 +592,14 @@ $('#replayBtn').onclick=()=>{ if(player) player.replay(); };
 $('#undoBtn').onclick=undo; $('#redoBtn').onclick=redo;
 $('#upBtn').onclick=()=>move(-1); $('#downBtn').onclick=()=>move(1);
 function move(dl){ const s=deck().slides, j=sel+dl; if(j<0||j>=s.length) return; [s[sel],s[j]]=[s[j],s[sel]]; sel=j; touch(); renderRail(); renderPreview(false); }
+$('#libBtn').onclick=()=>{ const s=deck().slides[sel]; if(!s) return; const sd=s.d||{};
+  const m=modal(`<h3>Guardar na biblioteca</h3><p class="sub">O slide fica disponível em “+ Adicionar slide” de qualquer apresentação, já com o seu conteúdo. As cores seguem o tema da apresentação onde ele for usado.</p>
+    <div class="f"><label for="libName">Nome</label><input type="text" id="libName" value="${esc(plain(sd.title||sd.quote||sd.word||sd.kicker||'')||(T[s.t]||{}).name||'Slide')}"></div>
+    <div class="row"><button class="btn" data-c>Cancelar</button><button class="btn pri" data-ok>Guardar</button></div>`,'confirm');
+  const inp=m.el.querySelector('#libName'); inp.select();
+  m.el.querySelector('[data-c]').onclick=m.close;
+  const ok=async()=>{ const sl=clone(s); delete sl.id; myLib.unshift({id:uid(),name:inp.value.trim()||'Slide',at:Date.now(),slide:sl}); await saveLib(); m.close(); setStatus('Guardado na biblioteca',true); };
+  m.el.querySelector('[data-ok]').onclick=ok; inp.onkeydown=e=>{ if(e.key==='Enter') ok(); }; };
 $('#dupBtn').onclick=()=>{ const s=deck().slides; s.splice(sel+1,0,Object.assign(clone(s[sel]),{id:uid()})); sel++; touch(); renderRail(); renderPreview(true); renderPane(); };
 $('#delBtn').onclick=()=>{ const s=deck().slides; if(!s.length) return; confirmBox('Excluir o slide '+(sel+1)+'?','Excluir',()=>{ s.splice(sel,1); sel=Math.max(0,sel-1); touch(); renderRail(); renderPreview(true); renderPane(); }); };
 addEventListener('keydown',e=>{
@@ -972,7 +989,7 @@ function mergeDeck(base,local,remote){
 /* ---------- inicialização ---------- */
 (async function boot(){
   decks=await localLoad(); localIds=new Set(Object.keys(decks));
-  await loadThemes();
+  await loadThemes(); await loadLib();
   if(!Object.keys(decks).length){ if(window.SEED_DECKS) Object.assign(decks,clone(window.SEED_DECKS)); else { const id=uid(); decks[id]=starter(); } }
   Object.values(decks).forEach(normalize);
   const last=lsGet(LS+'-cur');
