@@ -189,6 +189,12 @@ function themePane(pane){
   <button class="btn sm" id="saveTheme">Salvar tema atual</button>
   <div class="sec">Cores</div><div class="colors">${[['bg','Fundo'],['surface','Painéis'],['accent','Destaque'],['alert','Alerta'],['ok','Positivo'],['bad','Negativo'],['title','Títulos'],['text','Texto'],['muted','Texto suave']].map(([k,l])=>`<label class="col"><input type="color" id="c-${k}" value="${eff[k]||'#000000'}"> ${l}</label>`).join('')}</div>
   <label class="chk"><input type="checkbox" id="t-light"${eff.light?' checked':''}> Tema claro (ajusta brilho e sombras)</label>
+  <div class="sec">Estilo</div>
+  <div class="f2"><div class="f"><label for="t-shape">Cantos</label><select id="t-shape">${opt(D.SHAPES,eff.shape||'round')}</select></div>
+  <div class="f"><label for="t-cards">Painéis</label><select id="t-cards">${opt(D.CARDS,eff.cards||'vidro')}</select></div></div>
+  <div class="f"><label for="t-w">Peso dos títulos</label><select id="t-w">${opt({'300':'Leve','400':'Regular','500':'Médio','600':'Semi-negrito','700':'Negrito'},String(eff.weight||600))}</select></div>
+  <label class="chk"><input type="checkbox" id="t-glow"${eff.glow!==false?' checked':''}> Brilho neon nos destaques</label>
+  <label class="chk"><input type="checkbox" id="t-grain"${eff.grain?' checked':''}> Granulado de filme (textura sutil)</label>
   <div class="sec">Tipografia e fundo</div>
   <div class="f"><label for="t-fd">Fonte dos títulos</label><select id="t-fd">${D.FONTS.map(f=>`<option${f===eff.fontDisplay?' selected':''}>${f}</option>`).join('')}</select></div>
   <div class="f"><label for="t-fb">Fonte do texto</label><select id="t-fb">${D.FONTS.map(f=>`<option${f===eff.fontBody?' selected':''}>${f}</option>`).join('')}</select></div>
@@ -211,6 +217,11 @@ function themePane(pane){
     m.el.querySelector('[data-ok]').onclick=ok; inp.onkeydown=e=>{ if(e.key==='Enter') ok(); }; };
   pane.querySelectorAll('.colors input').forEach(i=>i.oninput=()=>{ th[i.id.slice(2)]=i.value; ch(); });
   $('#t-light').onchange=e=>{ th.light=e.target.checked; ch(); };
+  $('#t-shape').onchange=e=>{ th.shape=e.target.value; ch(); };
+  $('#t-cards').onchange=e=>{ th.cards=e.target.value; ch(); };
+  $('#t-w').onchange=e=>{ th.weight=+e.target.value; ch(); };
+  $('#t-glow').onchange=e=>{ th.glow=e.target.checked; ch(); };
+  $('#t-grain').onchange=e=>{ th.grain=e.target.checked; ch(); };
   $('#t-fd').onchange=e=>{ th.fontDisplay=e.target.value; ch(); };
   $('#t-fb').onchange=e=>{ th.fontBody=e.target.value; ch(); };
   $('#t-bg').onchange=e=>{ th.background=e.target.value; ch(); };

@@ -13,9 +13,15 @@ const PRESETS={
   ambar:{name:'Âmbar industrial',bg:'#110d09',surface:'#221a12',accent:'#ff9a3c',alert:'#ffd166',ok:'#7bd389',bad:'#e05a47',text:'#f5e9dc',title:'#fff7ee',muted:'#b39c86',fontDisplay:'Archivo',fontBody:'DM Sans',background:'grade'},
   esmeralda:{name:'Esmeralda',bg:'#04130f',surface:'#0b261f',accent:'#2ee6a6',alert:'#f7c948',ok:'#2ee6a6',bad:'#ff6b6b',text:'#dff7ee',title:'#ffffff',muted:'#86b3a5',fontDisplay:'Sora',fontBody:'Plus Jakarta Sans',background:'particulas'},
   vinho:{name:'Vinho premium',bg:'#13060c',surface:'#251019',accent:'#ff5d8a',alert:'#f2b84b',ok:'#6fd3a8',bad:'#ff5d5d',text:'#f6e6ec',title:'#ffffff',muted:'#b88d9c',fontDisplay:'Fraunces',fontBody:'Manrope',background:'fibras'},
-  claro:{name:'Claro corporativo',bg:'#eef2f7',surface:'#ffffff',accent:'#2457d6',alert:'#c26a00',ok:'#13865f',bad:'#c2334a',text:'#1d2638',title:'#0b1220',muted:'#5b6577',fontDisplay:'Bricolage Grotesque',fontBody:'Manrope',background:'particulas',light:true}
+  claro:{name:'Claro corporativo',bg:'#eef2f7',surface:'#ffffff',accent:'#2457d6',alert:'#c26a00',ok:'#13865f',bad:'#c2334a',text:'#1d2638',title:'#0b1220',muted:'#5b6577',fontDisplay:'Bricolage Grotesque',fontBody:'Manrope',background:'particulas',light:true,cards:'solido',glow:false},
+  editorial:{name:'Editorial',bg:'#f3eee5',surface:'#fffcf6',accent:'#b4441f',alert:'#a8650a',ok:'#3d7a4f',bad:'#a3322b',text:'#2b2621',title:'#15110d',muted:'#6f665b',fontDisplay:'Fraunces',fontBody:'IBM Plex Sans',background:'liso',light:true,shape:'sharp',cards:'contorno',glow:false,grain:true,weight:500,tracking:-.01},
+  grafite:{name:'Grafite',bg:'#0b0b0c',surface:'#161618',accent:'#e4ff5c',alert:'#ffb547',ok:'#7ee0a1',bad:'#ff6b5e',text:'#e6e6e1',title:'#ffffff',muted:'#8c8c86',fontDisplay:'Space Grotesk',fontBody:'Inter',background:'grade',shape:'sharp',cards:'contorno',glow:false,grain:true,weight:500,tracking:-.035},
+  aurora:{name:'Aurora',bg:'#08061a',surface:'#14112e',accent:'#a78bfa',alert:'#f9a8d4',ok:'#5eead4',bad:'#fb7185',text:'#e5e1ff',title:'#ffffff',muted:'#9b95c9',fontDisplay:'Outfit',fontBody:'Manrope',background:'particulas',grain:true,weight:500}
 };
-const FONTS=['Lexend','Manrope','Sora','Outfit','Plus Jakarta Sans','DM Sans','Archivo','Bricolage Grotesque','Fraunces','Playfair Display','Space Mono','IBM Plex Sans','Rubik','Montserrat','Poppins'];
+/* direção de arte: cantos, painéis, brilho, granulado e peso dos títulos */
+const SHAPES={round:'Arredondados',soft:'Suaves',sharp:'Retos'};
+const CARDS={vidro:'Vidro',solido:'Sólido',contorno:'Contorno'};
+const FONTS=['Lexend','Manrope','Sora','Outfit','Plus Jakarta Sans','DM Sans','Inter','Space Grotesk','Archivo','Bricolage Grotesque','Fraunces','Playfair Display','Space Mono','IBM Plex Sans','Rubik','Montserrat','Poppins'];
 const BACKGROUNDS={fibras:'Fibras de dados',grade:'Grade em perspectiva',particulas:'Constelação',liso:'Liso com brilho'};
 const fontsLoaded=new Set();
 function ensureFonts(list, doc=document){
@@ -33,7 +39,18 @@ function themeVars(t){
   return `--bg:${t.bg};--surface:${t.surface};--accent:${t.accent};--alert:${t.alert};--ok:${t.ok};--bad:${t.bad};--text:${t.text};--title:${t.title||t.text};--muted:${t.muted};`+
    `--edge:color-mix(in srgb,${t.accent} ${light?22:20}%,transparent);--faint:color-mix(in srgb,${t.muted} 70%,${t.bg});`+
    `--glow:rgba(${a.join(',')},${light?.25:.5});--vig:${light?'rgba(255,255,255,0)':'rgba(3,6,15,.7)'};--shadow:${light?'0 20px 50px rgba(20,30,60,.08)':'none'};`+
-   `--f-display:"${t.fontDisplay}",system-ui,sans-serif;--f-body:"${t.fontBody}",system-ui,sans-serif;--f-mono:"JetBrains Mono",ui-monospace,monospace;color-scheme:${light?'light':'dark'}`;
+   `--f-display:"${t.fontDisplay}",system-ui,sans-serif;--f-body:"${t.fontBody}",system-ui,sans-serif;--f-mono:"JetBrains Mono",ui-monospace,monospace;color-scheme:${light?'light':'dark'};`+
+   styleVars(t);
+}
+function styleVars(t){
+  const R={round:[22,16,12,999],soft:[14,10,8,12],sharp:[2,2,2,2]}[t.shape]||[22,16,12,999];
+  const glow=t.glow!==false, light=!!t.light;
+  const card=t.cards==='solido'?{card:'var(--surface)',panel:'var(--surface)',bw:'1px'}
+    :t.cards==='contorno'?{card:'transparent',panel:'transparent',bw:'1.5px',edge:`color-mix(in srgb,${t.text} ${light?26:22}%,transparent)`}
+    :{card:'linear-gradient(160deg,color-mix(in srgb,var(--surface) 82%,transparent),color-mix(in srgb,var(--bg) 70%,transparent))',panel:'color-mix(in srgb,var(--surface) 78%,transparent)',bw:'1px'};
+  return `--r:${R[0]}px;--r-md:${R[1]}px;--r-sm:${R[2]}px;--r-pill:${R[3]}px;--card:${card.card};--panel:${card.panel};--bw:${card.bw};`+
+    (card.edge?`--edge:${card.edge};`:'')+(glow?'--gm:1;':'--gm:0;--glow:transparent;')+
+    `--grain:${t.grain?(light?.06:.09):0};--w-title:${+t.weight||600};--trk:${t.tracking!=null?t.tracking:-.02}em`;
 }
 
 /* ---------- blocos comuns ---------- */
@@ -340,13 +357,13 @@ function createPlayer(root,deck,opts={}){
 /* ---------- miniatura estática ---------- */
 function renderStatic(root,deck,i){
   const t=themeOf(deck); ensureFonts([t.fontDisplay,t.fontBody], root.ownerDocument);
-  root.innerHTML=`<div class="dk-player dk-static" style='${themeVars(t)};background:radial-gradient(ellipse at 62% 45%,${t.light?'rgba(0,0,0,0)':'color-mix(in srgb,'+t.accent+' 25%,transparent)'},${t.bg} 70%)'><div class="dk-vp"><div class="dk-stage">${slideHTML(deck,i,t)}${footHTML(deck,t,i)}</div></div></div>`;
+  root.innerHTML=`<div class="dk-player dk-static" style='${themeVars(t)};background:radial-gradient(ellipse at 62% 45%,${t.light?'color-mix(in srgb,'+t.accent+' 7%,'+t.bg+')':'color-mix(in srgb,'+t.accent+' 25%,'+t.bg+')'},${t.bg} 70%)'><div class="dk-vp"><div class="dk-stage">${slideHTML(deck,i,t)}${footHTML(deck,t,i)}</div></div></div>`;
   const p=root.firstElementChild, st=p.querySelector('.dk-stage');
   const fit=()=>{const r=p.getBoundingClientRect(); if(!r.width) return; st.style.transform=`translate(-50%,-50%) scale(${Math.min(r.width/1920,r.height/1080)})`;};
   fit(); const ro=new ResizeObserver(fit); ro.observe(p); return ()=>ro.disconnect();
 }
 
-window.Deck={TEMPLATES,PRESETS,FONTS,BACKGROUNDS,ANIMS,TRANSITIONS,createPlayer,renderStatic,themeOf,themeVars,ensureFonts,esc,fillDefaults,
+window.Deck={TEMPLATES,PRESETS,FONTS,BACKGROUNDS,SHAPES,CARDS,ANIMS,TRANSITIONS,createPlayer,renderStatic,themeOf,themeVars,ensureFonts,esc,fillDefaults,
   setImageResolver(fn){resolveImage=fn;}, resolveImage:v=>resolveImage(v), version:'2.0'};
 })();
 
