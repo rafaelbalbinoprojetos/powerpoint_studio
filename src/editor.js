@@ -407,13 +407,14 @@ function scriptDialog(){
 }
 /* ---------- apresentações prontas (vitrine) ---------- */
 const SHOWCASES=[
+ {name:'Narrativa em movimento',preset:'vinho',magic:true,desc:'Movimento mágico: títulos, números e imagens viajam de um slide para o outro, como em um filme.',script:`# A jornada *do projeto* {destaque}\n[Capítulo 1]\nDe uma planilha compartilhada a uma plataforma de decisão.\n\n# A jornada *do projeto* {cartoes}\n[Capítulo 1]\n- Começo: uma planilha compartilhada\n- Virada: dados integrados em um só lugar\n- Hoje: decisões em minutos, com histórico\n\n# O que *mudou* {numeros}\n[Capítulo 2]\n- R$ 1.250.000: economia no período\n- 832: decisões analisadas\n\n# O que *mudou* {painel}\n[Capítulo 2]\n- Economia: 1.250.000\n- Decisões: 832\n- No prazo: 94%\n- Pendências: 27\n- Área | Decisões | Economia\n- Funilaria | 312 | R$ 410 mil\n- Pintura | 208 | R$ 260 mil\n- Montagem | 145 | R$ 180 mil\n\n# Próximo *capítulo* {destaque}\n[Capítulo 3]\nLevar para todas as áreas até dezembro.\n\n# Obrigado\n- Mais visibilidade\n- Decisões justificadas\n- Rastreabilidade`},
  {name:'Pitch de negócio',preset:'aurora',desc:'OnePage com 6 blocos que abrem slides ocultos de detalhe. Ideal para apresentar só uma tela e aprofundar quando perguntarem.',header:{on:true,text:'Pitch · Rodada Seed 2026'},script:`# Nome da empresa\nUma frase que explica o que vocês fazem, em poucas palavras.\n- Rodada Seed 2026\n- 12 clientes piloto\n- Fundada em 2025\n\n# O negócio em uma tela {onepage}\n[Resumo]\n- Problema: 30% do tempo perdido procurando informação\n- Solução: uma base única com busca inteligente\n- Mercado: R$ 4 bi no Brasil\n- Tração: 12 clientes piloto\n- Modelo: assinatura por usuário\n- Equipe: 4 fundadores técnicos\nNota: apresente só esta tela e abra os blocos conforme as perguntas.\n\n# Problema (oculto) {destaque}\n[O problema]\nEquipes perdem horas por semana procurando dados espalhados em planilhas, e-mails e sistemas.\n\n# Solução (oculto) {tela}\n[A solução]\n- Integra: conecta planilhas e sistemas em minutos\n- Encontra: busca em linguagem natural\n- Alerta: avisa quando algo sai do padrão\n\n# Mercado (oculto) {numeros}\n[Tamanho do mercado]\n- R$ 4 bi: mercado total no Brasil\n- 38 mil: empresas médias no perfil\n- 18%: crescimento ao ano\n\n# Tração (oculto) {grafico}\n[Tração]\n- Jan: 2\n- Fev: 4\n- Mar: 7\n- Abr: 12\n\n# Modelo (oculto) {cartoes}\n[Como ganhamos dinheiro]\n- Essencial: R$ 49 por usuário ao mês\n- Profissional: R$ 89 com integrações\n- Empresa: contrato anual sob medida\n\n# Equipe (oculto) {equipe}\n[Quem faz]\n- Pessoa 1: Produto\n- Pessoa 2: Engenharia\n- Pessoa 3: Dados\n- Pessoa 4: Vendas\n\n# Vamos conversar?\n- Investimento de R$ 2 mi\n- 18 meses de pista\n- Meta: 100 clientes pagantes`},
  {name:'Resultados do trimestre',preset:'editorial',desc:'Números, gráfico, comparação e tabela num visual editorial claro.',header:{on:true,text:'Resultados · 3º trimestre de 2026'},script:`# Resultados do 3º trimestre\nO que entregamos, o que aprendemos e o que vem a seguir.\n- Jul a Set 2026\n- Diretoria de Operações\n\n# Os números do trimestre {numeros}\n[Visão geral]\n- R$ 1.250.000: economia acumulada\n- 832: decisões analisadas\n- 94%: dentro do prazo\n\n# Evolução mês a mês {grafico}\n[Economia em R$ mil]\n- Abr: 120\n- Mai: 180\n- Jun: 210\n- Jul: 260\n- Ago: 330\n- Set: 410\n\n# Antes e depois {comparacao}\n[O que mudou]\n- Planilhas soltas\n- Decisão sem histórico\n- Retrabalho mensal\n- Uma base única\n- Cada decisão justificada\n- Alertas automáticos\n\n# Desempenho por área {tabela}\n[Comparativo]\n- Funilaria: 312 | R$ 410 mil\n- Pintura: 208 | R$ 260 mil\n- Montagem: 145 | R$ 180 mil\n\n# Próximo trimestre {agenda}\n[Plano]\n- Outubro: levar para mais duas áreas\n- Novembro: painel para a diretoria\n- Dezembro: revisão anual\n\n# Obrigado\n- Mais visibilidade\n- Decisões justificadas\n- Rastreabilidade`},
  {name:'Lançamento de produto',preset:'grafite',desc:'Efeitos cinematográficos: revelar, mergulho 3D, galeria 3D e paralaxe. Troque as imagens de exemplo pelas suas.',script:`# Apresentamos o novo produto\nUma nova forma de trabalhar com os seus dados.\n- Lançamento 2026\n\n# A nova fase {revelar}\n[Lançamento]\nMais simples, mais rápido e feito para equipes.\n\n# Do rascunho ao produto {mergulho}\n[A jornada]\n- O primeiro protótipo\n- Os primeiros clientes\n- O produto final\n\n# Feito para cada equipe {galeria3d}\n[Casos de uso]\n- Operações\n- Finanças\n- Compras\n- Manutenção\n- Diretoria\n- Qualidade\n\n# FUTURO {paralaxe}\n[Edição 2026]\n\n# Pela primeira vez, a gente *decide olhando o mesmo número* {citacao}\nNome da pessoa\n\n# Disponível hoje\n- Teste grátis por 30 dias\n- Migração assistida\n- Suporte em português`}
 ];
 function showcaseDialog(){
   const m=modal(`<h3>Começar de uma apresentação pronta</h3><p class="sub">Cria uma apresentação nova, com textos de exemplo para você trocar. Nada do que você já tem é alterado.</p><div class="gal">${SHOWCASES.map((x,i)=>`<button class="gcard" data-v="${i}"><div class="tv"></div><b>${esc(x.name)}</b><small>${esc(x.desc)}</small></button>`).join('')}</div>`);
-  const build=x=>{ const slides=parseScript(x.script); return {name:x.name,theme:{preset:x.preset},footerText:'',updatedAt:Date.now(),slides,...(x.header?{header:clone(x.header)}:{})}; };
+  const build=x=>{ const slides=parseScript(x.script); if(x.magic) slides.forEach((s,i)=>{ if(i) s.tr='magico'; }); return {name:x.name,theme:{preset:x.preset},footerText:'',updatedAt:Date.now(),slides,...(x.header?{header:clone(x.header)}:{})}; };
   m.el.querySelectorAll('.gcard').forEach(c=>{ const x=SHOWCASES[+c.dataset.v], dk=build(x); D.renderStatic(c.querySelector('.tv'),dk,dk.slides.findIndex(s=>s.t==='onepage')>0?1:0);
     c.onclick=()=>{ m.close(); const id=uid(); decks[id]=build(x); curId=id; sel=0; touch(); renderAll(); setStatus('“'+x.name+'” criada',true); }; });
 }
@@ -460,6 +461,8 @@ function toSlide(s,i,n){
     case 'onepage': d.blocks=P.map(p=>{ const v=/^(R\$\s*)?([\d.,]+)(\s*(?:%|mil|mi|bi|k|x)(?=\s|$))?\s+(.+)$/i.exec(p.b); return {label:p.a,value:v?(v[1]||"")+v[2]+(v[3]||""):"",title:v?v[4]:p.b,text:"",link:""}; }).slice(0,6); break;
     case 'mergulho': d.layers=s.bullets.map(b=>({image:"",caption:b})).slice(0,5); break;
     case 'galeria3d': d.images=s.bullets.map(b=>({image:"",caption:b})).slice(0,8); break;
+    case 'painel': { const tb=s.bullets.filter(b=>b.includes('|')), kp=s.bullets.filter(b=>!b.includes('|')).map(pair);
+      d.kpis=kp.slice(0,4).map(p=>({label:p.a,value:p.b,delta:'',link:''})); if(tb.length){ d.tableTitle='Detalhe'; d.header=tb[0]; d.rows=tb.slice(1); } break; }
     case 'encerramento': d.bullets=s.bullets; d.showLogo=i===n-1; break;
     case 'numeros': d.stats=P.map(p=>{ const m=/^(R\$)?\s*([\d.,]+)\s*(.*)$/i.exec(p.a)||[]; return {label:'',prefix:m[1]||'',value:m[2]||p.a,suffix:m[3]||'',text:p.b,badge:''}; }); break;
     case 'fluxo': d.steps=steps.map(x=>{ const p=pair(x); return {tag:'',title:p.a,text:p.b,hot:false}; }); break;
@@ -500,7 +503,7 @@ addEventListener('beforeunload',()=>{ if(dirty&&mode!=='db') localSave(); });
 /* ---------- modo apresentação ---------- */
 function present(start,o={}){
   const d=o.deck||deck(); if(!d.slides.length) return;
-  const w=document.createElement('div'); w.className='show'+(o.recording?' rec':''); w.innerHTML=`<div class="host"></div><div class="bar"><button data-x aria-label="Sair">✕</button><button data-p aria-label="Anterior">‹</button><div class="pg"><i></i></div><span class="n"></span><button data-n aria-label="Próximo">›</button><button data-v aria-label="Janela do apresentador" title="Janela do apresentador (P)">🗒</button><button data-f aria-label="Tela cheia">⤢</button></div>`;
+  const w=document.createElement('div'); w.className='show'+(o.recording?' rec':''); w.innerHTML=`<div class="host"></div><div class="bar"><button data-x aria-label="Sair">✕</button><button data-p aria-label="Anterior">‹</button><div class="pg"><i></i></div><span class="n"></span><button data-n aria-label="Próximo">›</button><button data-v aria-label="Janela do apresentador" title="Janela do apresentador (P)">🗒</button><button data-tool="laser" aria-label="Ponteiro laser" title="Ponteiro laser (L)">●</button><button data-tool="zoom" aria-label="Zoom" title="Zoom: clique para aproximar (Z)">⌕</button><button data-tool="voice" aria-label="Comando por voz" title="Comando por voz (V)">🎙</button><button data-tool="help" aria-label="Atalhos" title="Atalhos (?)">?</button><button data-f aria-label="Tela cheia">⤢</button></div><canvas class="laser" aria-hidden="true"></canvas><div class="voice-chip" hidden></div>`;
   document.body.appendChild(w);
   let pop=null;
   const tell=msg=>{ try{ if(pop&&!pop.closed) pop.postMessage(Object.assign({em:1},msg),'*'); }catch(_){} };
@@ -512,12 +515,59 @@ function present(start,o={}){
     else if(m.type==='next') pl.next(); else if(m.type==='prev') pl.prev(); else if(m.type==='go') pl.go(+m.n); };
   addEventListener('message',onMsg);
   const openPresenter=()=>{ if(pop&&!pop.closed){ pop.focus(); return; } pop=open(location.pathname+location.search+'#presenter','estudio-motion-apresentador','width=1100,height=720'); if(!pop) setStatus('O navegador bloqueou a janela do apresentador'); };
+  /* ---------- ferramentas do apresentador: laser, zoom, voz e atalhos ---------- */
+  const host=w.querySelector('.host'), lc=w.querySelector('.laser'), lx=lc.getContext('2d'), chip=w.querySelector('.voice-chip');
+  const toolBtn=t=>w.querySelector(`[data-tool="${t}"]`);
+  let laser=false, trail=[], lraf=0, zoomMode=false, zoomed=false, rec=null, voiceOn=false, help=null;
+  const sizeL=()=>{ lc.width=innerWidth*devicePixelRatio; lc.height=innerHeight*devicePixelRatio; }; sizeL(); addEventListener('resize',sizeL);
+  function drawLaser(){ const now=performance.now(), k=devicePixelRatio; trail=trail.filter(p=>now-p.t<450); lx.clearRect(0,0,lc.width,lc.height);
+    if(trail.length>1){ lx.lineCap='round'; lx.lineJoin='round'; for(let i=1;i<trail.length;i++){ const a=trail[i-1], b=trail[i], f=1-(now-b.t)/450; lx.strokeStyle=`rgba(255,40,60,${f*.55})`; lx.lineWidth=(3+f*7)*k; lx.beginPath(); lx.moveTo(a.x*k,a.y*k); lx.lineTo(b.x*k,b.y*k); lx.stroke(); } }
+    const h=trail[trail.length-1]; if(h){ const g=lx.createRadialGradient(h.x*k,h.y*k,0,h.x*k,h.y*k,22*k); g.addColorStop(0,'rgba(255,255,255,1)'); g.addColorStop(.25,'rgba(255,50,70,.95)'); g.addColorStop(1,'rgba(255,0,40,0)'); lx.fillStyle=g; lx.beginPath(); lx.arc(h.x*k,h.y*k,22*k,0,7); lx.fill(); }
+    if(laser) lraf=requestAnimationFrame(drawLaser); }
+  const setLaser=v=>{ laser=v; w.classList.toggle('laser-on',v); toolBtn('laser').classList.toggle('on',v); cancelAnimationFrame(lraf); if(v){ lraf=requestAnimationFrame(drawLaser); } else lx.clearRect(0,0,lc.width,lc.height); };
+  w.addEventListener('mousemove',e=>{ if(laser) trail.push({x:e.clientX,y:e.clientY,t:performance.now()}); if(zoomed) host.style.transformOrigin=`${e.clientX}px ${e.clientY}px`; });
+  const unzoom=()=>{ zoomed=false; host.style.transform=''; w.classList.remove('zoomed'); };
+  const setZoom=v=>{ zoomMode=v; toolBtn('zoom').classList.toggle('on',v); w.classList.toggle('zoom-mode',v); if(!v) unzoom(); };
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  const say=(t,ms)=>{ chip.hidden=false; chip.textContent=t; clearTimeout(chip._t); if(ms) chip._t=setTimeout(()=>{ if(voiceOn) chip.textContent='🎙 Ouvindo… diga “próximo” ou “voltar”'; else chip.hidden=true; },ms); };
+  function setVoice(v){
+    if(v&&!SR){ say('Comando por voz não funciona neste navegador. Use Chrome ou Edge.',3500); return; }
+    voiceOn=v; toolBtn('voice').classList.toggle('on',v);
+    if(!v){ try{ rec&&rec.stop(); }catch(_){} rec=null; chip.hidden=true; return; }
+    rec=new SR(); rec.lang='pt-BR'; rec.continuous=true; rec.interimResults=false;
+    rec.onresult=e=>{ const t=e.results[e.results.length-1][0].transcript.toLowerCase().trim();
+      if(/pr[oó]xim|avan[cç]|seguinte|next/.test(t)){ pl.next(); say('🎙 “'+t+'” → próximo',1600); }
+      else if(/volt|anterior|back/.test(t)){ pl.prev(); say('🎙 “'+t+'” → voltar',1600); }
+      else if(/tela cheia/.test(t)){ fs(); say('🎙 tela cheia',1600); }
+      else if(/laser/.test(t)){ setLaser(!laser); say('🎙 laser',1600); }
+      else if(/in[ií]cio|primeiro/.test(t)){ pl.go(0); say('🎙 início',1600); }
+      else say('🎙 “'+t+'”',1400); };
+    rec.onerror=ev=>{ if(ev.error==='not-allowed'||ev.error==='service-not-allowed'){ say('Microfone bloqueado. Permita o microfone no navegador.',4000); voiceOn=false; toolBtn('voice').classList.remove('on'); } };
+    rec.onend=()=>{ if(voiceOn&&rec) try{ rec.start(); }catch(_){} };
+    try{ rec.start(); say('🎙 Ouvindo… diga “próximo” ou “voltar”'); }catch(_){ say('Não consegui ligar o microfone.',3000); }
+  }
+  function toggleHelp(){ if(help){ help.remove(); help=null; return; }
+    help=document.createElement('div'); help.className='kbd-help'; help.innerHTML=`<div class="kh-in"><h3>Atalhos da apresentação</h3><dl>
+      <dt>→ · Espaço · Enter</dt><dd>Próximo</dd><dt>← · Backspace</dt><dd>Anterior</dd><dt>F</dt><dd>Tela cheia</dd><dt>P</dt><dd>Janela do apresentador (notas e cronômetro)</dd>
+      <dt>L</dt><dd>Ponteiro laser</dd><dt>Z</dt><dd>Zoom: clique para aproximar, clique de novo para voltar</dd><dt>V</dt><dd>Comando por voz: “próximo”, “voltar”, “início”, “tela cheia”</dd><dt>B</dt><dd>Tela preta (pausa)</dd><dt>Esc</dt><dd>Sair</dd></dl><p>Pressione ? ou Esc para fechar</p></div>`;
+    help.onclick=toggleHelp; w.appendChild(help); }
+  const black=()=>w.classList.toggle('blackout');
+  toolBtn('laser').onclick=e=>{ e.stopPropagation(); setLaser(!laser); };
+  toolBtn('zoom').onclick=e=>{ e.stopPropagation(); setZoom(!zoomMode); };
+  toolBtn('voice').onclick=e=>{ e.stopPropagation(); setVoice(!voiceOn); };
+  toolBtn('help').onclick=e=>{ e.stopPropagation(); toggleHelp(); };
   let closed=false;
-  const close=()=>{ if(closed) return; closed=true; tell({type:'end'}); pl.destroy(); w.remove(); removeEventListener('keydown',key); removeEventListener('message',onMsg); try{ if(document.fullscreenElement) document.exitFullscreen(); }catch(_){} if(location.hash.startsWith('#play-')) try{ history.replaceState(null,'',location.pathname+location.search); }catch(_){} o.onClose&&o.onClose(); };
-  const key=e=>{ if(['ArrowRight','PageDown',' ','Enter'].includes(e.key)){e.preventDefault();pl.next();} else if(['ArrowLeft','PageUp','Backspace'].includes(e.key)){e.preventDefault();pl.prev();} else if(e.key==='Escape') close(); else if(e.key==='f'||e.key==='F') fs(); else if(e.key==='p'||e.key==='P') openPresenter(); };
+  const close=()=>{ if(closed) return; closed=true; setVoice(false); setLaser(false); removeEventListener('resize',sizeL); tell({type:'end'}); pl.destroy(); w.remove(); removeEventListener('keydown',key); removeEventListener('message',onMsg); try{ if(document.fullscreenElement) document.exitFullscreen(); }catch(_){} if(location.hash.startsWith('#play-')) try{ history.replaceState(null,'',location.pathname+location.search); }catch(_){} o.onClose&&o.onClose(); };
+  const key=e=>{ const k=e.key.toLowerCase();
+    if(e.key==='Escape'){ if(help) return toggleHelp(); if(w.classList.contains('blackout')) return black(); if(zoomed||zoomMode) return setZoom(false); return close(); }
+    if(e.ctrlKey||e.metaKey||e.altKey) return;
+    if(['ArrowRight','PageDown',' ','Enter'].includes(e.key)){e.preventDefault();pl.next();} else if(['ArrowLeft','PageUp','Backspace'].includes(e.key)){e.preventDefault();pl.prev();}
+    else if(k==='f') fs(); else if(k==='p') openPresenter(); else if(k==='l') setLaser(!laser); else if(k==='z') setZoom(!zoomMode); else if(k==='v') setVoice(!voiceOn); else if(k==='b'||k==='.') black(); else if(e.key==='?'||k==='h') toggleHelp(); };
   addEventListener('keydown',key);
   w.querySelector('[data-x]').onclick=close; w.querySelector('[data-p]').onclick=()=>pl.prev(); w.querySelector('[data-n]').onclick=()=>pl.next(); w.querySelector('[data-f]').onclick=fs; w.querySelector('[data-v]').onclick=openPresenter;
-  w.querySelector('.host').onclick=e=>{ if(o.recording) return; e.clientX>innerWidth*.3?pl.next():pl.prev(); };
+  host.onclick=e=>{ if(o.recording) return;
+    if(zoomMode){ if(zoomed) unzoom(); else { zoomed=true; host.style.transformOrigin=`${e.clientX}px ${e.clientY}px`; host.style.transform='scale(2.2)'; w.classList.add('zoomed'); } return; }
+    e.clientX>innerWidth*.3?pl.next():pl.prev(); };
   let sx=null; w.addEventListener('touchstart',e=>{sx=e.touches[0].clientX;},{passive:true}); w.addEventListener('touchend',e=>{ if(sx==null) return; const dx=e.changedTouches[0].clientX-sx; if(Math.abs(dx)>40) dx<0?pl.next():pl.prev(); sx=null; },{passive:true});
   if(!o.recording) try{ history.replaceState(null,'','#play-'+curId); }catch(_){}
   return {close,player:pl};

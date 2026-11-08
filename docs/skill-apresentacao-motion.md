@@ -46,7 +46,7 @@ O deck é gravado no banco do Estúdio. Rafa abre o Estúdio, escolhe a apresent
 
 - `notes`: notas do apresentador (texto). Escreva o que falar quando o roteiro trouxer isso.
 - `hidden: true`: slide oculto, pulado na navegação normal; só abre por um link de um `onepage`.
-- `anim`: `suave`, `dinamico` ou `nenhuma` (padrão: completa). `speed`: 0.5 a 2. `tr` (transição ao chegar): `fade`, `zoom`, `subir`, `nenhuma` (padrão: deslizar). `dur`: segundos no avanço automático.
+- `anim`: `suave`, `dinamico` ou `nenhuma` (padrão: completa). `speed`: 0.5 a 2. `tr` (transição ao chegar): `magico`, `fade`, `zoom`, `subir`, `nenhuma` (padrão: deslizar). **`magico` (movimento mágico)**: título, rótulo, imagens e números iguais viajam do slide anterior para a nova posição. Para usar bem, repita o mesmo `kicker`/`title` (ou o mesmo número/imagem) em slides seguidos com modelos diferentes, ex.: `destaque` → `cartoes` com o mesmo título; `numeros` → `painel` com o mesmo valor. `dur`: segundos no avanço automático.
 - `head`: `show` ou `hide` força a faixa de cabeçalho neste slide.
 
 ### Temas (`theme.preset`)

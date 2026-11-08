@@ -84,3 +84,10 @@ Depois de mudar algo, rode no PowerShell:  .\build.ps1
 Para criar um modelo novo, adicione uma entrada em TEMPLATES com
 name, desc, fields, sample e render(d, t). O editor monta o formulário a
 partir de "fields" de forma automática.
+
+NOVIDADES (versão 3)
+Movimento mágico         em "Transição ao chegar": títulos, números e imagens
+                         iguais viajam do slide anterior para a nova posição.
+                         Veja Mais > Apresentação pronta > Narrativa em movimento
+Ferramentas ao apresentar  L laser · Z zoom · V comando por voz (Chrome/Edge)
+                         B tela preta · ? atalhos

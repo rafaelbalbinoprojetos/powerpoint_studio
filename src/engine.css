@@ -391,3 +391,4 @@
 .dk-p3-txt{position:relative;z-index:1;max-width:1200px}
 .dk-p3-txt .dk-h2{font-size:64px}
 .dk-b3-txt{position:relative;z-index:1}
+.dk-mm-ov{position:absolute;inset:0;padding:0!important;visibility:visible!important;z-index:20;pointer-events:none;display:block!important;opacity:1}

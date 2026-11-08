@@ -293,11 +293,11 @@ Object.assign(TEMPLATES,{
     tableTitle:'Por área',header:'Área | Reservas | Economia',rows:['Funilaria | 312 | R$ 410 mil','Pintura | 208 | R$ 260 mil','Montagem | 145 | R$ 180 mil','Logística | 98 | R$ 140 mil'],
     chartTitle:'Tipo de gasto',mix:[{label:'Peças',value:'45'},{label:'Serviços',value:'30'},{label:'Mão de obra',value:'25'}],
     highlights:['Funilaria lidera a economia','Pendências caíram 41%','Meta anual em 82%']},
-  render(d){ const k=arr(d.kpis).slice(0,4), m=arr(d.mix).slice(0,6), D=donutSVG(m,{thin:true});
+  render(d){ const k=arr(d.kpis).slice(0,4), m=arr(d.mix).slice(0,6), D=donutSVG(m,{thin:true}); const hasT=!!(String(d.header||'').trim()||arr(d.rows).length), hasC=m.length>0;
     return `${head(d)}<div class="dk-pn">
       <div class="pn-k" style="${cols(Math.max(1,k.length))}" data-a="cards">${k.map((x,i)=>`<div class="dk-card pn-kpi${x.link?' go':''}"${x.link?` data-go="${esc(x.link)}" role="button" tabindex="0"`:''}><small data-f="kpis.${i}.label">${esc(x.label)}</small><b${countAttr(x.value)}>${esc(x.value)}</b>${x.delta?`<span class="pn-d${/^\s*-/.test(x.delta)?' neg':''}">${esc(x.delta)}</span>`:''}${x.link?'<i class="pn-go">→</i>':''}</div>`).join('')}</div>
-      <div class="pn-m"><div class="dk-card pn-box" data-a="up"><span class="dk-ix" data-f="tableTitle">${esc(d.tableTitle)}</span>${tableHTML(d.header,d.rows,0,'pn-tb')}</div>
-      <div class="dk-card pn-box pn-ch" data-a="up"><span class="dk-ix" data-f="chartTitle">${esc(d.chartTitle)}</span><div class="pn-dn"><div class="dk-donut" data-a="donut">${D.svg}</div><div class="dk-legend sm">${m.map((x,i)=>`<div class="dk-lg"><i style="background:${PALC[i%PALC.length]}"></i><span>${esc(x.label)}</span><em>${fmtPct(D.vals[i]/(D.tot||1)*100)}</em></div>`).join('')}</div></div></div></div>
+      ${hasT||hasC?`<div class="pn-m" style="${hasT&&hasC?'':'grid-template-columns:1fr'}">${hasT?`<div class="dk-card pn-box" data-a="up"><span class="dk-ix" data-f="tableTitle">${esc(d.tableTitle)}</span>${tableHTML(d.header,d.rows,0,'pn-tb')}</div>`:''}
+      ${hasC?`<div class="dk-card pn-box pn-ch" data-a="up"><span class="dk-ix" data-f="chartTitle">${esc(d.chartTitle)}</span><div class="pn-dn"><div class="dk-donut" data-a="donut">${D.svg}</div><div class="dk-legend sm">${m.map((x,i)=>`<div class="dk-lg"><i style="background:${PALC[i%PALC.length]}"></i><span>${esc(x.label)}</span><em>${fmtPct(D.vals[i]/(D.tot||1)*100)}</em></div>`).join('')}</div></div></div>`:''}</div>`:''}
       ${arr(d.highlights).length?`<div class="pn-h" data-a="stagger">${arr(d.highlights).map((x,i)=>`<span class="dk-chip" data-f="highlights.${i}">${rich(x)}</span>`).join('')}</div>`:''}</div>`; }}
 });
 Object.assign(FX,{
@@ -435,18 +435,20 @@ function splitWords(root){
 const fmtN=(v,dec)=>v.toLocaleString('pt-BR',{minimumFractionDigits:dec,maximumFractionDigits:dec});
 /* estilos de entrada por slide: padrao | suave | dinamico */
 const ANIMS={padrao:'Padrão (completa)',suave:'Suave (só aparece)',dinamico:'Dinâmica (mais movimento)',nenhuma:'Sem animação'};
-const TRANSITIONS={deslizar:'Deslizar',fade:'Esmaecer',zoom:'Zoom',subir:'Subir',nenhuma:'Corte seco'};
+const TRANSITIONS={magico:'Movimento mágico (elementos viajam)',deslizar:'Deslizar',fade:'Esmaecer',zoom:'Zoom',subir:'Subir',nenhuma:'Corte seco'};
 function build(sl,G,keep,o={}){
   const style=o.anim||'padrao';
   const tl=G.timeline({defaults:{ease:'expo.out',duration:1.1}}); let at=0;
   if(style==='suave'){
     sl.querySelectorAll('[data-a]').forEach(el=>{
+      if(el.closest('[data-mm]')) return;
       if(FX[el.dataset.a]){ at+=FX[el.dataset.a](el,tl,at,keep,G); return; }
       const multi=['stagger','cards','fromleft'].includes(el.dataset.a);
       tl.from(multi?el.children:el,{opacity:0,duration:.9,ease:'power2.out',stagger:multi?.08:0},at); at+=.12;
       if(el.dataset.a==='bars') tl.from(el.querySelectorAll('.dk-bar-c i'),{scaleY:0,transformOrigin:'50% 100%',stagger:.06,duration:1,ease:'power3.out'},at);
     });
   } else sl.querySelectorAll('[data-a]').forEach(el=>{
+    if(el.closest('[data-mm]')) return;
     if(FX[el.dataset.a]){ at+=FX[el.dataset.a](el,tl,at,keep,G); return; }
     switch(el.dataset.a){
       case 'bars': tl.from(el.querySelectorAll('.dk-bar-c i'),{scaleY:0,transformOrigin:'50% 100%',stagger:.1,duration:1.3,ease:'power3.out'},at+.2);
@@ -477,6 +479,7 @@ function build(sl,G,keep,o={}){
     }
   });
   sl.querySelectorAll('[data-count]').forEach(el=>{
+    if(el.closest('[data-mm]')) return;
     const end=parseFloat(el.dataset.count), dec=+el.dataset.dec||0, o={v:0};
     tl.to(o,{v:end,duration:1.8,ease:'power3.out',onUpdate:()=>el.textContent=fmtN(o.v,dec)},.5);
   });
@@ -614,11 +617,11 @@ function createPlayer(root,deck,opts={}){
   function link(id){ const j=deck.slides.findIndex(s=>s.id===id); if(j<0||j===cur) return; if(!hid(cur)) backTo=cur; go(j,1); }
   function next(){ if(hid(cur)&&backTo!=null){ const b=backTo; backTo=null; return go(b,1); } const j=visNext(cur,1); if(j>=0) go(j,1); else return false; }
   function prev(){ if(hid(cur)&&backTo!=null){ const b=backTo; backTo=null; return go(b,-1); } const j=visNext(cur,-1); if(j>=0) go(j,-1); }
-  function enter(n){
-    const sl=fresh(n); sl.classList.add('on'); videos(sl,true);
+  function enter(n,pre,delay){
+    const sl=pre||fresh(n); sl.classList.add('on'); videos(sl,true);
     if(band) band.classList.toggle('on',headShown(deck,S(n)));
     backBtn.hidden=!(hid(n)&&backTo!=null);
-    if(G && !reduce && S(n).anim!=='nenhuma'){ G.set(sl,{clearProps:'all'}); tl=build(sl,G,loops,{anim:S(n).anim,speed:+S(n).speed||0}); }
+    if(G && !reduce && S(n).anim!=='nenhuma'){ G.set(sl,{clearProps:'all'}); tl=build(sl,G,loops,{anim:S(n).anim,speed:+S(n).speed||0}); if(delay) tl.delay(delay); }
     else if(G) loops=hubLoops(sl,G);
     loops.push(...start3D(sl,{still:reduce}));
     pgTxt(n); arm(n);
@@ -631,8 +634,38 @@ function createPlayer(root,deck,opts={}){
     const done=()=>{ if(prev&&prev!==slides[n]){prev.classList.remove('on'); videos(prev,false); if(G) G.set(prev,{clearProps:'all'});} kill(); enter(n); cur=n; busy=false; opts.onChange&&opts.onChange(n); };
     const anim=G && !reduce && !instant && tr!=='nenhuma';
     if(anim){ G.to(bg.cam,{x:bg.cam.x+dir*1.4,duration:1.6,ease:'power3.inOut'}); G.fromTo(bg.cam,{amp:1},{amp:1.6,duration:.6,yoyo:true,repeat:1,ease:'sine.inOut'}); }
-    if(prev && anim && prev!==slides[n]){ busy=true; if(tl) tl.pause(); G.to(prev,Object.assign((EXIT[tr]||EXIT.deslizar)(dir),{duration:.45,ease:'power2.in',onComplete:done})); }
+    if(prev && anim && prev!==slides[n] && tr==='magico'){ busy=true; if(tl) tl.pause(); if(magic(prev,n)) return; }
+    if(prev && anim && prev!==slides[n]){ busy=true; if(tl) tl.pause(); G.to(prev,Object.assign((EXIT[tr]||EXIT.fade)(dir),{duration:.45,ease:'power2.in',onComplete:done})); }
     else done();
+  }
+  /* ---------- movimento mágico: elementos equivalentes viajam de um slide para o outro ---------- */
+  function magic(pv,n){
+    const nx=fresh(n); nx.classList.add('on');
+    const sr=stage.getBoundingClientRect(), sc=sr.width/1920||1;
+    const R=el=>{ const r=el.getBoundingClientRect(); return {x:(r.left-sr.left)/sc,y:(r.top-sr.top)/sc,w:Math.max(1,r.width/sc),h:Math.max(1,r.height/sc)}; };
+    const vis=el=>{ const r=el.getBoundingClientRect(); return r.width>2&&r.height>2; };
+    const pairs=[], used=[];
+    const add=(a,b)=>{ if(!a||!b||!vis(a)||!vis(b)) return; if(used.some(u=>u===a||u===b||u.contains(a)||u.contains(b)||a.contains(u)||b.contains(u))) return; used.push(a,b); pairs.push([a,b]); };
+    pv.querySelectorAll('[data-f]').forEach(a=>{ let b=null; try{ b=nx.querySelector(`[data-f="${CSS.escape(a.dataset.f)}"]`); }catch(_){} add(a,b); });  // mesmo papel
+    const imgs=[...nx.querySelectorAll('img')]; pv.querySelectorAll('img').forEach(a=>add(a,imgs.find(x=>x.getAttribute('src')===a.getAttribute('src')&&!used.includes(x)))); // mesma imagem
+    const cnt=[...nx.querySelectorAll('[data-count]')]; pv.querySelectorAll('[data-count]').forEach(a=>add(a,cnt.find(x=>x.dataset.count===a.dataset.count&&!used.includes(x)))); // mesmo número
+    if(!pairs.length){ nx.classList.remove('on'); return false; }
+    const mk=src=>{ const s=document.createElement('section'); s.className=src.className+' dk-mm-ov'; stage.appendChild(s); return s; };
+    const ovA=mk(pv), ovB=mk(nx);
+    const clean=c=>{ [c,...c.querySelectorAll('*')].forEach(e=>{ if(e.style){ e.style.transform=''; e.style.opacity=''; e.style.filter=''; e.style.visibility=''; } e.removeAttribute('data-a'); e.removeAttribute('data-f'); }); return c; };
+    const mtl=G.timeline({defaults:{duration:1,ease:'power3.inOut'}});
+    pairs.forEach(([a,b])=>{ const ra=R(a), rb=R(b), ca=clean(a.cloneNode(true)), cb=clean(b.cloneNode(true));
+      const typo=(src,c)=>{ const cs=getComputedStyle(src); ['fontSize','fontFamily','fontWeight','lineHeight','letterSpacing','color','textShadow','textTransform','textAlign','whiteSpace','fontVariantNumeric'].forEach(k=>{ c.style[k]=cs[k]; }); };
+      typo(a,ca); typo(b,cb);
+      [[ca,ra,ovA],[cb,rb,ovB]].forEach(([c,r,ov])=>{ Object.assign(c.style,{position:'absolute',left:r.x+'px',top:r.y+'px',width:r.w+'px',height:r.h+'px',margin:'0',maxWidth:'none',boxSizing:'border-box',transformOrigin:'0 0'}); ov.appendChild(c); });
+      const s=Math.sqrt((rb.w/ra.w)*(rb.h/ra.h)); // escala uniforme: texto não deforma
+      mtl.fromTo(ca,{x:0,y:0,scale:1,opacity:1},{x:rb.x-ra.x,y:rb.y-ra.y,scale:s,opacity:0},0);
+      mtl.fromTo(cb,{x:ra.x-rb.x,y:ra.y-rb.y,scale:1/s,opacity:0},{x:0,y:0,scale:1,opacity:1},0);
+      a.style.visibility='hidden'; b.setAttribute('data-mm',''); b.style.visibility='hidden'; });
+    mtl.to(pv,{opacity:0,duration:.45,ease:'power2.out'},0);
+    mtl.eventCallback('onComplete',()=>{ ovA.remove(); ovB.remove(); pairs.forEach(([,b])=>{ b.style.visibility=''; }); pv.classList.remove('on'); videos(pv,false); G.set(pv,{clearProps:'all'}); busy=false; opts.onChange&&opts.onChange(n); });
+    kill(); enter(n,nx,.45); cur=n;
+    return true;
   }
   function still(n){ // mostra o slide sem animar
     n=Math.max(0,Math.min(slides.length-1,n)); slides.forEach(s=>{ s.classList.remove('on'); videos(s,false); }); kill(); fresh(n).classList.add('on'); cur=n; if(band) band.classList.toggle('on',headShown(deck,S(n)));
