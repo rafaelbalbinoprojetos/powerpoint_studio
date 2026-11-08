@@ -1,0 +1,5 @@
+Para trocar as telas simuladas por capturas reais, salve aqui as imagens PNG com estes nomes:
+analise.png  (slide 5)
+painel.png   (slide 6)
+alertas.png  (slide 7)
+A apresentação usa a imagem real automaticamente quando ela existir.

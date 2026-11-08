@@ -1,0 +1,56 @@
+ESTÚDIO MOTION
+Editor de apresentações animadas
+
+COMO ABRIR
+Dê dois cliques em index.html. Abre no navegador (Chrome ou Edge recomendados).
+Não precisa instalar nada nem de servidor, e funciona sem internet.
+Com internet, as fontes ficam iguais às do Claude. Sem internet, o navegador
+usa uma fonte parecida.
+
+O QUE TEM DENTRO
+index.html                     O editor completo, em um único arquivo.
+                               Já vem com a apresentação do e-Dog como exemplo.
+exemplo-edog-original/         A primeira versão do e-Dog, feita à mão.
+                               Abra exemplo-edog-original/index.html.
+
+ONDE FICAM SALVAS AS APRESENTAÇÕES
+Ficam salvas no próprio navegador, de forma automática.
+- Outro navegador ou outro computador não enxerga essas apresentações.
+- Limpar os dados de navegação apaga tudo. Faça backup.
+
+BACKUP E TROCA DE COMPUTADOR
+Botão "Mais" > "Baixar backup de todas (.json)" gera um arquivo com todas as
+apresentações e imagens.
+No outro computador, abra o index.html e use "Mais" > "Importar backup (.json)".
+O mesmo arquivo também pode ser importado no Estúdio Motion dentro do Claude.
+
+APRESENTAR
+"Apresentar" abre em tela cheia.
+Setas ou clique avançam e voltam, F liga a tela cheia e Esc sai.
+
+ENVIAR PARA OUTRAS PESSOAS
+"Exportar" gera um único arquivo .html com a apresentação e as imagens
+embutidas. Quem recebe só abre o arquivo; não precisa do editor nem de internet.
+
+DICAS DE TEXTO
+*palavra*     destaca na cor do tema
+`SQ01`        vira uma etiqueta de código
+Enter no título quebra a linha no slide
+
+IMAGENS
+Use PNG com fundo transparente para mascotes e figuras recortadas
+(capa, encerramento, destaque e "imagem espiando").
+No editor local, as imagens são reduzidas para no máximo 1400 px e guardadas
+dentro da apresentação. Muitas fotos grandes podem estourar o espaço do
+navegador (cerca de 5 MB). Se aparecer "Não foi possível salvar", baixe um
+backup e remova imagens.
+
+PARA PROGRAMADORES
+Tudo está no index.html:
+- <style id="dk-css">   estilos dos slides
+- <script id="dk-js">   motor: modelos (TEMPLATES), temas (PRESETS),
+                         fundos animados e animações
+- <script id="gsap-js"> biblioteca de animação GSAP 3.12.5 (GreenSock)
+Para criar um modelo novo, adicione uma entrada em TEMPLATES com
+name, desc, fields, sample e render(d, t). O editor monta o formulário a
+partir de "fields" de forma automática.
