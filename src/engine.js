@@ -340,15 +340,15 @@ Object.assign(TEMPLATES,{
   sample:{word:'2026',shape:'esfera',kicker:'O próximo passo',title:'Um novo *capítulo*',lead:''},
   render(d){ return `<canvas class="dk-3d dk-3d-full" width="1600" height="900" data-kind="particles" data-cfg="${cfgAttr({word:d.word||'',shape:d.shape||'esfera'})}"></canvas><div class="dk-l dk-p3-txt">${head(d,'h2')}</div>`; }},
  barras3d:{name:'Barras 3D',desc:'Gráfico de barras em 3D sobre um piso, crescendo do chão com a câmera girando em volta',
-  fields:[{k:'kicker',t:'text',l:'Rótulo'},{k:'title',t:'area',l:'Título'},{k:'lead',t:'area',l:'Subtítulo'},{k:'unit',t:'text',l:'Unidade (ex.: R$ mil)'},{k:'bars',t:'items',l:'Barras',max:8,sub:[{k:'label',t:'text',l:'Rótulo'},{k:'value',t:'text',l:'Valor'},{k:'hot',t:'bool',l:'Destacar'}]}],
+  fields:[{k:'camera',t:'select',l:'Câmera',opts:{orbita:'Orbitar em volta',foco:'Focar em cada barra enquanto ela sobe',voo:'Voar rente sobre as barras',topo:'Descer do alto até o gráfico',cinema:'Cinema (do alto, voa e foca o destaque)'}},{k:'kicker',t:'text',l:'Rótulo'},{k:'title',t:'area',l:'Título'},{k:'lead',t:'area',l:'Subtítulo'},{k:'unit',t:'text',l:'Unidade (ex.: R$ mil)'},{k:'bars',t:'items',l:'Barras',max:8,sub:[{k:'label',t:'text',l:'Rótulo'},{k:'value',t:'text',l:'Valor'},{k:'hot',t:'bool',l:'Destacar'}]}],
   sample:{kicker:'Resultados',title:'Economia *por trimestre*',lead:'',unit:'R$ mil',bars:[{label:'T1',value:'120',hot:false},{label:'T2',value:'210',hot:false},{label:'T3',value:'260',hot:false},{label:'T4',value:'410',hot:true}]},
   render(d){ const b=arr(d.bars).slice(0,8).map(x=>({l:String(x.label||''),v:String(x.value||''),n:num(x.value),h:!!x.hot}));
-    return `<canvas class="dk-3d dk-3d-full" width="1600" height="900" data-kind="bars" data-cfg="${cfgAttr({bars:b,unit:d.unit||''})}"></canvas><div class="dk-b3-txt">${head(d)}</div>`; }},
+    return `<canvas class="dk-3d dk-3d-full" width="1600" height="900" data-kind="bars" data-cfg="${cfgAttr({bars:b,unit:d.unit||'',camera:d.camera||'orbita'})}"></canvas><div class="dk-b3-txt">${head(d)}</div>`; }},
  globo3d:{name:'Globo 3D',desc:'Planeta de pontos girando, com arcos de conexão que saem de um ponto central e pulsos viajando entre os locais',
-  fields:[{k:'kicker',t:'text',l:'Rótulo'},{k:'title',t:'area',l:'Título'},{k:'lead',t:'area',l:'Texto de apoio'},{k:'stats',t:'list',l:'Destaques (ex.: 12 países)'},{k:'points',t:'items',l:'Locais (o primeiro é o centro das conexões)',max:10,sub:[{k:'label',t:'text',l:'Nome'},{k:'lat',t:'text',l:'Latitude (ex.: -23.5)'},{k:'lon',t:'text',l:'Longitude (ex.: -46.6)'}]}],
+  fields:[{k:'camera',t:'select',l:'Câmera',opts:{girar:'Girar devagar',tour:'Tour: visita cada local, um por vez'}},{k:'kicker',t:'text',l:'Rótulo'},{k:'title',t:'area',l:'Título'},{k:'lead',t:'area',l:'Texto de apoio'},{k:'stats',t:'list',l:'Destaques (ex.: 12 países)'},{k:'points',t:'items',l:'Locais (o primeiro é o centro das conexões)',max:10,sub:[{k:'label',t:'text',l:'Nome'},{k:'lat',t:'text',l:'Latitude (ex.: -23.5)'},{k:'lon',t:'text',l:'Longitude (ex.: -46.6)'}]}],
   sample:{kicker:'Presença',title:'Do Brasil *para o mundo*',lead:'Operação conectada em quatro continentes.',stats:['5 escritórios','12 países'],points:[{label:'São Paulo',lat:'-23.5',lon:'-46.6'},{label:'Lisboa',lat:'38.7',lon:'-9.1'},{label:'Nova York',lat:'40.7',lon:'-74'},{label:'Cidade do México',lat:'19.4',lon:'-99.1'},{label:'Tóquio',lat:'35.7',lon:'139.7'},{label:'Cidade do Cabo',lat:'-33.9',lon:'18.4'}]},
   render(d){ const pts=arr(d.points).slice(0,10).map(x=>({l:String(x.label||''),la:parseFloat(String(x.lat).replace(',','.'))||0,lo:parseFloat(String(x.lon).replace(',','.'))||0}));
-    return `<canvas class="dk-3d dk-3d-full" width="1600" height="900" data-kind="globe" data-cfg="${cfgAttr({pts})}"></canvas><div class="dk-gl-txt">${head(d)}${arr(d.stats).length?`<div class="dk-gl-st" data-a="stagger">${arr(d.stats).map((x,i)=>`<span class="dk-chip" data-f="stats.${i}">${rich(x)}</span>`).join('')}</div>`:''}</div>`; }},
+    return `<canvas class="dk-3d dk-3d-full" width="1600" height="900" data-kind="globe" data-cfg="${cfgAttr({pts,camera:d.camera||'girar'})}"></canvas><div class="dk-gl-txt">${head(d)}${arr(d.stats).length?`<div class="dk-gl-st" data-a="stagger">${arr(d.stats).map((x,i)=>`<span class="dk-chip" data-f="stats.${i}">${rich(x)}</span>`).join('')}</div>`:''}</div>`; }},
  logo3d:{name:'Logo 3D',desc:'Sua logo vira uma escultura 3D de partículas que se monta no ar e gira com profundidade',
   fields:[{k:'image',t:'image',l:'Logo (PNG transparente). Vazio = logo do tema'},{k:'word',t:'text',l:'Texto, se não houver logo'},{k:'kicker',t:'text',l:'Rótulo'},{k:'title',t:'area',l:'Título (embaixo)'},{k:'lead',t:'area',l:'Texto de apoio'}],
   sample:{image:'',word:'MARCA',kicker:'Apresentamos',title:'Uma marca *em movimento*',lead:''},
@@ -409,36 +409,53 @@ function run3dParticles(cv,cfg,o){
 function run3dBars(cv,cfg,o){
   const W=cv.width,H=cv.height,cx=cv.getContext('2d'),K=V3.colors(cv); const B=cfg.bars||[]; const n=B.length; if(!n) return {kill(){}};
   const mx=Math.max(1,...B.map(b=>b.n)), sp=Math.min(190,1100/Math.max(1,n)), bw=sp*.55, x0=-(n-1)*sp/2;
-  const shade=(c,f,add=0)=>`rgb(${Math.min(255,c[0]*f+add)|0},${Math.min(255,c[1]*f+add)|0},${Math.min(255,c[2]*f+add)|0})`;
+  const HT=i=>Math.max(2,B[i].n/mx*430), XI=i=>x0+i*sp;
+  const shade=(c,f,add=0)=>'rgb('+(Math.min(255,c[0]*f+add)|0)+','+(Math.min(255,c[1]*f+add)|0)+','+(Math.min(255,c[2]*f+add)|0)+')';
+  const mode=cfg.camera||'orbita', hot=Math.max(0,B.findIndex(b=>b.h)), lerp=(a,b,t)=>a+(b-a)*t;
+  /* câmera: yaw, pitch, dist, alvo (tx,ty) e altura do centro na tela (cy) */
+  const OV={yaw:-.6,pitch:.42,dist:950,tx:0,ty:0,cy:.74};
+  const FOC=i=>({yaw:-.42+(i%2?.14:-.14),pitch:.24,dist:-560,tx:XI(i),ty:HT(i)*.55,cy:.56});
+  /* quando cada barra cresce e roteiro de quadros-chave da câmera */
+  let grow=i=>({s:.3+i*.18,d:1.4}), keys=[];
+  if(mode==='foco'){ grow=i=>({s:1.1+i*1.9,d:1.1}); keys.push({t:0,c:Object.assign({},OV,{dist:1350,pitch:.6})}); for(let i=0;i<n;i++){ const g=grow(i); keys.push({t:g.s-.5,c:FOC(i)},{t:g.s+g.d+.25,c:FOC(i)}); } keys.push({t:grow(n-1).s+grow(n-1).d+1.8,c:OV}); }
+  else if(mode==='voo'){ const T=Math.max(4,n*1.2); grow=i=>({s:.5+(n>1?i/(n-1):0)*T*.92,d:.9}); keys.push({t:0,c:{yaw:-.28,pitch:.5,dist:-380,tx:XI(0)-sp*1.2,ty:150,cy:.62}},{t:T+.6,c:{yaw:-.28,pitch:.5,dist:-380,tx:XI(n-1)+sp*.6,ty:150,cy:.62},lin:true},{t:T+2.6,c:OV}); }
+  else if(mode==='topo'){ grow=i=>({s:.6+i*.15,d:1.8}); keys.push({t:0,c:{yaw:0,pitch:1.42,dist:1500,tx:0,ty:0,cy:.5}},{t:3.4,c:OV}); }
+  else if(mode==='cinema'){ grow=i=>({s:.8+i*.22,d:1.5}); const g=grow(hot); keys.push({t:0,c:{yaw:.3,pitch:1.3,dist:1600,tx:0,ty:0,cy:.5}},{t:2.6,c:{yaw:-.9,pitch:.36,dist:900,tx:0,ty:60,cy:.7}},{t:Math.max(4.4,g.s+g.d+.6),c:FOC(hot)},{t:Math.max(6.4,g.s+g.d+2.6),c:FOC(hot)},{t:Math.max(8.6,g.s+g.d+4.8),c:OV}); }
+  const tEnd=keys.length?keys[keys.length-1].t:0;
+  function camAt(tt){
+    if(o.still||!keys.length||tt>=tEnd){ const k=Math.max(0,tt-tEnd); return Object.assign({},OV,{yaw:OV.yaw+(o.still?0:Math.sin(k*.2)*.22)}); }
+    let j=0; while(j<keys.length-1&&keys[j+1].t<=tt) j++;
+    const A=keys[j], Bk=keys[Math.min(j+1,keys.length-1)]; const q=Bk.t>A.t?Math.min(1,(tt-A.t)/(Bk.t-A.t)):1, e=Bk.lin?q:V3.ease(q);
+    const c={}; for(const k in OV) c[k]=lerp(A.c[k],Bk.c[k],e); return c; }
   let alive=true, raf=0, t0=null;
   function draw(tt){
     cx.clearRect(0,0,W,H);
-    const cam={yaw:-.6+Math.sin(tt*.2)*.22+(o.still?0:0),pitch:.42,f:1500,dist:950,cx:W/2,cy:H*.74};
+    const C=camAt(tt), cam={yaw:C.yaw,pitch:C.pitch,f:1500,dist:C.dist,cx:W/2,cy:H*C.cy};
+    const P=(x,y,z)=>V3.proj(x-C.tx,y-C.ty,z,cam);
     /* piso em grade */
-    cx.lineWidth=1; cx.strokeStyle=`rgba(${K.m[0]},${K.m[1]},${K.m[2]},.22)`;
-    const G=Math.max(700,n*sp*.75); for(let g=-G;g<=G;g+=80){ let a=V3.proj(g,0,-360,cam),b=V3.proj(g,0,360,cam); cx.beginPath(); cx.moveTo(a[0],a[1]); cx.lineTo(b[0],b[1]); cx.stroke(); }
-    for(let z=-360;z<=360;z+=80){ let a=V3.proj(-G,0,z,cam),b=V3.proj(G,0,z,cam); cx.beginPath(); cx.moveTo(a[0],a[1]); cx.lineTo(b[0],b[1]); cx.stroke(); }
+    cx.lineWidth=1; cx.strokeStyle='rgba('+K.m[0]+','+K.m[1]+','+K.m[2]+',.22)';
+    const G=Math.max(700,n*sp*.75); const line=(a,b)=>{ if(a[2]<=0||b[2]<=0) return; cx.beginPath(); cx.moveTo(a[0],a[1]); cx.lineTo(b[0],b[1]); cx.stroke(); };
+    for(let g=-G;g<=G;g+=80) line(P(g,0,-360),P(g,0,360));
+    for(let z=-360;z<=360;z+=80) line(P(-G,0,z),P(G,0,z));
     const faces=[], tops=[];
-    B.forEach((b,i)=>{ const g=o.still?1:V3.ease(Math.max(0,Math.min(1,(tt-.3-i*.18)/1.4))); const h=Math.max(2,b.n/mx*430*g); const X0=x0+i*sp-bw/2, X1=X0+bw, Z0=-bw/2, Z1=bw/2; const c=b.h?K.b:K.a;
-      const P=(x,y,z)=>V3.proj(x,y,z,cam);
+    B.forEach((b,i)=>{ const gr=grow(i), g=o.still?1:V3.ease(Math.max(0,Math.min(1,(tt-gr.s)/gr.d))); const h=Math.max(2,HT(i)*g); const X0=XI(i)-bw/2, X1=X0+bw, Z0=-bw/2, Z1=bw/2; const c=b.h?K.b:K.a;
       const cz=P(X0+bw/2,h/2,0)[3];
-      const q=(pts,col)=>{ const pp=pts.map(v=>P(...v)); const z=pp.reduce((s,v)=>s+v[3],0)/4; if(z>cz+.5) return; faces.push({pp,col,z}); }; // só faces viradas para a câmera
+      const q=(pts,col)=>{ const pp=pts.map(v=>P(...v)); if(pp.some(v=>v[2]<=0)) return; const z=pp.reduce((s,v)=>s+v[3],0)/4; if(z>cz+.5) return; faces.push({pp,col,z}); }; // só faces viradas para a câmera
       q([[X0,0,Z1],[X1,0,Z1],[X1,h,Z1],[X0,h,Z1]],shade(c,.62)); q([[X0,0,Z0],[X1,0,Z0],[X1,h,Z0],[X0,h,Z0]],shade(c,.62));
       q([[X0,0,Z0],[X0,0,Z1],[X0,h,Z1],[X0,h,Z0]],shade(c,.82)); q([[X1,0,Z0],[X1,0,Z1],[X1,h,Z1],[X1,h,Z0]],shade(c,.82));
       q([[X0,h,Z0],[X1,h,Z0],[X1,h,Z1],[X0,h,Z1]],shade(c,1,45));
       tops.push({top:P(X0+bw/2,h+34,0),base:P(X0+bw/2,0,0),b,g}); });
     faces.sort((p,q)=>q.z-p.z).forEach(f=>{ cx.fillStyle=f.col; cx.beginPath(); f.pp.forEach((v,i)=>i?cx.lineTo(v[0],v[1]):cx.moveTo(v[0],v[1])); cx.closePath(); cx.fill(); cx.strokeStyle='rgba(255,255,255,.08)'; cx.stroke(); });
-    cx.textAlign='center'; const tc=`rgb(${K.t[0]},${K.t[1]},${K.t[2]})`, mc=`rgb(${K.m[0]},${K.m[1]},${K.m[2]})`;
-    tops.forEach(({top,base,b,g})=>{ cx.globalAlpha=Math.min(1,g*1.4); cx.fillStyle=tc; cx.font=`600 ${Math.round(40*top[2]*1.6)}px ${K.fd}`; cx.fillText(b.v,top[0],top[1]);
-      cx.fillStyle=mc; cx.font=`500 ${Math.round(22*base[2]*1.6)}px ${K.fb}`; cx.fillText(b.l,base[0],base[1]+(bw*.75+34)*base[2]); });
+    cx.textAlign='center'; const tc='rgb('+K.t[0]+','+K.t[1]+','+K.t[2]+')', mc='rgb('+K.m[0]+','+K.m[1]+','+K.m[2]+')';
+    tops.forEach(({top,base,b,g})=>{ if(top[2]<=0||base[2]<=0) return; cx.globalAlpha=Math.min(1,g*1.4); cx.fillStyle=tc; cx.font='600 '+Math.round(Math.min(110,40*top[2]*1.6))+'px '+K.fd; cx.fillText(b.v,top[0],top[1]);
+      cx.fillStyle=mc; cx.font='500 '+Math.round(Math.min(56,22*base[2]*1.6))+'px '+K.fb; cx.fillText(b.l,base[0],base[1]+(bw*.75+34)*base[2]); });
     cx.globalAlpha=1;
-    if(cfg.unit){ cx.textAlign='right'; cx.fillStyle=mc; cx.font=`500 20px ${K.fb}`; cx.fillText(cfg.unit.toUpperCase(),W-70,90); }
+    if(cfg.unit){ cx.textAlign='right'; cx.fillStyle=mc; cx.font='500 20px '+K.fb; cx.fillText(cfg.unit.toUpperCase(),W-70,90); }
   }
   function frame(now){ if(!alive) return; if(t0==null) t0=now; draw((now-t0)/1000); raf=requestAnimationFrame(frame); }
   if(o.still) draw(0); else raf=requestAnimationFrame(frame);
   return {kill(){ alive=false; cancelAnimationFrame(raf); }};
 }
-
 /* globo de pontos com arcos de conexão */
 function run3dGlobe(cv,cfg,o){
   const W=cv.width,H=cv.height,cx=cv.getContext('2d'),K=V3.colors(cv); const P=cfg.pts||[]; const R=318, CX=W*.71, CY=H*.5, rad=Math.PI/180;
@@ -447,17 +464,28 @@ function run3dGlobe(cv,cfg,o){
   const loc=P.map(p=>ll(p.la,p.lo)); const hub=P[0]||{lo:0,la:0};
   const rgb=(c,a)=>'rgba('+c[0]+','+c[1]+','+c[2]+','+a+')';
   let alive=true, raf=0, t0=null;
+  /* tour: a câmera vira para cada local, aproxima e o arco nasce ali */
+  const tour=cfg.camera==='tour'&&P.length>1, STEP=2.6, T0=1.4, unwrap=[]; { let prev=-hub.lo*rad; P.forEach((p,i)=>{ let y=-p.lo*rad; while(y-prev>Math.PI) y-=2*Math.PI; while(prev-y>Math.PI) y+=2*Math.PI; unwrap[i]=y; prev=y; }); }
+  const tEndTour=T0+(P.length-1)*STEP+2.4, endYaw=unwrap[0]-.35-(P.length?0:0);
+  function tourCam(tt){ const at=i=>({yaw:unwrap[i],pitch:P[i].la*rad*.9,zoom:1.32});
+    if(tt<T0) return {yaw:unwrap[0]+.35,pitch:-.12,zoom:1};
+    const k=(tt-T0)/STEP, i=Math.floor(k);
+    if(i>=P.length-1){ const q=V3.ease(Math.min(1,(tt-(T0+(P.length-1)*STEP))/2.4)), A=at(P.length-1); const yEnd=A.yaw+.4; return tt>=tEndTour?{yaw:yEnd-(tt-tEndTour)*.12,pitch:lerpN(A.pitch,hub.la*rad*.6-.12,1),zoom:1}:{yaw:lerpN(A.yaw,yEnd,q),pitch:lerpN(A.pitch,hub.la*rad*.6-.12,q),zoom:lerpN(1.32,1,q)}; }
+    const A=at(i), Bk=at(i+1), q=V3.ease(Math.min(1,Math.max(0,(k-i-.35)/.65)));
+    return {yaw:lerpN(A.yaw,Bk.yaw,q),pitch:lerpN(A.pitch,Bk.pitch,q),zoom:1.32-Math.sin(q*Math.PI)*.22}; }
+  const lerpN=(a,b,t)=>a+(b-a)*t;
   function rot(v,yaw,pitch){ const cy=Math.cos(yaw), sy=Math.sin(yaw); let x=v[0]*cy+v[2]*sy, z=-v[0]*sy+v[2]*cy; const cp=Math.cos(pitch), sp=Math.sin(pitch); const y=v[1]*cp-z*sp; z=v[1]*sp+z*cp; return [x,y,z]; }
   function slerp(a,b,t){ const d=Math.max(-1,Math.min(1,a[0]*b[0]+a[1]*b[1]+a[2]*b[2])), om=Math.acos(d)||1e-6, s=Math.sin(om); const k1=Math.sin((1-t)*om)/s, k2=Math.sin(t*om)/s; const lift=1+Math.sin(Math.PI*t)*Math.min(.32,.06+om*.2); return [(a[0]*k1+b[0]*k2)*lift,(a[1]*k1+b[1]*k2)*lift,(a[2]*k1+b[2]*k2)*lift]; }
   function draw(tt){
     cx.clearRect(0,0,W,H);
-    const yaw=-hub.lo*rad+.35-tt*.12, pitch=hub.la*rad*.6-.12, intro=o.still?1:V3.ease(Math.min(1,tt/1.6));
-    const r=R*(.75+.25*intro);
+    let yaw=-hub.lo*rad+.35-tt*.12, pitch=hub.la*rad*.6-.12, zoom=1; const intro=o.still?1:V3.ease(Math.min(1,tt/1.6));
+    if(tour&&!o.still){ const cam=tourCam(tt); yaw=cam.yaw; pitch=cam.pitch; zoom=cam.zoom; }
+    const r=R*(.75+.25*intro)*zoom;
     const g=cx.createRadialGradient(CX,CY,r*.85,CX,CY,r*1.35); g.addColorStop(0,rgb(K.a,0)); g.addColorStop(.2,rgb(K.a,K.light?.10:.16)); g.addColorStop(1,rgb(K.a,0)); cx.fillStyle=g; cx.beginPath(); cx.arc(CX,CY,r*1.35,0,7); cx.fill();
     cx.fillStyle=rgb(K.a,K.light?.05:.07); cx.beginPath(); cx.arc(CX,CY,r,0,7); cx.fill();
     for(let i=0;i<N;i++){ const q=rot([dots[i*3],dots[i*3+1],dots[i*3+2]],yaw,pitch); const f=q[2]; const a=f>0?(.25+.6*f):.07; cx.fillStyle=rgb(f>0?K.a:K.m,a*intro); const s=f>0?2.6:1.6; cx.fillRect(CX+q[0]*r-s/2,CY-q[1]*r-s/2,s,s); }
     const H0=loc[0];
-    loc.forEach((L,i)=>{ if(i===0||!H0) return; const grow=o.still?1:V3.ease(Math.max(0,Math.min(1,(tt-1.2-i*.35)/1.3))); if(grow<=0) return;
+    loc.forEach((L,i)=>{ if(i===0||!H0) return; const grow=o.still?1:V3.ease(Math.max(0,Math.min(1,(tt-(tour?T0+(i-1)*STEP+.9:1.2+i*.35))/1.3))); if(grow<=0) return;
       const seg=48, m=Math.ceil(seg*grow); cx.lineWidth=2.4; let last=null;
       for(let k=0;k<=m;k++){ const v=rot(slerp(H0,L,k/seg),yaw,pitch), x=CX+v[0]*r, y=CY-v[1]*r; if(last){ cx.strokeStyle=rgb(i%2?K.b:K.a,v[2]>-.1?.85:.18); cx.beginPath(); cx.moveTo(last[0],last[1]); cx.lineTo(x,y); cx.stroke(); } last=[x,y]; }
       if(grow>=1&&!o.still){ const pt=((tt*.45+i*.23)%1), v=rot(slerp(H0,L,pt),yaw,pitch); if(v[2]>-.1){ cx.fillStyle=rgb(K.t,.95); cx.shadowColor=rgb(K.a,1); cx.shadowBlur=14; cx.beginPath(); cx.arc(CX+v[0]*r,CY-v[1]*r,4.5,0,7); cx.fill(); cx.shadowBlur=0; } } });

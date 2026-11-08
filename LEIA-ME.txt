@@ -118,3 +118,7 @@ Acessibilidade           ao apresentar: C legendas ao vivo do que você fala
                          (Chrome/Edge), A alto contraste. Aba Tema > Movimento
                          reduzido. O sistema já respeita o "reduzir movimento"
                          do Windows
+
+Câmeras 3D (3.2)         Barras 3D: orbitar, focar cada barra, voar rente,
+                         descer do alto ou cinema. Globo 3D: girar ou tour
+                         (visita cada cidade). Campo "Câmera" no slide
