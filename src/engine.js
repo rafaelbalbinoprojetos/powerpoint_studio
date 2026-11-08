@@ -810,15 +810,21 @@ function createPlayer(root,deck,opts={}){
   const wpos=i=>{ const c=4, col=i%c, row=Math.floor(i/c); return {x:col*2500, y:row*1700+(col%2)*420, r:[-4,3,-2,5,-3,2,-5,4][i%8]}; };
   function fly(pv,a,b){
     const world=document.createElement('div'); world.className='dk-world'; stage.appendChild(world);
-    deck.slides.forEach((_,j)=>{ let el; if(j===a){ el=pv.cloneNode(true); } else { const tmp=document.createElement('div'); tmp.innerHTML=slideHTML(deck,j,t); el=tmp.firstElementChild; }
+    deck.slides.forEach((_,j)=>{ let el; if(j===a){ el=pv.cloneNode(true); const src=pv.querySelectorAll('canvas'), dst=el.querySelectorAll('canvas'); dst.forEach((c,k)=>{ try{ c.getContext('2d').drawImage(src[k],0,0); }catch(_){} }); } else { const tmp=document.createElement('div'); tmp.innerHTML=slideHTML(deck,j,t); el=tmp.firstElementChild; }
       el.classList.add('on','dk-tile'); if(j!==a&&j!==b) el.classList.add('dim'); const q=wpos(j); el.removeAttribute('style'); Object.assign(el.style,{left:q.x+'px',top:q.y+'px',transform:'rotate('+q.r+'deg)'}); world.appendChild(el); });
     world.querySelectorAll('video').forEach(v=>{ v.removeAttribute('autoplay'); v.pause(); });
+    const tiles=world.children, tA=tiles[a], tB=tiles[b];
+    tA.classList.add('flat'); const bIn=[...tB.children];
     const A=wpos(a), B=wpos(b), cam={x:A.x+960,y:A.y+540,r:A.r,s:1};
     const put=()=>{ world.style.transform='translate(960px,540px) scale('+cam.s+') rotate('+(-cam.r)+'deg) translate('+(-cam.x)+'px,'+(-cam.y)+'px)'; }; put();
     pv.classList.remove('on'); videos(pv,false);
     const dist=Math.hypot(B.x-A.x,B.y-A.y), low=Math.max(.2,Math.min(.5,1500/(dist+1500)*.62));
-    const ft=G.timeline({onUpdate:put,onComplete:()=>{ G.set(pv,{clearProps:'all'}); kill(); enter(b); cur=b; G.to(world,{opacity:0,duration:.45,ease:'power1.out',onComplete:()=>world.remove()}); busy=false; opts.onChange&&opts.onChange(b); }});
-    ft.to(cam,{x:B.x+960,y:B.y+540,r:B.r,duration:1.9,ease:'power2.inOut'},0).to(cam,{s:low,duration:.95,ease:'power2.out'},0).to(cam,{s:1,duration:.95,ease:'power2.in'},.95);
+    const ft=G.timeline({onUpdate:put,onComplete:()=>{ G.set(pv,{clearProps:'all'}); kill(); enter(b); cur=b; G.to(world,{opacity:0,duration:.25,ease:'power1.out',onComplete:()=>world.remove()}); busy=false; opts.onChange&&opts.onChange(b); }});
+    const T=2.1;
+    ft.to(cam,{x:B.x+960,y:B.y+540,r:B.r,duration:T,ease:'power3.inOut'},0).to(cam,{s:low,duration:T/2,ease:'sine.inOut'},0).to(cam,{s:1,duration:T/2,ease:'sine.inOut'},T/2)
+      .call(()=>tA.classList.remove('flat'),null,.05)
+      .to(bIn,{opacity:0,duration:.45,ease:'power1.in'},T-.55)
+      .call(()=>tB.classList.add('flat'),null,T-.35);
     return true;
   }
   /* ---------- movimento mágico: elementos equivalentes viajam de um slide para o outro ---------- */

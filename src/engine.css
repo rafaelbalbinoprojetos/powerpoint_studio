@@ -409,5 +409,7 @@
 .dk-tn-txt .dk-lead{margin-left:auto;margin-right:auto}
 /* tela infinita */
 .dk-world{position:absolute;left:0;top:0;width:1920px;height:1080px;transform-origin:0 0;z-index:15;pointer-events:none}
-.dk-world .dk-tile{position:absolute;inset:auto;width:1920px;height:1080px;visibility:visible;border-radius:28px;background:color-mix(in srgb,var(--surface) 55%,transparent);border:2px solid color-mix(in srgb,var(--accent) 30%,transparent);box-shadow:0 40px 120px rgba(0,0,0,.45);overflow:hidden}
-.dk-world .dk-tile.dim{opacity:.5}
+.dk-world .dk-tile{position:absolute;inset:auto;width:1920px;height:1080px;visibility:visible;border-radius:36px;background:var(--bg);outline:3px solid color-mix(in srgb,var(--accent) 45%,transparent);box-shadow:0 0 0 1px rgba(255,255,255,.06),0 50px 140px rgba(0,0,0,.6),0 0 90px color-mix(in srgb,var(--accent) 18%,transparent);overflow:hidden;transition:border-radius .35s ease,outline-color .35s ease,box-shadow .35s ease,background-color .35s ease}
+.dk-world .dk-tile.flat{border-radius:0;outline-color:transparent;box-shadow:none;background:transparent}
+.dk-world .dk-tile.dim{filter:brightness(.42) saturate(.6)}
+.dk-world .dk-tile.dim::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 40%,rgba(0,0,0,.35))}
