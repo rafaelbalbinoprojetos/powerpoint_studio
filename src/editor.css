@@ -299,3 +299,17 @@ textarea{resize:vertical;min-height:62px;line-height:1.45}
 .ver-t b{display:block;font-size:14px}.ver-t small{color:var(--ui-dim);font-size:12px}
 .ver-a{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
 @media (max-width:600px){.ver-i{grid-template-columns:90px minmax(0,1fr)}.ver-a{grid-column:1/-1}.ver-new{flex-direction:column}}
+
+/* comentários */
+.thumb{position:relative}
+.cm-badge{position:absolute;top:6px;right:6px;min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:#ffb547;color:#1a1200;font:700 11px/20px var(--ui-f);text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.35);z-index:2}
+.cm-n{color:#c77a00;font-weight:600;letter-spacing:.04em;margin-left:6px}
+.cm-box{display:flex;flex-direction:column;gap:8px}
+.cm{padding:10px 12px;border-radius:10px;background:color-mix(in srgb,#ffb547 12%,var(--ui-panel,transparent));border-left:3px solid #ffb547}
+.cm.done{opacity:.55;border-left-color:var(--ui-line);background:none}
+.cm-h{display:flex;justify-content:space-between;gap:8px}.cm-h b{font-size:13px}.cm-h small{font-size:11px;color:var(--ui-dim)}
+.cm p{margin:4px 0 6px;font-size:13px;line-height:1.45;white-space:pre-wrap}
+.cm-a{display:flex;gap:12px}
+.lnk{background:none;border:0;padding:0;color:var(--ui-acc);font:600 12px var(--ui-f);cursor:pointer}
+.cm-tg{align-self:flex-start}
+.cm-new{display:flex;flex-direction:column;gap:6px}.cm-new .btn{align-self:flex-end}

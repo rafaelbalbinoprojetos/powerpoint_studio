@@ -49,6 +49,23 @@ async function saveLib(){ try{ await IDB.set('library',clone(myLib)); }catch(_){
 async function loadThemes(){ try{ myThemes=(await IDB.get('themes'))||[]; }catch(_){ try{ myThemes=JSON.parse(lsGet(LS+'-themes')||'[]'); }catch(e){ myThemes=[]; } } }
 async function saveThemes(){ try{ await IDB.set('themes',clone(myThemes)); }catch(_){ lsSet(LS+'-themes',JSON.stringify(myThemes)); } }
 
+/* ---------- comentários por slide (vão junto com a apresentação: backup, nuvem, arquivo) ---------- */
+const myName=()=>lsGet(LS+'-autor')||'';
+function paintComments(s){ const box=$('#cmBox'); if(!box) return; const list=s.comments||[];
+  const showDone=box.dataset.done==='1', vis=list.filter(c=>showDone||!c.done), nDone=list.filter(c=>c.done).length;
+  box.innerHTML=`${vis.map(c=>`<div class="cm${c.done?' done':''}" data-id="${c.id}"><div class="cm-h"><b>${esc(c.author||'Sem nome')}</b><small>${whenTxt(c.at)}</small></div><p>${esc(c.text)}</p><div class="cm-a"><button class="lnk" data-done>${c.done?'Reabrir':'Resolver ✓'}</button><button class="lnk" data-rm>Excluir</button></div></div>`).join('')}
+    ${nDone?`<button class="lnk cm-tg" data-tg>${showDone?'Ocultar':'Mostrar'} ${nDone} resolvido(s)</button>`:''}
+    <div class="cm-new">${myName()?'':'<input type="text" id="cmWho" placeholder="Seu nome">'}<textarea id="cmTxt" rows="2" placeholder="Escreva um comentário para este slide…"></textarea><button class="btn sm" id="cmAdd">Comentar</button></div>`;
+  const upd=()=>{ touch(); paintComments(s); renderRail(); const sec=box.previousElementSibling; if(sec) sec.innerHTML='Comentários '+(openC(s)?'<b class="cm-n">'+openC(s)+' em aberto</b>':''); };
+  box.querySelectorAll('.cm').forEach(el=>{ const c=list.find(x=>x.id===el.dataset.id);
+    el.querySelector('[data-done]').onclick=()=>{ c.done=!c.done; upd(); };
+    el.querySelector('[data-rm]').onclick=()=>{ s.comments=list.filter(x=>x!==c); if(!s.comments.length) delete s.comments; upd(); }; });
+  const tg=box.querySelector('[data-tg]'); if(tg) tg.onclick=()=>{ box.dataset.done=showDone?'0':'1'; paintComments(s); };
+  const add=()=>{ const t=box.querySelector('#cmTxt').value.trim(); if(!t) return; const who=box.querySelector('#cmWho'); if(who&&who.value.trim()) lsSet(LS+'-autor',who.value.trim());
+    (s.comments=s.comments||[]).push({id:uid(),author:myName()||(who&&who.value.trim())||'',text:t,at:Date.now(),done:false}); upd(); };
+  box.querySelector('#cmAdd').onclick=add; box.querySelector('#cmTxt').onkeydown=e=>{ if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)) add(); };
+}
+
 /* ---------- histórico de versões: automático a cada 10 min de edição + versões com nome ---------- */
 const VKEY=id=>'ver-'+id;
 async function getVersions(id){ try{ return (await IDB.get(VKEY(id)))||[]; }catch(_){ try{ return JSON.parse(lsGet(LS+'-'+VKEY(id))||'[]'); }catch(e){ return []; } } }
@@ -111,9 +128,10 @@ function renderDeckPick(){
   if(document.activeElement!==$('#deckName')) $('#deckName').value=deck()?deck().name||'':'';
 }
 const thumbCleanup=new Map();
+const openC=s=>(s.comments||[]).filter(c=>!c.done).length;
 function renderRail(){
   const d=deck(), rail=$('#rail'); thumbCleanup.forEach(f=>f()); thumbCleanup.clear();
-  rail.innerHTML=d.slides.map((s,i)=>`<button class="thumb${i===sel?' sel':''}${s.hidden?' hid':''}" data-i="${i}" aria-label="Slide ${i+1}: ${esc((T[s.t]||{}).name||s.t)}"><div class="tv"></div><div class="meta"><span>${String(i+1).padStart(2,'0')}</span><span>${s.hidden?'<b class="hid-tag">oculto</b>':''}${s.notes?'<i class="has-notes" title="Tem notas do apresentador"></i>':''}${esc((T[s.t]||{}).name||s.t)}</span></div></button>`).join('')+`<button class="addslide" id="addSlide">+ Adicionar slide</button>`;
+  rail.innerHTML=d.slides.map((s,i)=>`<button class="thumb${i===sel?' sel':''}${s.hidden?' hid':''}" data-i="${i}" aria-label="Slide ${i+1}: ${esc((T[s.t]||{}).name||s.t)}"><div class="tv"></div>${openC(s)?`<span class="cm-badge" title="${openC(s)} comentário(s) em aberto">${openC(s)}</span>`:''}<div class="meta"><span>${String(i+1).padStart(2,'0')}</span><span>${s.hidden?'<b class="hid-tag">oculto</b>':''}${s.notes?'<i class="has-notes" title="Tem notas do apresentador"></i>':''}${esc((T[s.t]||{}).name||s.t)}</span></div></button>`).join('')+`<button class="addslide" id="addSlide">+ Adicionar slide</button>`;
   rail.querySelectorAll('.thumb').forEach(b=>{ const i=+b.dataset.i; thumbCleanup.set(i,D.renderStatic(b.querySelector('.tv'),d,i)); b.onclick=()=>select(i); });
   $('#addSlide').onclick=()=>gallery('add');
   railDrag();
@@ -246,6 +264,8 @@ function renderPane(){
   <div class="sec">Exibição</div>
   <label class="chk"><input type="checkbox" id="o-hid"${s.hidden?' checked':''}> Slide oculto (só abre por um link do OnePage)</label>
   ${d.header&&d.header.on?`<div class="f"><label for="o-head">Faixa de cabeçalho neste slide</label><select id="o-head">${opt({'':'Automático','show':'Mostrar','hide':'Esconder'},s.head||'')}</select></div>`:''}
+  <div class="sec">Comentários ${openC(s)?'<b class="cm-n">'+openC(s)+' em aberto</b>':''}</div>
+  <div class="cm-box" id="cmBox"></div>
   <div class="sec">Notas do apresentador</div>
   <div class="f"><textarea id="o-notes" rows="4" placeholder="O que falar neste slide. Aparece só na janela do apresentador.">${esc(s.notes||'')}</textarea></div>`;
   pane.appendChild(box);
@@ -256,6 +276,7 @@ function renderPane(){
   $('#o-dur').oninput=e=>{ const v=parseFloat(e.target.value); if(v>0) s.dur=v; else delete s.dur; touch(); };
   $('#o-hid').onchange=e=>{ if(e.target.checked) s.hidden=true; else delete s.hidden; touch(); renderRail(); };
   if($('#o-head')) $('#o-head').onchange=e=>{ if(e.target.value) s.head=e.target.value; else delete s.head; touch(); renderPreview(false); refreshThumb(sel); };
+  paintComments(s);
   $('#o-notes').oninput=e=>{ s.notes=e.target.value; if(!s.notes) delete s.notes; touch(); };
   if($('#o-src')){ const fill=rows=>{ const n=applyRows(s,rows); if(!n) return setStatus('Não encontrei linhas com rótulo e valor'); touch(); renderPreview(false); refreshThumb(sel); renderPane(); setStatus(n+' linhas importadas',true); };
     $('#o-src').oninput=e=>{ const v=e.target.value.trim(); if(v) s.src=v; else { delete s.src; delete s.live; } touch(); };
@@ -706,6 +727,7 @@ function review(d){
     const est=s.dur?+s.dur:Math.max(20,(words+String(s.notes||'').split(/\s+/).filter(Boolean).length)/2.2); per[i]=s.hidden?0:est; if(!s.hidden) secs+=est;
   });
   if(d.slides[0]&&!['capa','mergulho','revelar','paralaxe','particulas3d','logo3d','tunel3d','video','globo3d'].includes(d.slides[0].t)) add(1,0,'A apresentação não abre com uma capa.','Uma capa ou um slide de impacto prepara a plateia.');
+  const oc=d.slides.reduce((a,sl)=>a+openC(sl),0); if(oc) add(2,d.slides.findIndex(sl=>openC(sl)>0),oc+' comentário(s) em aberto.','Resolva ou exclua antes de apresentar.');
   if(noNotes.length) add(1,noNotes.length===1?noNotes[0]-1:-2,noNotes.length===1?'Slide sem notas do apresentador.':noNotes.length+' slides sem notas do apresentador ('+noNotes.slice(0,8).join(', ')+(noNotes.length>8?'…':'')+').','Notas ajudam no ensaio e aparecem na janela do apresentador.');
   if(d.slides.length>25) add(1,-1,d.slides.length+' slides: é bastante.','Considere um OnePage com slides ocultos para os detalhes.');
   const pen={3:12,2:5,1:2};
