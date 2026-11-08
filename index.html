@@ -680,6 +680,29 @@ textarea{resize:vertical;min-height:62px;line-height:1.45}
 .rv-tag{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;opacity:.8}
 .rv-t small{display:block;opacity:.7;margin-top:3px}
 .btnrow{display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 8px}
+
+/* ensaio */
+.rh-hud{position:absolute;left:20px;top:20px;z-index:7;width:230px;padding:14px 16px;border-radius:16px;background:rgba(8,12,24,.78);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.1);color:#fff;font:500 13px/1.2 var(--ui-f);box-shadow:0 12px 40px rgba(0,0,0,.35);--c:#3ddc97}
+.rh-hud[data-st=warn]{--c:#ffc04d}.rh-hud[data-st=late]{--c:#ff5d6c}
+.rh-row{display:flex;align-items:baseline;gap:8px}.rh-l{opacity:.6;width:42px;font-size:11px;text-transform:uppercase;letter-spacing:.08em}
+.rh-s,.rh-t{font:700 22px/1 var(--ui-f);font-variant-numeric:tabular-nums}.rh-s{color:var(--c)}.rh-b,.rh-tt{opacity:.6;font-variant-numeric:tabular-nums}
+.rh-hud.over .rh-t{color:#ff5d6c}
+.rh-bar{height:5px;border-radius:9px;background:rgba(255,255,255,.12);margin:8px 0 12px;overflow:hidden}.rh-bar i{display:block;height:100%;background:var(--c);border-radius:9px;transition:width .25s linear,background .3s}
+.rh-pace{margin-top:10px;padding-top:9px;border-top:1px solid rgba(255,255,255,.1);font-weight:600;font-size:12px;opacity:.85}
+.rh-hud.paused{opacity:.65}
+.show.rec .rh-hud{display:none}
+.rh-sum{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 14px;padding:16px 18px;border-radius:14px;background:var(--panel-2,rgba(127,127,127,.08));border-left:4px solid #3ddc97;margin:6px 0 10px}
+.rh-sum.late{border-color:#ff5d6c}.rh-sum.fast{border-color:#ffc04d}
+.rh-sum b{font-size:30px;font-variant-numeric:tabular-nums}.rh-sum small{flex-basis:100%;opacity:.7}
+.rh-leg{display:flex;gap:16px;font-size:12px;opacity:.75;margin:4px 0 8px}.rh-leg i{display:inline-block;width:12px;height:8px;border-radius:3px;margin-right:6px;vertical-align:middle}
+.rh-leg .pl,.rh-g .pl{background:rgba(127,127,127,.35)}.rh-leg .ac,.rh-g .ac{background:var(--accent,#4f8cff)}
+.rh-list{max-height:46vh;overflow:auto;display:grid;gap:6px;padding-right:4px}
+.rh-r{display:grid;grid-template-columns:28px minmax(0,1.3fr) minmax(0,1fr) 92px;gap:10px;align-items:center;font-size:13px}
+.rh-n{opacity:.55;font-variant-numeric:tabular-nums;text-align:right}.rh-ti{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rh-g{position:relative;height:16px}.rh-g i{position:absolute;left:0;border-radius:4px}.rh-g .pl{top:0;height:16px}.rh-g .ac{top:4px;height:8px}
+.rh-r.late .rh-g .ac{background:#ff5d6c}.rh-r.fast .rh-g .ac{background:#ffc04d}.rh-r.skip{opacity:.45}
+.rh-v{font-variant-numeric:tabular-nums;text-align:right}.rh-v small{display:block;font-size:11px;opacity:.65}.rh-r.late .rh-v small{color:#ff5d6c;opacity:1}
+@media (max-width:600px){.rh-r{grid-template-columns:22px minmax(0,1fr) 70px}.rh-g{display:none}}
 </style>
 
 </head>
@@ -1556,13 +1579,14 @@ function createPlayer(root,deck,opts={}){
     deck.slides.forEach((_,j)=>{ let el; if(j===a){ el=pv.cloneNode(true); const src=pv.querySelectorAll('canvas'), dst=el.querySelectorAll('canvas'); dst.forEach((c,k)=>{ try{ c.getContext('2d').drawImage(src[k],0,0); }catch(_){} }); } else { const tmp=document.createElement('div'); tmp.innerHTML=slideHTML(deck,j,t); el=tmp.firstElementChild; }
       el.classList.add('on','dk-tile'); if(j!==a&&j!==b) el.classList.add('dim'); const q=wpos(j); el.removeAttribute('style'); Object.assign(el.style,{left:q.x+'px',top:q.y+'px',transform:'rotate('+q.r+'deg)'}); world.appendChild(el); });
     world.querySelectorAll('video').forEach(v=>{ v.removeAttribute('autoplay'); v.pause(); });
+    const stills=[]; [...world.children].forEach((el,j)=>{ if(j!==a) try{ stills.push(...start3D(el,{still:true})); }catch(_){} });
     const tiles=world.children, tA=tiles[a], tB=tiles[b];
     tA.classList.add('flat'); const bIn=[...tB.children];
     const A=wpos(a), B=wpos(b), cam={x:A.x+960,y:A.y+540,r:A.r,s:1};
     const put=()=>{ world.style.transform='translate(960px,540px) scale('+cam.s+') rotate('+(-cam.r)+'deg) translate('+(-cam.x)+'px,'+(-cam.y)+'px)'; }; put();
     pv.classList.remove('on'); videos(pv,false);
     const dist=Math.hypot(B.x-A.x,B.y-A.y), low=Math.max(.2,Math.min(.5,1500/(dist+1500)*.62));
-    const ft=G.timeline({onUpdate:put,onComplete:()=>{ G.set(pv,{clearProps:'all'}); kill(); enter(b); cur=b; G.to(world,{opacity:0,duration:.25,ease:'power1.out',onComplete:()=>world.remove()}); busy=false; opts.onChange&&opts.onChange(b); }});
+    const ft=G.timeline({onUpdate:put,onComplete:()=>{ G.set(pv,{clearProps:'all'}); kill(); enter(b); cur=b; G.to(world,{opacity:0,duration:.25,ease:'power1.out',onComplete:()=>{ stills.forEach(l=>{ try{ l&&l.kill&&l.kill(); }catch(_){} }); world.remove(); }}); busy=false; opts.onChange&&opts.onChange(b); }});
     const T=2.1;
     ft.to(cam,{x:B.x+960,y:B.y+540,r:B.r,duration:T,ease:'power3.inOut'},0).to(cam,{s:low,duration:T/2,ease:'sine.inOut'},0).to(cam,{s:1,duration:T/2,ease:'sine.inOut'},T/2)
       .call(()=>tA.classList.remove('flat'),null,.05)
@@ -2004,7 +2028,7 @@ $('#deckMenu').onclick=()=>{
   const m=modal(`<h3>Apresentações</h3><p class="sub">${mode==='db'?'Salvas na sua conta, disponíveis em qualquer aparelho.':'Salvas só neste navegador.'}</p><div class="menu">
   <button class="btn" data-a="new">+ Nova apresentação</button><button class="btn" data-a="vitrine">Começar de uma apresentação pronta</button><button class="btn" data-a="script">Criar a partir de um roteiro (texto)</button><button class="btn" data-a="dup">Duplicar esta apresentação</button>
   <div class="sec">Qualidade</div><button class="btn" data-a="review">Revisar apresentação (nota de qualidade)</button>
-  <div class="sec">Apresentar</div><button class="btn" data-a="stage">Modo palco (tela de espera com contagem regressiva)</button>
+  <div class="sec">Apresentar</div><button class="btn" data-a="ensaio">Ensaiar com cronômetro (tempo por slide e relatório)</button><button class="btn" data-a="stage">Modo palco (tela de espera com contagem regressiva)</button>
   <div class="sec">Exportar</div><button class="btn" data-a="pdf">Salvar em PDF (um slide por página)</button><button class="btn" data-a="rec">Gravar vídeo (narração, trilha, horizontal ou vertical)</button>
   <div class="sec">Backup</div><button class="btn" data-a="bk">Baixar backup de todas (.json)</button><button class="btn" data-a="im">Importar backup (.json)</button>
   <button class="btn danger" data-a="del">Excluir esta apresentação</button></div>`,'confirm');
@@ -2021,7 +2045,7 @@ $('#deckMenu').onclick=()=>{
   on('vitrine',showcaseDialog);
   on('pdf',exportPDF);
   on('rec',recordVideo);
-  on('stage',stageDialog);
+  on('stage',stageDialog); on('ensaio',rehearseDialog);
   on('review',reviewDialog);
   on('dup',()=>{ const id=uid(); decks[id]=Object.assign(clone(deck()),{name:(deck().name||'Apresentação')+' (cópia)'}); curId=id; sel=0; touch(); renderAll(); });
   on('del',()=>{ confirmBox('Excluir “'+(deck().name||'Sem nome')+'”?','Excluir',async()=>{ const id=curId; delete decks[id]; delete hist[id]; if(mode==='db'){ try{ await db.doc('decks/'+id).delete(); }catch(e){ setStatus('Não consegui excluir'); } } else localSave(); if(!Object.keys(decks).length){ const n=uid(); decks[n]=starter(); } curId=Object.keys(decks)[0]; sel=0; renderAll(); }); });
@@ -2201,7 +2225,7 @@ function review(d){
   [['text','Texto',4.5],['title','Títulos',4.5],['muted','Texto suave',3],['accent','Destaque',3]].forEach(([k,l,min])=>{ if(!/^#[0-9a-f]{3,6}$/i.test(th[k]||'')||!/^#[0-9a-f]{3,6}$/i.test(th.bg||'')) return; const r=contrast(th[k],th.bg); if(r<min) add(r<min*.7?3:2,-1,'Contraste baixo: “'+l+'” sobre o fundo ('+r.toFixed(1)+':1; o recomendado é '+min+':1).','Ajuste as cores no painel Tema.'); });
   const SKIP=['image','src','video','link','icon','shape','style','lat','lon','go'];
   const strs=o=>typeof o==='string'?[o]:Array.isArray(o)?o.flatMap(strs):o&&typeof o==='object'?Object.entries(o).filter(([k])=>!SKIP.includes(k)).flatMap(([,v])=>strs(v)):[];
-  let secs=0, run=1; const noNotes=[];
+  let secs=0, run=1; const noNotes=[], per=[];
   d.slides.forEach((s,i)=>{ const tpl=T[s.t]; if(!tpl) return; const dd=s.d||{};
     const words=strs(dd).filter(x=>!/^(data:|https?:|asset:|\/)/.test(x)).join(' ').replace(/[*`]/g,'').split(/\s+/).filter(Boolean).length;
     if(words>110) add(3,i,'Texto demais ('+words+' palavras). A plateia lê ou ouve, não os dois.','Divida em dois slides ou leve os detalhes para as notas.');
@@ -2218,13 +2242,13 @@ function review(d){
     JSON.stringify(dd).replace(/"(?:link|go)":"([^"]+)"/g,(m,id)=>{ if(!d.slides.some(o=>o.id===id)) add(3,i,'Link para um slide que foi excluído.','Escolha outro destino no campo de link.'); return m; });
     if(s.src&&!dataField(tpl)) add(1,i,'Slide tem planilha ligada, mas o modelo atual não usa dados.','Troque para um modelo de gráfico.');
     if(!s.hidden&&!s.notes&&words>30) noNotes.push(i+1);
-    if(!s.hidden) secs+=s.dur?+s.dur:Math.max(20,(words+String(s.notes||'').split(/\s+/).filter(Boolean).length)/2.2);
+    const est=s.dur?+s.dur:Math.max(20,(words+String(s.notes||'').split(/\s+/).filter(Boolean).length)/2.2); per[i]=s.hidden?0:est; if(!s.hidden) secs+=est;
   });
   if(d.slides[0]&&!['capa','mergulho','revelar','paralaxe','particulas3d','logo3d','tunel3d','video','globo3d'].includes(d.slides[0].t)) add(1,0,'A apresentação não abre com uma capa.','Uma capa ou um slide de impacto prepara a plateia.');
   if(noNotes.length) add(1,noNotes.length===1?noNotes[0]-1:-2,noNotes.length===1?'Slide sem notas do apresentador.':noNotes.length+' slides sem notas do apresentador ('+noNotes.slice(0,8).join(', ')+(noNotes.length>8?'…':'')+').','Notas ajudam no ensaio e aparecem na janela do apresentador.');
   if(d.slides.length>25) add(1,-1,d.slides.length+' slides: é bastante.','Considere um OnePage com slides ocultos para os detalhes.');
   const pen={3:12,2:5,1:2};
-  return {out:out.sort((a,b)=>b.sev-a.sev||a.i-b.i),score:Math.max(0,100-out.reduce((a,x)=>a+pen[x.sev],0)),secs};
+  return {out:out.sort((a,b)=>b.sev-a.sev||a.i-b.i),score:Math.max(0,100-out.reduce((a,x)=>a+pen[x.sev],0)),secs,per};
 }
 function reviewDialog(){
   const d=deck(), r=review(d), mins=Math.max(1,Math.round(r.secs/60));
@@ -2245,7 +2269,8 @@ function present(start,o={}){
   document.body.appendChild(w);
   let pop=null;
   const tell=msg=>{ try{ if(pop&&!pop.closed) pop.postMessage(Object.assign({em:1},msg),'*'); }catch(_){} };
-  const upd=n=>{ w.querySelector('.n').textContent=(n+1)+' / '+d.slides.length; w.querySelector('.pg i').style.width=((n+1)/d.slides.length*100)+'%'; tell({type:'index',n});
+  const R=o.rehearse?rehearsal(d,o.rehearse,w):null;
+  const upd=n=>{ if(R) R.go(n); w.querySelector('.n').textContent=(n+1)+' / '+d.slides.length; w.querySelector('.pg i').style.width=((n+1)/d.slides.length*100)+'%'; tell({type:'index',n});
     if(o.vertical){ const s=d.slides[n]||{}, sd=s.d||{}; const vt=w.querySelector('.vf-t'), vk=w.querySelector('.vf-k'); vk.textContent=sd.kicker||''; vt.innerHTML=esc(plain(sd.title||sd.quote||sd.word||'')).replace(/\n/g,'<br>'); w.querySelector('.vf-pg i').style.width=((n+1)/d.slides.length*100)+'%';
       if(D.ensureFonts) D.ensureFonts([th.fontDisplay,th.fontBody]); if(window.gsap) gsap.fromTo([vk,vt],{y:24,opacity:0},{y:0,opacity:1,duration:.7,stagger:.08,ease:'expo.out'}); } };
   const pl=D.createPlayer(w.querySelector('.host'),d,{start:start||0,onChange:upd,autoplay:!o.stage,links:true,onEnd:o.onEnd,noMotion:!!d.calm}); upd(start||0);
@@ -2310,7 +2335,7 @@ function present(start,o={}){
   function toggleHelp(){ if(help){ help.remove(); help=null; return; }
     help=document.createElement('div'); help.className='kbd-help'; help.innerHTML=`<div class="kh-in"><h3>Atalhos da apresentação</h3><dl>
       <dt>→ · Espaço · Enter</dt><dd>Próximo</dd><dt>← · Backspace</dt><dd>Anterior</dd><dt>F · F5</dt><dd>Tela cheia</dd><dt>P</dt><dd>Janela do apresentador (notas e cronômetro)</dd>
-      <dt>L</dt><dd>Ponteiro laser</dd><dt>Z</dt><dd>Zoom: clique para aproximar, clique de novo para voltar</dd><dt>V</dt><dd>Comando por voz: “próximo”, “voltar”, “início”, “tela cheia”</dd><dt>C</dt><dd>Legendas ao vivo do que você fala</dd><dt>A</dt><dd>Alto contraste (texto mais legível)</dd><dt>B</dt><dd>Tela preta (pausa)</dd><dt>Esc</dt><dd>Sair</dd></dl><p>Pressione ? ou Esc para fechar</p></div>`;
+      <dt>L</dt><dd>Ponteiro laser</dd><dt>Z</dt><dd>Zoom: clique para aproximar, clique de novo para voltar</dd><dt>V</dt><dd>Comando por voz: “próximo”, “voltar”, “início”, “tela cheia”</dd><dt>C</dt><dd>Legendas ao vivo do que você fala</dd><dt>A</dt><dd>Alto contraste (texto mais legível)</dd><dt>B</dt><dd>Tela preta (pausa)</dd><dt>R</dt><dd>Pausar o cronômetro do ensaio</dd><dt>Esc</dt><dd>Sair</dd></dl><p>Pressione ? ou Esc para fechar</p></div>`;
     help.onclick=toggleHelp; w.appendChild(help); }
   const black=()=>w.classList.toggle('blackout');
   toolBtn('laser').onclick=e=>{ e.stopPropagation(); setLaser(!laser); };
@@ -2320,14 +2345,14 @@ function present(start,o={}){
   toolBtn('cc').onclick=e=>{ e.stopPropagation(); setCC(!ccOn); };
   toolBtn('a11y').onclick=e=>{ e.stopPropagation(); setA11y(); };
   let closed=false;
-  const close=()=>{ if(closed) return; closed=true; clearInterval(stageT); voiceOn=false; ccOn=false; syncRec(); clearTimeout(ccT); setLaser(false); removeEventListener('resize',sizeL); tell({type:'end'}); pl.destroy(); w.remove(); removeEventListener('keydown',key); removeEventListener('message',onMsg); try{ if(document.fullscreenElement) document.exitFullscreen(); }catch(_){} if(location.hash.startsWith('#play-')) try{ history.replaceState(null,'',location.pathname+location.search); }catch(_){} o.onClose&&o.onClose(); };
+  const close=()=>{ if(closed) return; closed=true; if(R) setTimeout(()=>R.finish(),50); clearInterval(stageT); voiceOn=false; ccOn=false; syncRec(); clearTimeout(ccT); setLaser(false); removeEventListener('resize',sizeL); tell({type:'end'}); pl.destroy(); w.remove(); removeEventListener('keydown',key); removeEventListener('message',onMsg); try{ if(document.fullscreenElement) document.exitFullscreen(); }catch(_){} if(location.hash.startsWith('#play-')) try{ history.replaceState(null,'',location.pathname+location.search); }catch(_){} o.onClose&&o.onClose(); };
   const key=e=>{ const k=e.key.toLowerCase();
     if(e.key==='Escape'){ if(help) return toggleHelp(); if(w.classList.contains('blackout')) return black(); if(zoomed||zoomMode) return setZoom(false); return close(); }
     if(e.key==='F5'&&!e.ctrlKey&&!e.metaKey){ e.preventDefault(); return fs(); }
     if(e.ctrlKey||e.metaKey||e.altKey) return;
     if(stageEl&&['ArrowRight','PageDown',' ','Enter'].includes(e.key)){ e.preventDefault(); return endStage(); }
     if(['ArrowRight','PageDown',' ','Enter'].includes(e.key)){e.preventDefault();pl.next();} else if(['ArrowLeft','PageUp','Backspace'].includes(e.key)){e.preventDefault();pl.prev();}
-    else if(k==='f') fs(); else if(k==='p') openPresenter(); else if(k==='l') setLaser(!laser); else if(k==='z') setZoom(!zoomMode); else if(k==='v') setVoice(!voiceOn); else if(k==='c') setCC(!ccOn); else if(k==='a') setA11y(); else if(k==='b'||k==='.') black(); else if(e.key==='?'||k==='h') toggleHelp(); };
+    else if(k==='f') fs(); else if(k==='p') openPresenter(); else if(k==='l') setLaser(!laser); else if(k==='z') setZoom(!zoomMode); else if(k==='v') setVoice(!voiceOn); else if(k==='c') setCC(!ccOn); else if(k==='a') setA11y(); else if(k==='b'||k==='.') black(); else if(k==='r'&&R) R.pause(); else if(e.key==='?'||k==='h') toggleHelp(); };
   addEventListener('keydown',key);
   w.querySelector('.bar [data-x]').onclick=close; w.querySelector('.bar [data-p]').onclick=()=>pl.prev(); w.querySelector('.bar [data-n]').onclick=()=>pl.next(); w.querySelector('.bar [data-f]').onclick=fs; w.querySelector('.bar [data-v]').onclick=openPresenter;
   host.onclick=e=>{ if(stageEl) return endStage(); if(o.recording) return;
@@ -2456,6 +2481,56 @@ async function recordVideo(){
 }
 
 /* Modo palco: tela de espera com contagem regressiva antes de começar */
+/* ---------- ensaio: cronômetro por slide, ritmo e relatório ---------- */
+const mmss=x=>{ x=Math.round(Math.abs(x)); return Math.floor(x/60)+':'+String(x%60).padStart(2,'0'); };
+function rehearseDialog(){
+  const d=deck(), r=review(d), est=Math.max(1,Math.round(r.secs/60)), last=(d.rehearsals||[])[0];
+  const m=modal(`<h3>Ensaiar com cronômetro</h3><p class="sub">Apresente normalmente. Um painel discreto mostra o tempo de cada slide e se você está no ritmo. No final, um relatório mostra onde você demorou mais.</p>
+    <div class="f"><label for="rhMin">Tempo total disponível (minutos)</label><input type="number" id="rhMin" min="1" step="1" value="${(last&&Math.round(last.target/60))||est}"><span class="hint">Estimativa pelo texto e notas: cerca de ${est} min. O tempo de cada slide é dividido proporcionalmente.</span></div>
+    ${last?`<p class="sub">Último ensaio: ${mmss(last.total)} de ${mmss(last.target)} · ${new Date(last.at).toLocaleDateString('pt-BR')}</p>`:''}
+    <div class="row"><button class="btn" data-c>Cancelar</button><button class="btn pri" data-ok>Começar ensaio</button></div>`,'confirm');
+  m.el.querySelector('[data-c]').onclick=m.close;
+  m.el.querySelector('[data-ok]').onclick=()=>{ const mins=Math.max(1,+m.el.querySelector('#rhMin').value||est); m.close(); present(0,{rehearse:{target:mins*60}}); };
+}
+function rehearsal(d,cfg,w){
+  const per=review(d).per, sum=per.reduce((a,b)=>a+(b||0),0)||1, budget=per.map(x=>(x||0)/sum*cfg.target);
+  const times=d.slides.map(()=>0), seen=new Set(); let cur=-1, last=performance.now(), paused=false, done=false;
+  const hud=document.createElement('div'); hud.className='rh-hud'; hud.innerHTML='<div class="rh-row"><span class="rh-l">Slide</span><b class="rh-s">0:00</b><span class="rh-b"></span></div><div class="rh-bar"><i></i></div><div class="rh-row"><span class="rh-l">Total</span><b class="rh-t">0:00</b><span class="rh-tt">/ '+mmss(cfg.target)+'</span></div><div class="rh-pace"></div>'; w.appendChild(hud);
+  const tick=()=>{ const now=performance.now(); if(!paused&&cur>=0) times[cur]+=(now-last)/1000; last=now; };
+  const paint=()=>{ if(done) return; tick(); const t=times[cur]||0, b=budget[cur]||0, total=times.reduce((a,x)=>a+x,0);
+    let plan=0; for(let i=0;i<d.slides.length;i++){ if(i===cur) plan+=Math.min(t,b); else if(seen.has(i)) plan+=budget[i]; }
+    const diff=total-plan, f=b?t/b:0;
+    hud.querySelector('.rh-s').textContent=mmss(t); hud.querySelector('.rh-b').textContent=b?'/ '+mmss(b):'oculto';
+    const bar=hud.querySelector('.rh-bar i'); bar.style.width=Math.min(100,f*100)+'%'; hud.dataset.st=!b?'ok':f>1.25?'late':f>.85?'warn':'ok';
+    hud.querySelector('.rh-t').textContent=mmss(total); hud.classList.toggle('over',total>cfg.target); hud.classList.toggle('paused',paused);
+    hud.querySelector('.rh-pace').textContent=paused?'Pausado (R para continuar)':Math.abs(diff)<8?'No ritmo':diff>0?'Atrasado '+mmss(diff):'Adiantado '+mmss(diff); };
+  const iv=setInterval(paint,250);
+  return {
+    go(n){ tick(); cur=n; seen.add(n); paint(); },
+    pause(){ tick(); paused=!paused; paint(); },
+    finish(){ if(done) return; tick(); done=true; clearInterval(iv); hud.remove();
+      const total=times.reduce((a,x)=>a+x,0); if(total<5) return;
+      const prev=(d.rehearsals||[])[0], rec={at:Date.now(),total:Math.round(total),target:cfg.target,times:times.map(x=>Math.round(x))};
+      d.rehearsals=[rec].concat(d.rehearsals||[]).slice(0,5); if(d===deck()) touch();
+      rehearseReport(d,rec,budget,prev); }
+  };
+}
+function rehearseReport(d,rec,budget,prev){
+  const max=Math.max(1,...rec.times,...budget), diff=rec.total-rec.target;
+  const rows=d.slides.map((s,i)=>{ const t=rec.times[i], b=budget[i]; if(!t&&s.hidden) return ''; const dd=s.d||{}, ti=plain(dd.title||dd.quote||dd.word||dd.kicker||'')||(T[s.t]||{}).name||'';
+    const st=!t?'skip':b&&t>b*1.25?'late':b&&t<b*.6?'fast':'ok';
+    return `<div class="rh-r ${st}"><span class="rh-n">${i+1}</span><span class="rh-ti" title="${esc(ti)}">${esc(ti.replace(/\n/g,' '))}</span><span class="rh-g"><i class="pl" style="width:${b/max*100}%"></i><i class="ac" style="width:${t/max*100}%"></i></span><span class="rh-v">${t?mmss(t):'não visto'}<small>${b&&t?(t>b?'+':'−')+mmss(t-b):''}</small></span></div>`; }).join('');
+  const slow=d.slides.map((s,i)=>({i,x:rec.times[i]-budget[i]})).filter(o=>o.x>10).sort((a,b)=>b.x-a.x).slice(0,3).map(o=>o.i+1);
+  const vis=d.slides.filter(s=>!s.hidden).length, seenN=d.slides.filter((s,i)=>!s.hidden&&rec.times[i]>0).length;
+  const verdict=seenN<vis?'Ensaio parcial: '+seenN+' de '+vis+' slides':Math.abs(diff)<=Math.max(15,rec.target*.05)?'Dentro do tempo':diff>0?'Passou '+mmss(diff)+' do tempo':'Sobrou '+mmss(diff);
+  const m=modal(`<h3>Relatório do ensaio</h3><div class="rh-sum ${Math.abs(diff)<=Math.max(15,rec.target*.05)?'ok':diff>0?'late':'fast'}"><b>${mmss(rec.total)}</b><span>de ${mmss(rec.target)} · ${verdict}</span>${prev?`<small>Ensaio anterior: ${mmss(prev.total)} (${rec.total<=prev.total?'−':'+'}${mmss(rec.total-prev.total)})</small>`:''}</div>
+    ${slow.length?`<p class="sub">Onde você mais passou do tempo: slide ${slow.join(', ')}. Considere enxugar o texto ou levar detalhes para as notas.</p>`:'<p class="sub">Nenhum slide passou muito do tempo planejado.</p>'}
+    <div class="rh-leg"><span><i class="pl"></i>Planejado</span><span><i class="ac"></i>Seu tempo</span></div><div class="rh-list">${rows}</div>
+    <div class="row"><button class="btn" data-dur title="Grava o tempo de cada slide no campo de avanço automático">Usar estes tempos no avanço automático</button><button class="btn" data-again>Ensaiar de novo</button><button class="btn pri" data-c>Fechar</button></div>`,'confirm review');
+  m.el.querySelector('[data-c]').onclick=m.close;
+  m.el.querySelector('[data-again]').onclick=()=>{ m.close(); present(0,{rehearse:{target:rec.target}}); };
+  m.el.querySelector('[data-dur]').onclick=e=>{ d.slides.forEach((s,i)=>{ if(rec.times[i]>=2) s.dur=rec.times[i]; }); touch(); renderAll(); e.target.textContent='Tempos gravados ✓'; e.target.disabled=true; };
+}
 function stageDialog(){
   const m=modal(`<h3>Modo palco</h3><p class="sub">Mostra uma tela de espera com contagem regressiva enquanto o público chega. Ao zerar (ou ao apertar → ), a apresentação começa.</p>
     <div class="f"><label for="stMin">Minutos até começar</label><input type="number" id="stMin" min="0.1" step="0.5" value="5"></div>

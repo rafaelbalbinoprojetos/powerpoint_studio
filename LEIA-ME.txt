@@ -127,3 +127,12 @@ Câmeras 3D (3.2)         Barras 3D: orbitar, focar cada barra, voar rente,
 Apresentação pronta     "Cidades que pensam": 10 slides de vitrine com partículas,
                          globo em tour, barras 3D em modo cinema, túnel, ícones
                          e voo pela tela infinita (Mais > Apresentação pronta)
+
+ENSAIO COM CRONÔMETRO
+Mais > Ensaiar com cronômetro. Informe quantos minutos você tem; o tempo é
+dividido entre os slides conforme a quantidade de texto e notas. Durante o
+ensaio, um painel no canto mostra o tempo do slide (verde, amarelo, vermelho),
+o total e se você está adiantado ou atrasado. R pausa o cronômetro.
+Ao sair (Esc), aparece o relatório: tempo planejado x real de cada slide, os
+slides onde você mais passou do tempo e a comparação com o ensaio anterior.
+"Usar estes tempos no avanço automático" grava seus tempos em cada slide.
