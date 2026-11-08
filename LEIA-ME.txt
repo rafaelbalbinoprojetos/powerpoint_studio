@@ -90,6 +90,7 @@ Movimento mágico         em "Transição ao chegar": títulos, números e image
                          iguais viajam do slide anterior para a nova posição.
                          Veja Mais > Apresentação pronta > Narrativa em movimento
 F5 / Shift+F5          apresenta em tela cheia do início / do slide atual
+                         (Ctrl+F5 recarrega a página)
 Ferramentas ao apresentar  L laser · Z zoom · V comando por voz (Chrome/Edge)
                          B tela preta · ? atalhos
 Mais > Gravar vídeo      horizontal 16:9 ou vertical 9:16 (Reels/Stories), avanço
