@@ -122,3 +122,7 @@ Acessibilidade           ao apresentar: C legendas ao vivo do que você fala
 Câmeras 3D (3.2)         Barras 3D: orbitar, focar cada barra, voar rente,
                          descer do alto ou cinema. Globo 3D: girar ou tour
                          (visita cada cidade). Campo "Câmera" no slide
+
+Apresentação pronta     "Cidades que pensam": 10 slides de vitrine com partículas,
+                         globo em tour, barras 3D em modo cinema, túnel, ícones
+                         e voo pela tela infinita (Mais > Apresentação pronta)

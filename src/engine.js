@@ -414,7 +414,7 @@ function run3dBars(cv,cfg,o){
   const mode=cfg.camera||'orbita', hot=Math.max(0,B.findIndex(b=>b.h)), lerp=(a,b,t)=>a+(b-a)*t;
   /* câmera: yaw, pitch, dist, alvo (tx,ty) e altura do centro na tela (cy) */
   const OV={yaw:-.6,pitch:.42,dist:950,tx:0,ty:0,cy:.74};
-  const FOC=i=>({yaw:-.42+(i%2?.14:-.14),pitch:.24,dist:-560,tx:XI(i),ty:HT(i)*.55,cy:.56});
+  const FOC=i=>({yaw:-.42+(i%2?.14:-.14),pitch:.24,dist:-560,tx:XI(i),ty:HT(i)*.55,cy:.56}), FOCC=i=>Object.assign(FOC(i),{dist:-200,ty:HT(i)*.45,cy:.66});
   /* quando cada barra cresce e roteiro de quadros-chave da câmera */
   let grow=i=>({s:.3+i*.18,d:1.4}), keys=[];
   /* foco: a câmera flutua de barra em barra (sobe um pouco, recua e pousa), sem parar de se mover */
@@ -432,7 +432,7 @@ function run3dBars(cv,cfg,o){
       c.dist+=b*300; c.pitch+=b*.12; c.ty+=b*70; c.cy+=b*.04; return c; }; }
   else if(mode==='voo'){ const T=Math.max(4,n*1.2); grow=i=>({s:.5+(n>1?i/(n-1):0)*T*.92,d:.9}); keys.push({t:0,c:{yaw:-.28,pitch:.5,dist:-380,tx:XI(0)-sp*1.2,ty:150,cy:.62}},{t:T+.6,c:{yaw:-.28,pitch:.5,dist:-380,tx:XI(n-1)+sp*.6,ty:150,cy:.62},lin:true},{t:T+2.6,c:OV}); }
   else if(mode==='topo'){ grow=i=>({s:.6+i*.15,d:1.8}); keys.push({t:0,c:{yaw:0,pitch:1.42,dist:1500,tx:0,ty:0,cy:.5}},{t:3.4,c:OV}); }
-  else if(mode==='cinema'){ grow=i=>({s:.8+i*.22,d:1.5}); const g=grow(hot); keys.push({t:0,c:{yaw:.3,pitch:1.3,dist:1600,tx:0,ty:0,cy:.5}},{t:2.6,c:{yaw:-.9,pitch:.36,dist:900,tx:0,ty:60,cy:.7}},{t:Math.max(4.4,g.s+g.d+.6),c:FOC(hot)},{t:Math.max(6.4,g.s+g.d+2.6),c:FOC(hot)},{t:Math.max(8.6,g.s+g.d+4.8),c:OV}); }
+  else if(mode==='cinema'){ grow=i=>({s:.8+i*.22,d:1.5}); const g=grow(hot); keys.push({t:0,c:{yaw:.3,pitch:1.3,dist:1600,tx:0,ty:0,cy:.5}},{t:2.6,c:{yaw:-.9,pitch:.36,dist:900,tx:0,ty:60,cy:.7}},{t:Math.max(4.4,g.s+g.d+.6),c:FOCC(hot)},{t:Math.max(6.4,g.s+g.d+2.6),c:FOCC(hot)},{t:Math.max(8.6,g.s+g.d+4.8),c:OV}); }
   const tEnd=keys.length?keys[keys.length-1].t:0;
   function camAt(tt){
     if(focoCam&&!o.still){ if(tt<tFoco) return focoCam(tt); const k=tt-tFoco; return Object.assign({},OV,{yaw:OV.yaw+Math.sin(k*.2)*.22}); }
