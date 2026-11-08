@@ -349,6 +349,10 @@ function themePane(pane){
   <div class="f"><label for="t-bg">Fundo animado</label><select id="t-bg">${Object.entries(D.BACKGROUNDS).map(([k,l])=>`<option value="${k}"${k===eff.background?' selected':''}>${l}</option>`).join('')}</select></div>
   <div class="sec">Movimento e acessibilidade</div>
   <div class="f"><label for="t-tr">Transição padrão entre slides</label><select id="t-tr">${opt(D.TRANSITIONS,d.tr||'deslizar')}</select><span class="hint">“Voo pela tela infinita” espalha os slides num mapa e a câmera voa de um para o outro.</span></div>
+  <div class="sec">Trilha sonora ao apresentar</div>
+  <div class="f"><div class="btnrow"><button class="btn sm" id="t-mus">${d.music?'Trocar música':'Escolher música…'}</button>${d.music?'<button class="btn sm" id="t-musx">Remover</button>':''}</div><span class="hint" id="t-musn">${d.music?esc(d.music.name||'música'):'MP3, M4A ou OGG. Toca ao apresentar; tecla M liga e desliga.'}</span></div>
+  ${d.music?`<div class="f"><label for="t-mvol">Volume</label><input type="range" id="t-mvol" min="5" max="100" value="${d.music.vol||60}"></div>
+  <label class="chk"><input type="checkbox" id="t-msync"${d.music.sync===false?'':' checked'}> Animações no ritmo (fundo pulsa na batida e a troca de slide espera o próximo tempo)</label>`:''}
   <label class="chk"><input type="checkbox" id="t-mouse"${d.mouse===false?'':' checked'}> Fundo reage ao mouse e ao laser</label>
   <label class="chk"><input type="checkbox" id="t-calm"${d.calm?' checked':''}> Movimento reduzido ao apresentar (para quem é sensível a animações)</label>
   <div class="sec">Marca</div><div class="f"><label>Logo (aparece na capa, rodapé e núcleo)</label><div id="logoBox"></div><span class="hint">PNG ou SVG transparente funciona melhor.</span></div>
@@ -386,6 +390,14 @@ function themePane(pane){
   $('#t-bg').onchange=e=>{ th.background=e.target.value; ch(); };
   $('#t-ft').oninput=e=>{ d.footerText=e.target.value; ch(); };
   $('#t-tr').onchange=e=>{ if(e.target.value==='deslizar') delete d.tr; else d.tr=e.target.value; touch(); renderPreview(false); };
+  $('#t-mus').onclick=()=>{ const inp=document.createElement('input'); inp.type='file'; inp.accept='audio/*'; inp.onchange=async()=>{ const f=inp.files[0]; if(!f) return;
+      if(f.size>25e6){ setStatus('Música muito grande (máx. 25 MB)'); return; } setStatus('Guardando a música…');
+      let src=''; if(assets){ try{ src='asset:'+(await assets.upload(f)).id; }catch(_){ src=''; } }
+      if(!src){ try{ await IDB.set('music-'+curId,f); }catch(err){ setStatus('Não foi possível guardar a música neste navegador'); return; } }
+      d.music={name:f.name,vol:(d.music&&d.music.vol)||60,sync:d.music?d.music.sync:true,src}; touch(); renderPane(); setStatus('Música pronta: '+f.name,true); }; inp.click(); };
+  if($('#t-musx')) $('#t-musx').onclick=()=>{ delete d.music; IDB.set('music-'+curId,null).catch(()=>{}); touch(); renderPane(); };
+  if($('#t-mvol')) $('#t-mvol').oninput=e=>{ d.music.vol=+e.target.value; touch(); };
+  if($('#t-msync')) $('#t-msync').onchange=e=>{ d.music.sync=e.target.checked; touch(); };
   $('#t-mouse').onchange=e=>{ if(e.target.checked) delete d.mouse; else d.mouse=false; touch(); renderPreview&&renderPreview(true); };
   $('#t-calm').onchange=e=>{ if(e.target.checked) d.calm=true; else delete d.calm; touch(); };
   $('#brandKit').onclick=async()=>{ setStatus('Lendo as cores da logo…'); try{ const k=await brandKit(D.resolveImage(th.logo),eff.light); if(!k) return setStatus('Não achei cores marcantes na logo (ela é só preto e branco?)'); Object.assign(th,k,{custom:'Kit da marca'}); ch(); themePane(pane); setStatus('Tema criado com as cores da marca',true); }catch(e){ setStatus('Não consegui ler a imagem da logo'); } };
@@ -760,6 +772,8 @@ function present(start,o={}){
     if(o.vertical){ const s=d.slides[n]||{}, sd=s.d||{}; const vt=w.querySelector('.vf-t'), vk=w.querySelector('.vf-k'); vk.textContent=sd.kicker||''; vt.innerHTML=esc(plain(sd.title||sd.quote||sd.word||'')).replace(/\n/g,'<br>'); w.querySelector('.vf-pg i').style.width=((n+1)/d.slides.length*100)+'%';
       if(D.ensureFonts) D.ensureFonts([th.fontDisplay,th.fontBody]); if(window.gsap) gsap.fromTo([vk,vt],{y:24,opacity:0},{y:0,opacity:1,duration:.7,stagger:.08,ease:'expo.out'}); } };
   const pl=D.createPlayer(w.querySelector('.host'),d,{start:start||0,onChange:upd,autoplay:!o.stage,links:true,onEnd:o.onEnd,noMotion:!!d.calm}); upd(start||0);
+  /* trilha sonora com detecção de batida */
+  const music=(!o.recording&&d.music)?startMusic(d,pl,curId):null;
   /* números ao vivo: slides ligados a uma planilha buscam os dados de novo */
   d.slides.forEach((s,i)=>{ if(s.live&&s.src) fetchRows(s.src).then(rows=>{ if(closed||!applyRows(s,rows)) return; if(d===deck()) touch(); pl.update(i,d); if(i===pl.index) pl.replay(); }).catch(()=>{}); });
   /* 3, 2, 1 antes de gravar */
@@ -821,7 +835,7 @@ function present(start,o={}){
   function toggleHelp(){ if(help){ help.remove(); help=null; return; }
     help=document.createElement('div'); help.className='kbd-help'; help.innerHTML=`<div class="kh-in"><h3>Atalhos da apresentação</h3><dl>
       <dt>→ · Espaço · Enter</dt><dd>Próximo</dd><dt>← · Backspace</dt><dd>Anterior</dd><dt>F · F5</dt><dd>Tela cheia</dd><dt>P</dt><dd>Janela do apresentador (notas e cronômetro)</dd>
-      <dt>L</dt><dd>Ponteiro laser</dd><dt>Z</dt><dd>Zoom: clique para aproximar, clique de novo para voltar</dd><dt>V</dt><dd>Comando por voz: “próximo”, “voltar”, “início”, “tela cheia”</dd><dt>C</dt><dd>Legendas ao vivo do que você fala</dd><dt>A</dt><dd>Alto contraste (texto mais legível)</dd><dt>B</dt><dd>Tela preta (pausa)</dd><dt>R</dt><dd>Pausar o cronômetro do ensaio</dd><dt>Esc</dt><dd>Sair</dd></dl><p>Pressione ? ou Esc para fechar</p></div>`;
+      <dt>L</dt><dd>Ponteiro laser</dd><dt>Z</dt><dd>Zoom: clique para aproximar, clique de novo para voltar</dd><dt>V</dt><dd>Comando por voz: “próximo”, “voltar”, “início”, “tela cheia”</dd><dt>C</dt><dd>Legendas ao vivo do que você fala</dd><dt>A</dt><dd>Alto contraste (texto mais legível)</dd><dt>B</dt><dd>Tela preta (pausa)</dd><dt>R</dt><dd>Pausar o cronômetro do ensaio</dd><dt>M</dt><dd>Ligar e desligar a trilha sonora</dd><dt>Esc</dt><dd>Sair</dd></dl><p>Pressione ? ou Esc para fechar</p></div>`;
     help.onclick=toggleHelp; w.appendChild(help); }
   const black=()=>w.classList.toggle('blackout');
   toolBtn('laser').onclick=e=>{ e.stopPropagation(); setLaser(!laser); };
@@ -831,14 +845,14 @@ function present(start,o={}){
   toolBtn('cc').onclick=e=>{ e.stopPropagation(); setCC(!ccOn); };
   toolBtn('a11y').onclick=e=>{ e.stopPropagation(); setA11y(); };
   let closed=false;
-  const close=()=>{ if(closed) return; closed=true; if(R) setTimeout(()=>R.finish(),50); clearInterval(stageT); voiceOn=false; ccOn=false; syncRec(); clearTimeout(ccT); setLaser(false); removeEventListener('resize',sizeL); tell({type:'end'}); pl.destroy(); w.remove(); removeEventListener('keydown',key); removeEventListener('message',onMsg); try{ if(document.fullscreenElement) document.exitFullscreen(); }catch(_){} if(location.hash.startsWith('#play-')) try{ history.replaceState(null,'',location.pathname+location.search); }catch(_){} o.onClose&&o.onClose(); };
+  const close=()=>{ if(closed) return; closed=true; if(music) music.stop(); if(R) setTimeout(()=>R.finish(),50); clearInterval(stageT); voiceOn=false; ccOn=false; syncRec(); clearTimeout(ccT); setLaser(false); removeEventListener('resize',sizeL); tell({type:'end'}); pl.destroy(); w.remove(); removeEventListener('keydown',key); removeEventListener('message',onMsg); try{ if(document.fullscreenElement) document.exitFullscreen(); }catch(_){} if(location.hash.startsWith('#play-')) try{ history.replaceState(null,'',location.pathname+location.search); }catch(_){} o.onClose&&o.onClose(); };
   const key=e=>{ const k=e.key.toLowerCase();
     if(e.key==='Escape'){ if(help) return toggleHelp(); if(w.classList.contains('blackout')) return black(); if(zoomed||zoomMode) return setZoom(false); return close(); }
     if(e.key==='F5'&&!e.ctrlKey&&!e.metaKey){ e.preventDefault(); return fs(); }
     if(e.ctrlKey||e.metaKey||e.altKey) return;
     if(stageEl&&['ArrowRight','PageDown',' ','Enter'].includes(e.key)){ e.preventDefault(); return endStage(); }
-    if(['ArrowRight','PageDown',' ','Enter'].includes(e.key)){e.preventDefault();pl.next();} else if(['ArrowLeft','PageUp','Backspace'].includes(e.key)){e.preventDefault();pl.prev();}
-    else if(k==='f') fs(); else if(k==='p') openPresenter(); else if(k==='l') setLaser(!laser); else if(k==='z') setZoom(!zoomMode); else if(k==='v') setVoice(!voiceOn); else if(k==='c') setCC(!ccOn); else if(k==='a') setA11y(); else if(k==='b'||k==='.') black(); else if(k==='r'&&R) R.pause(); else if(e.key==='?'||k==='h') toggleHelp(); };
+    if(['ArrowRight','PageDown',' ','Enter'].includes(e.key)){e.preventDefault(); if(music&&music.sync) music.onBeat(()=>pl.next()); else pl.next();} else if(['ArrowLeft','PageUp','Backspace'].includes(e.key)){e.preventDefault();pl.prev();}
+    else if(k==='f') fs(); else if(k==='p') openPresenter(); else if(k==='l') setLaser(!laser); else if(k==='z') setZoom(!zoomMode); else if(k==='v') setVoice(!voiceOn); else if(k==='c') setCC(!ccOn); else if(k==='a') setA11y(); else if(k==='b'||k==='.') black(); else if(k==='r'&&R) R.pause(); else if(k==='m'&&music) say(music.toggle()?'♪ Música ligada':'♪ Música desligada',1400); else if(e.key==='?'||k==='h') toggleHelp(); };
   addEventListener('keydown',key);
   w.querySelector('.bar [data-x]').onclick=close; w.querySelector('.bar [data-p]').onclick=()=>pl.prev(); w.querySelector('.bar [data-n]').onclick=()=>pl.next(); w.querySelector('.bar [data-f]').onclick=fs; w.querySelector('.bar [data-v]').onclick=openPresenter;
   host.onclick=e=>{ if(stageEl) return endStage(); if(o.recording) return;
@@ -969,6 +983,31 @@ async function recordVideo(){
 /* Modo palco: tela de espera com contagem regressiva antes de começar */
 /* ---------- ensaio: cronômetro por slide, ritmo e relatório ---------- */
 const mmss=x=>{ x=Math.round(Math.abs(x)); return Math.floor(x/60)+':'+String(x%60).padStart(2,'0'); };
+function startMusic(d,pl,id){
+  const m=d.music; let el=null, actx=null, an=null, gain=null, raf=0, on=true, url='', stopped=false;
+  const hist=[], beats=[]; let last=0, waiting=null;
+  const api={ sync:m.sync!==false,
+    toggle(){ on=!on; if(el){ if(on){ el.play().catch(()=>{}); } else el.pause(); } return on; },
+    onBeat(fn){ /* espera o próximo tempo (no máximo 450 ms) para trocar de slide */
+      if(!el||el.paused||beats.length<4){ fn(); return; } const iv=beats.slice(-8).map((b,i,a)=>i?b-a[i-1]:0).slice(1).sort((x,y)=>x-y), per=iv[iv.length>>1]||500, now=performance.now();
+      let next=last+per; while(next<now) next+=per; const wait=next-now; if(wait>450||wait<40){ fn(); return; } clearTimeout(waiting); waiting=setTimeout(fn,wait); },
+    stop(){ stopped=true; cancelAnimationFrame(raf); clearTimeout(waiting); if(el&&gain&&actx){ const t=actx.currentTime; gain.gain.setValueAtTime(gain.gain.value,t); gain.gain.linearRampToValueAtTime(0,t+.8); setTimeout(()=>{ el.pause(); actx.close().catch(()=>{}); if(url) URL.revokeObjectURL(url); },850); } else if(el){ el.pause(); } } };
+  (async()=>{
+    try{ if(m.src) url=D.resolveImage(m.src); else { const b=await IDB.get('music-'+id); if(!b) return; url=URL.createObjectURL(b); } }catch(_){ return; }
+    if(stopped) return;
+    el=new Audio(url); el.loop=true; el.crossOrigin='anonymous';
+    try{ actx=new AudioContext(); const src=actx.createMediaElementSource(el); gain=actx.createGain(); gain.gain.value=0; an=actx.createAnalyser(); an.fftSize=1024; an.smoothingTimeConstant=.2; src.connect(an); an.connect(gain); gain.connect(actx.destination);
+      gain.gain.linearRampToValueAtTime((m.vol||60)/100,actx.currentTime+1.5); }catch(_){ el.volume=(m.vol||60)/100; }
+    el.play().catch(()=>{ /* o navegador pode exigir um clique antes */ const go=()=>{ if(on) el.play().catch(()=>{}); if(actx) actx.resume(); removeEventListener('pointerdown',go); removeEventListener('keydown',go); }; addEventListener('pointerdown',go); addEventListener('keydown',go); });
+    if(!an||m.sync===false) return;
+    const buf=new Uint8Array(an.frequencyBinCount);
+    const loop=()=>{ if(stopped) return; raf=requestAnimationFrame(loop); if(el.paused) return; an.getByteFrequencyData(buf);
+      let en=0; for(let i=1;i<10;i++) en+=buf[i]; en/=9*255; hist.push(en); if(hist.length>45) hist.shift();
+      const avg=hist.reduce((a,x)=>a+x,0)/hist.length, now=performance.now();
+      if(en>.25&&en>avg*1.25&&now-last>280){ last=now; beats.push(now); if(beats.length>16) beats.shift(); pl.beat(Math.min(1,(en-avg)*4+.4)); } };
+    loop(); })();
+  return api;
+}
 function rehearseDialog(){
   const d=deck(), r=review(d), est=Math.max(1,Math.round(r.secs/60)), last=(d.rehearsals||[])[0];
   const m=modal(`<h3>Ensaiar com cronômetro</h3><p class="sub">Apresente normalmente. Um painel discreto mostra o tempo de cada slide e se você está no ritmo. No final, um relatório mostra onde você demorou mais.</p>

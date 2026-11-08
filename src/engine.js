@@ -800,7 +800,7 @@ function background(cv,t,reduce){
 function createPlayer(root,deck,opts={}){
   const G=window.gsap, reduce=matchMedia('(prefers-reduced-motion: reduce)').matches||opts.noMotion;
   const t=themeOf(deck); ensureFonts([t.fontDisplay,t.fontBody], root.ownerDocument);
-  root.innerHTML=`<div class="dk-player" style='${themeVars(t)}'><canvas class="dk-bg" aria-hidden="true"></canvas><div class="dk-vig"></div><div class="dk-vp"><div class="dk-stage">${deck.slides.map((_,i)=>slideHTML(deck,i,t)).join('')}${bandHTML(deck,t)}${footHTML(deck,t,0)}</div></div></div>`;
+  root.innerHTML=`<div class="dk-player" style='${themeVars(t)}'><canvas class="dk-bg" aria-hidden="true"></canvas><div class="dk-vig"></div><div class="dk-beat"></div><div class="dk-vp"><div class="dk-stage">${deck.slides.map((_,i)=>slideHTML(deck,i,t)).join('')}${bandHTML(deck,t)}${footHTML(deck,t,0)}</div></div></div>`;
   const player=root.firstElementChild, stage=player.querySelector('.dk-stage'), slides=[...stage.querySelectorAll('.dk-slide')];
   splitWords(stage);
   const bg=background(player.querySelector('.dk-bg'),t,reduce);
@@ -963,7 +963,11 @@ function createPlayer(root,deck,opts={}){
     if(n===cur) still(n);
   }
   go(opts.start||0,1,true);
-  return {go,still,replay,update,link,next,prev,get index(){return cur;},get count(){return slides.length;},el:player,
+  /* batida da trilha: o fundo pulsa, o brilho do destaque acende */
+  let btv=0, btRaf=0;
+  function beat(k){ if(reduce) return; k=Math.max(.3,Math.min(1,k||1)); btv=Math.max(btv,k); if(G) G.fromTo(bg.cam,{amp:1+.9*k},{amp:1,duration:.55,ease:'power2.out',overwrite:'auto'});
+    if(!btRaf){ const step=()=>{ btv*=.9; player.style.setProperty('--bt',btv.toFixed(3)); if(btv>.01) btRaf=requestAnimationFrame(step); else { btRaf=0; player.style.setProperty('--bt','0'); } }; btRaf=requestAnimationFrame(step); } }
+  return {go,still,replay,update,link,next,prev,beat,get index(){return cur;},get count(){return slides.length;},el:player,
     destroy(){kill();clearTimeout(autoT);slides.forEach(s=>videos(s,false));bg.stop();ro.disconnect();root.innerHTML='';}};
 }
 

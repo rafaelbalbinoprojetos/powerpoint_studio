@@ -484,3 +484,8 @@
 .dk-lay-dividido .dk-h1{grid-column:1;margin:0}
 .dk-lay-dividido .dk-lead{grid-column:2;margin:0;padding-left:44px;border-left:3px solid var(--accent);font-size:34px}
 .dk-lay-dividido .dk-side{opacity:.2}
+
+/* batida da trilha */
+.dk-beat{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at 50% 55%,var(--glow) 0%,transparent 65%);opacity:calc(var(--bt,0) * .55);mix-blend-mode:screen}
+.dk-player .hl{text-shadow:0 0 calc(28px * var(--gm,1) + var(--bt,0) * 40px) var(--glow)}
+.dk-player .dk-kicker::before{box-shadow:0 0 calc(12px * var(--gm,1) + var(--bt,0) * 26px) var(--accent)}
