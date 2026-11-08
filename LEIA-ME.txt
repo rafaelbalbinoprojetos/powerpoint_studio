@@ -91,3 +91,8 @@ Movimento mágico         em "Transição ao chegar": títulos, números e image
                          Veja Mais > Apresentação pronta > Narrativa em movimento
 Ferramentas ao apresentar  L laser · Z zoom · V comando por voz (Chrome/Edge)
                          B tela preta · ? atalhos
+Mais > Gravar vídeo      horizontal 16:9 ou vertical 9:16 (Reels/Stories), avanço
+                         automático ou manual, narração pelo microfone e trilha
+                         sonora que abaixa sozinha quando você fala. O vídeo é
+                         recortado só na área do slide (Chrome/Edge recentes).
+Mais > Modo palco        tela de espera com contagem regressiva antes de começar

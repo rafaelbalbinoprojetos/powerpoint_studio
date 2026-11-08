@@ -607,6 +607,39 @@ textarea{resize:vertical;min-height:62px;line-height:1.45}
 .kh-in dt{font-family:var(--ui-m);font-size:12px;background:var(--ui-sunk);padding:4px 8px;border-radius:6px;white-space:nowrap;align-self:start}
 .kh-in dd{margin:0;font-size:14px;line-height:1.5}
 .kh-in p{margin:16px 0 0;font-size:12px;color:var(--ui-dim)}
+
+/* gravação: opções */
+.seg{display:flex;flex-direction:column;gap:6px}
+.seg label{display:flex;gap:8px;align-items:center;font-size:13px;font-weight:500;color:var(--ui-fg)}
+.sheet input[type=range]{width:100%}
+
+/* formato vertical 9:16 */
+.show.vert{display:grid;place-items:center;background:#000}
+.show.vert .host{position:relative;inset:auto}
+.vframe{position:relative;height:100vh;aspect-ratio:9/16;max-width:100vw;display:flex;flex-direction:column;justify-content:center;gap:4vh;overflow:hidden;background:radial-gradient(ellipse at 50% 30%,color-mix(in srgb,var(--accent) 30%,var(--bg)),var(--bg) 70%);color:var(--text);font-family:var(--f-body)}
+.vf-top{padding:0 6%;display:flex;flex-direction:column;gap:1.4vh}
+.vf-k{font-family:var(--f-mono);font-size:1.6vh;letter-spacing:.2em;text-transform:uppercase;color:var(--accent)}
+.vf-t{font-family:var(--f-display);font-weight:var(--w-title,600);font-size:4.4vh;line-height:1.08;letter-spacing:var(--trk,-.02em);color:var(--title);text-wrap:balance}
+.vf-host{width:100%;aspect-ratio:16/9;flex:none;box-shadow:0 2vh 6vh rgba(0,0,0,.45)}
+.vf-bot{padding:0 6%;display:flex;flex-direction:column;gap:1.2vh}
+.vf-brand{font-family:var(--f-mono);font-size:1.3vh;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+.vf-pg{height:.5vh;border-radius:9px;background:color-mix(in srgb,var(--muted) 25%,transparent);overflow:hidden}
+.vf-pg i{display:block;height:100%;width:0;background:var(--accent);transition:width .6s}
+
+/* contagem 3-2-1 */
+.cdown{position:absolute;inset:0;z-index:9;display:grid;place-items:center;font:700 22vh/1 var(--ui-d);color:#fff;text-shadow:0 0 6vh rgba(0,0,0,.6);pointer-events:none}
+.cdown.pop{animation:cdpop .85s cubic-bezier(.2,.8,.2,1)}
+@keyframes cdpop{0%{transform:scale(1.6);opacity:0}25%{opacity:1}100%{transform:scale(.9);opacity:0}}
+
+/* modo palco */
+.stage-wait{position:absolute;inset:0;z-index:6;display:grid;place-items:center;text-align:center;cursor:pointer;color:var(--text);font-family:var(--f-body);background:radial-gradient(ellipse at 50% 40%,color-mix(in srgb,var(--accent) 32%,var(--bg)),var(--bg) 72%)}
+.sw-in{display:flex;flex-direction:column;align-items:center;gap:2.4vh;padding:0 16px}
+.sw-in img{max-height:9vh;max-width:40vw;object-fit:contain}
+.sw-in small{font-family:var(--f-mono);font-size:1.8vh;letter-spacing:.22em;text-transform:uppercase;color:var(--accent)}
+.sw-in h1{margin:0;font-family:var(--f-display);font-weight:var(--w-title,600);font-size:6vh;color:var(--title);letter-spacing:var(--trk,-.02em)}
+.sw-clock{font-family:var(--f-display);font-size:18vh;line-height:1;font-weight:600;color:var(--title);font-variant-numeric:tabular-nums;text-shadow:0 0 6vh var(--accent)}
+.sw-bar{width:min(60vw,700px);height:.6vh;border-radius:9px;background:color-mix(in srgb,var(--muted) 25%,transparent);overflow:hidden}
+.sw-bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .25s linear}
 </style>
 
 </head>
@@ -1726,7 +1759,8 @@ function gallery(kind){
 $('#deckMenu').onclick=()=>{
   const m=modal(`<h3>Apresentações</h3><p class="sub">${mode==='db'?'Salvas na sua conta, disponíveis em qualquer aparelho.':'Salvas só neste navegador.'}</p><div class="menu">
   <button class="btn" data-a="new">+ Nova apresentação</button><button class="btn" data-a="vitrine">Começar de uma apresentação pronta</button><button class="btn" data-a="script">Criar a partir de um roteiro (texto)</button><button class="btn" data-a="dup">Duplicar esta apresentação</button>
-  <div class="sec">Exportar</div><button class="btn" data-a="pdf">Salvar em PDF (um slide por página)</button><button class="btn" data-a="rec">Gravar vídeo da apresentação</button>
+  <div class="sec">Apresentar</div><button class="btn" data-a="stage">Modo palco (tela de espera com contagem regressiva)</button>
+  <div class="sec">Exportar</div><button class="btn" data-a="pdf">Salvar em PDF (um slide por página)</button><button class="btn" data-a="rec">Gravar vídeo (narração, trilha, horizontal ou vertical)</button>
   <div class="sec">Backup</div><button class="btn" data-a="bk">Baixar backup de todas (.json)</button><button class="btn" data-a="im">Importar backup (.json)</button>
   <button class="btn danger" data-a="del">Excluir esta apresentação</button></div>`,'confirm');
   const on=(a,fn)=>{ m.el.querySelector(`[data-a="${a}"]`).onclick=()=>{ m.close(); fn(); }; };
@@ -1742,6 +1776,7 @@ $('#deckMenu').onclick=()=>{
   on('vitrine',showcaseDialog);
   on('pdf',exportPDF);
   on('rec',recordVideo);
+  on('stage',stageDialog);
   on('dup',()=>{ const id=uid(); decks[id]=Object.assign(clone(deck()),{name:(deck().name||'Apresentação')+' (cópia)'}); curId=id; sel=0; touch(); renderAll(); });
   on('del',()=>{ confirmBox('Excluir “'+(deck().name||'Sem nome')+'”?','Excluir',async()=>{ const id=curId; delete decks[id]; delete hist[id]; if(mode==='db'){ try{ await db.doc('decks/'+id).delete(); }catch(e){ setStatus('Não consegui excluir'); } } else localSave(); if(!Object.keys(decks).length){ const n=uid(); decks[n]=starter(); } curId=Object.keys(decks)[0]; sel=0; renderAll(); }); });
 };
@@ -1877,12 +1912,28 @@ addEventListener('beforeunload',()=>{ if(dirty&&mode!=='db') localSave(); });
 /* ---------- modo apresentação ---------- */
 function present(start,o={}){
   const d=o.deck||deck(); if(!d.slides.length) return;
-  const w=document.createElement('div'); w.className='show'+(o.recording?' rec':''); w.innerHTML=`<div class="host"></div><div class="bar"><button data-x aria-label="Sair">✕</button><button data-p aria-label="Anterior">‹</button><div class="pg"><i></i></div><span class="n"></span><button data-n aria-label="Próximo">›</button><button data-v aria-label="Janela do apresentador" title="Janela do apresentador (P)">🗒</button><button data-tool="laser" aria-label="Ponteiro laser" title="Ponteiro laser (L)">●</button><button data-tool="zoom" aria-label="Zoom" title="Zoom: clique para aproximar (Z)">⌕</button><button data-tool="voice" aria-label="Comando por voz" title="Comando por voz (V)">🎙</button><button data-tool="help" aria-label="Atalhos" title="Atalhos (?)">?</button><button data-f aria-label="Tela cheia">⤢</button></div><canvas class="laser" aria-hidden="true"></canvas><div class="voice-chip" hidden></div>`;
+  const th=D.themeOf(d);
+  const hostHTML=o.vertical?`<div class="vframe" style='${D.themeVars(th)}'><div class="vf-top"><span class="vf-k"></span><b class="vf-t"></b></div><div class="host vf-host"></div><div class="vf-bot"><span class="vf-brand">${esc(d.footerText||d.name||'')}</span><div class="vf-pg"><i></i></div></div></div>`:'<div class="host"></div>';
+  const w=document.createElement('div'); w.className='show'+(o.recording?' rec':'')+(o.vertical?' vert':''); w.innerHTML=`${hostHTML}<div class="bar"><button data-x aria-label="Sair">✕</button><button data-p aria-label="Anterior">‹</button><div class="pg"><i></i></div><span class="n"></span><button data-n aria-label="Próximo">›</button><button data-v aria-label="Janela do apresentador" title="Janela do apresentador (P)">🗒</button><button data-tool="laser" aria-label="Ponteiro laser" title="Ponteiro laser (L)">●</button><button data-tool="zoom" aria-label="Zoom" title="Zoom: clique para aproximar (Z)">⌕</button><button data-tool="voice" aria-label="Comando por voz" title="Comando por voz (V)">🎙</button><button data-tool="help" aria-label="Atalhos" title="Atalhos (?)">?</button><button data-f aria-label="Tela cheia">⤢</button></div><canvas class="laser" aria-hidden="true"></canvas><div class="voice-chip" hidden></div>`;
   document.body.appendChild(w);
   let pop=null;
   const tell=msg=>{ try{ if(pop&&!pop.closed) pop.postMessage(Object.assign({em:1},msg),'*'); }catch(_){} };
-  const upd=n=>{ w.querySelector('.n').textContent=(n+1)+' / '+d.slides.length; w.querySelector('.pg i').style.width=((n+1)/d.slides.length*100)+'%'; tell({type:'index',n}); };
-  const pl=D.createPlayer(w.querySelector('.host'),d,{start:start||0,onChange:upd,autoplay:true,links:true,onEnd:o.onEnd}); upd(start||0);
+  const upd=n=>{ w.querySelector('.n').textContent=(n+1)+' / '+d.slides.length; w.querySelector('.pg i').style.width=((n+1)/d.slides.length*100)+'%'; tell({type:'index',n});
+    if(o.vertical){ const s=d.slides[n]||{}, sd=s.d||{}; const vt=w.querySelector('.vf-t'), vk=w.querySelector('.vf-k'); vk.textContent=sd.kicker||''; vt.innerHTML=esc(plain(sd.title||sd.quote||sd.word||'')).replace(/\n/g,'<br>'); w.querySelector('.vf-pg i').style.width=((n+1)/d.slides.length*100)+'%';
+      if(D.ensureFonts) D.ensureFonts([th.fontDisplay,th.fontBody]); if(window.gsap) gsap.fromTo([vk,vt],{y:24,opacity:0},{y:0,opacity:1,duration:.7,stagger:.08,ease:'expo.out'}); } };
+  const pl=D.createPlayer(w.querySelector('.host'),d,{start:start||0,onChange:upd,autoplay:!o.stage,links:true,onEnd:o.onEnd}); upd(start||0);
+  /* 3, 2, 1 antes de gravar */
+  const countdown=n=>new Promise(res=>{ const c=document.createElement('div'); c.className='cdown'; w.appendChild(c); let k=n; const tick=()=>{ if(k<=0){ c.remove(); return res(); } c.textContent=k; c.classList.remove('pop'); void c.offsetWidth; c.classList.add('pop'); k--; setTimeout(tick,850); }; tick(); });
+  /* modo palco: tela de espera com contagem regressiva */
+  let stageEl=null, stageT=null;
+  const endStage=()=>{ if(!stageEl) return; clearInterval(stageT); const el=stageEl; stageEl=null; if(window.gsap) gsap.to(el,{opacity:0,duration:.8,onComplete:()=>el.remove()}); else el.remove(); pl.replay(); };
+  if(o.stage){ const end=Date.now()+o.stage.mins*60000;
+    stageEl=document.createElement('div'); stageEl.className='stage-wait'; stageEl.setAttribute('style',D.themeVars(th));
+    stageEl.innerHTML=`<div class="sw-in">${th.logo?`<img src="${esc(D.resolveImage(th.logo))}" alt="">`:''}<small>${esc(d.name||'')}</small><h1>${esc(o.stage.msg||'Já vamos começar')}</h1><div class="sw-clock">--:--</div><div class="sw-bar"><i></i></div></div>`;
+    w.appendChild(stageEl); stageEl.onclick=endStage; D.ensureFonts([th.fontDisplay,th.fontBody]);
+    const total=o.stage.mins*60000;
+    const tick=()=>{ const left=Math.max(0,end-Date.now()), s=Math.ceil(left/1000); if(!stageEl) return; stageEl.querySelector('.sw-clock').textContent=String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0'); stageEl.querySelector('.sw-bar i').style.width=(100-left/total*100)+'%'; if(left<=0) endStage(); };
+    tick(); stageT=setInterval(tick,250); }
   const fs=()=>{ try{ document.fullscreenElement?document.exitFullscreen():w.requestFullscreen().catch(()=>{}); }catch(_){} };
   const onMsg=e=>{ if(!pop||e.source!==pop||!e.data||!e.data.em) return; const m=e.data;
     if(m.type==='ready') tell({type:'deck',deck:d,n:pl.index});
@@ -1931,22 +1982,24 @@ function present(start,o={}){
   toolBtn('voice').onclick=e=>{ e.stopPropagation(); setVoice(!voiceOn); };
   toolBtn('help').onclick=e=>{ e.stopPropagation(); toggleHelp(); };
   let closed=false;
-  const close=()=>{ if(closed) return; closed=true; setVoice(false); setLaser(false); removeEventListener('resize',sizeL); tell({type:'end'}); pl.destroy(); w.remove(); removeEventListener('keydown',key); removeEventListener('message',onMsg); try{ if(document.fullscreenElement) document.exitFullscreen(); }catch(_){} if(location.hash.startsWith('#play-')) try{ history.replaceState(null,'',location.pathname+location.search); }catch(_){} o.onClose&&o.onClose(); };
+  const close=()=>{ if(closed) return; closed=true; clearInterval(stageT); setVoice(false); setLaser(false); removeEventListener('resize',sizeL); tell({type:'end'}); pl.destroy(); w.remove(); removeEventListener('keydown',key); removeEventListener('message',onMsg); try{ if(document.fullscreenElement) document.exitFullscreen(); }catch(_){} if(location.hash.startsWith('#play-')) try{ history.replaceState(null,'',location.pathname+location.search); }catch(_){} o.onClose&&o.onClose(); };
   const key=e=>{ const k=e.key.toLowerCase();
     if(e.key==='Escape'){ if(help) return toggleHelp(); if(w.classList.contains('blackout')) return black(); if(zoomed||zoomMode) return setZoom(false); return close(); }
     if(e.ctrlKey||e.metaKey||e.altKey) return;
+    if(stageEl&&['ArrowRight','PageDown',' ','Enter'].includes(e.key)){ e.preventDefault(); return endStage(); }
     if(['ArrowRight','PageDown',' ','Enter'].includes(e.key)){e.preventDefault();pl.next();} else if(['ArrowLeft','PageUp','Backspace'].includes(e.key)){e.preventDefault();pl.prev();}
     else if(k==='f') fs(); else if(k==='p') openPresenter(); else if(k==='l') setLaser(!laser); else if(k==='z') setZoom(!zoomMode); else if(k==='v') setVoice(!voiceOn); else if(k==='b'||k==='.') black(); else if(e.key==='?'||k==='h') toggleHelp(); };
   addEventListener('keydown',key);
   w.querySelector('[data-x]').onclick=close; w.querySelector('[data-p]').onclick=()=>pl.prev(); w.querySelector('[data-n]').onclick=()=>pl.next(); w.querySelector('[data-f]').onclick=fs; w.querySelector('[data-v]').onclick=openPresenter;
-  host.onclick=e=>{ if(o.recording) return;
+  host.onclick=e=>{ if(stageEl) return endStage(); if(o.recording) return;
     if(zoomMode){ if(zoomed) unzoom(); else { zoomed=true; host.style.transformOrigin=`${e.clientX}px ${e.clientY}px`; host.style.transform='scale(2.2)'; w.classList.add('zoomed'); } return; }
     e.clientX>innerWidth*.3?pl.next():pl.prev(); };
   let sx=null; w.addEventListener('touchstart',e=>{sx=e.touches[0].clientX;},{passive:true}); w.addEventListener('touchend',e=>{ if(sx==null) return; const dx=e.changedTouches[0].clientX-sx; if(Math.abs(dx)>40) dx<0?pl.next():pl.prev(); sx=null; },{passive:true});
   if(!o.recording) try{ history.replaceState(null,'','#play-'+curId); }catch(_){}
-  return {close,player:pl};
+  return {close,player:pl,frame:o.vertical?w.querySelector('.vframe'):w.querySelector('.host'),countdown};
 }
 $('#playBtn').onclick=()=>present(sel);
+window.EstudioMotion={present:(i,o)=>present(i||0,o||{}),version:'3'}; // gancho para testes e automações
 
 /* janela do apresentador: slide atual, próximo, notas e cronômetro */
 function presenterMode(){
@@ -2022,24 +2075,55 @@ async function exportPDF(){
   setTimeout(()=>{ if(root.isConnected&&!matchMedia('print').matches) done(); },60000);
 }
 
-/* Vídeo: grava a própria aba enquanto a apresentação roda sozinha */
+/* Vídeo: grava a aba (recortada só no slide), com narração pelo microfone e trilha que abaixa quando você fala */
 async function recordVideo(){
   const d=deck(); if(!d.slides.length) return;
   if(!navigator.mediaDevices||!navigator.mediaDevices.getDisplayMedia||!window.MediaRecorder){ setStatus('Este navegador não grava a tela. Use Chrome ou Edge.'); return; }
   const secs=+((d.auto||{}).secs)||5;
-  const ok=await new Promise(res=>{ const m=modal(`<h3>Gravar vídeo</h3><p class="sub">A apresentação vai rodar sozinha do início ao fim (${secs}s por slide, ou o tempo de cada slide) e o vídeo é baixado no final.</p><p class="sub">Na próxima tela, escolha <b>esta aba</b> para compartilhar. Dica: deixe a janela grande ou em tela cheia para o vídeo sair em boa resolução. Esc interrompe.</p><div class="row"><button class="btn" data-c>Cancelar</button><button class="btn pri" data-ok>Começar</button></div>`,'confirm'); m.el.querySelector('[data-c]').onclick=()=>{ m.close(); res(false); }; m.el.querySelector('[data-ok]').onclick=()=>{ m.close(); res(true); }; });
-  if(!ok) return;
+  const cfg=await new Promise(res=>{ const m=modal(`<h3>Gravar vídeo</h3><p class="sub">O vídeo é baixado no final. Na próxima tela, escolha <b>esta aba</b> para compartilhar.</p>
+    <div class="f"><label>Formato</label><div class="seg"><label><input type="radio" name="rf" value="h" checked> Horizontal 16:9 (YouTube, apresentações)</label><label><input type="radio" name="rf" value="v"> Vertical 9:16 (Reels, Stories, TikTok)</label></div></div>
+    <div class="f"><label>Avanço dos slides</label><div class="seg"><label><input type="radio" name="ra" value="auto" checked> Automático (${secs}s por slide, ou o tempo de cada slide)</label><label><input type="radio" name="ra" value="man"> Eu avanço com as setas enquanto narro (Esc termina)</label></div></div>
+    <label class="chk"><input type="checkbox" id="rMic"> Gravar minha narração pelo microfone</label>
+    <div class="f"><label for="rMus">Trilha sonora (opcional, .mp3 ou .wav)</label><input type="file" id="rMus" accept="audio/*"><span class="hint">A música abaixa sozinha enquanto você fala.</span></div>
+    <div class="f"><label for="rVol">Volume da trilha</label><input type="range" id="rVol" min="0" max="100" value="35"></div>
+    <div class="row"><button class="btn" data-c>Cancelar</button><button class="btn pri" data-ok>Começar</button></div>`,'confirm');
+    m.el.querySelector('[data-c]').onclick=()=>{ m.close(); res(null); };
+    m.el.querySelector('[data-ok]').onclick=()=>{ const q=s=>m.el.querySelector(s); const c={vertical:q('[name=rf]:checked').value==='v',manual:q('[name=ra]:checked').value==='man',mic:q('#rMic').checked,music:q('#rMus').files[0]||null,vol:+q('#rVol').value/100}; m.close(); res(c); }; });
+  if(!cfg) return;
   let stream; try{ stream=await navigator.mediaDevices.getDisplayMedia({video:{frameRate:30,displaySurface:'browser'},audio:false,preferCurrentTab:true,selfBrowserSurface:'include'}); }catch(e){ setStatus('Gravação cancelada'); return; }
-  const type=['video/mp4;codecs=avc1','video/mp4','video/webm;codecs=vp9','video/webm'].find(t=>MediaRecorder.isTypeSupported(t))||'';
-  const rec=new MediaRecorder(stream,type?{mimeType:type,videoBitsPerSecond:12e6}:undefined); const chunks=[];
+  /* áudio: microfone + trilha com "ducking" automático */
+  let actx=null, mic=null, duckT=null, musicEl=null; const audioTracks=[];
+  if(cfg.mic||cfg.music){ try{ actx=new AudioContext(); const dest=actx.createMediaStreamDestination();
+      let musicGain=null, an=null;
+      if(cfg.music){ musicEl=new Audio(URL.createObjectURL(cfg.music)); musicEl.loop=true; const src=actx.createMediaElementSource(musicEl); musicGain=actx.createGain(); musicGain.gain.value=cfg.vol; src.connect(musicGain).connect(dest); }
+      if(cfg.mic){ try{ mic=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true}}); const ms=actx.createMediaStreamSource(mic); ms.connect(dest); an=actx.createAnalyser(); an.fftSize=512; ms.connect(an); }catch(_){ setStatus('Microfone não liberado: gravando sem narração'); } }
+      if(an&&musicGain){ const buf=new Uint8Array(an.fftSize); duckT=setInterval(()=>{ an.getByteTimeDomainData(buf); let s=0; for(const v of buf){ const x=(v-128)/128; s+=x*x; } const rms=Math.sqrt(s/buf.length); musicGain.gain.setTargetAtTime(rms>.045?cfg.vol*.25:cfg.vol,actx.currentTime,rms>.045?.08:.6); },90); }
+      audioTracks.push(...dest.stream.getAudioTracks()); }catch(_){ setStatus('Não consegui preparar o áudio: gravando sem som'); } }
+  const out=new MediaStream([...stream.getVideoTracks(),...audioTracks]);
+  const type=['video/mp4;codecs=avc1,mp4a.40.2','video/mp4','video/webm;codecs=vp9,opus','video/webm'].find(t=>MediaRecorder.isTypeSupported(t))||'';
+  const rec=new MediaRecorder(out,type?{mimeType:type,videoBitsPerSecond:12e6}:undefined); const chunks=[];
   rec.ondataavailable=e=>{ if(e.data&&e.data.size) chunks.push(e.data); };
-  rec.onstop=async()=>{ stream.getTracks().forEach(t=>t.stop()); if(!chunks.length){ setStatus('Nada foi gravado'); return; } const blob=new Blob(chunks,{type:rec.mimeType||'video/webm'}); const ext=/mp4/.test(blob.type)?'mp4':'webm'; try{ await saveFile(fileBase(d)+'.'+ext,blob,blob.type); setStatus('Vídeo salvo (.'+ext+')',true); }catch(_){ setStatus('Não consegui salvar o vídeo'); } };
-  const rd=Object.assign(clone(d),{auto:{secs,loop:false}});
+  const stopAll=()=>{ clearInterval(duckT); stream.getTracks().forEach(t=>t.stop()); if(mic) mic.getTracks().forEach(t=>t.stop()); if(musicEl){ musicEl.pause(); } if(actx) actx.close().catch(()=>{}); };
+  rec.onstop=async()=>{ stopAll(); if(!chunks.length){ setStatus('Nada foi gravado'); return; } const blob=new Blob(chunks,{type:rec.mimeType||'video/webm'}); const ext=/mp4/.test(blob.type)?'mp4':'webm'; try{ await saveFile(fileBase(d)+(cfg.vertical?'-vertical':'')+'.'+ext,blob,blob.type); setStatus('Vídeo salvo (.'+ext+')',true); }catch(_){ setStatus('Não consegui salvar o vídeo'); } };
+  const rd=cfg.manual?clone(d):Object.assign(clone(d),{auto:{secs,loop:false}}); if(cfg.manual) delete rd.auto;
   let sess=null;
-  sess=present(0,{deck:rd,recording:true,onEnd:()=>setTimeout(()=>sess&&sess.close(),2500),onClose:()=>{ if(rec.state!=='inactive') rec.stop(); }});
+  sess=present(0,{deck:rd,recording:true,manual:cfg.manual,vertical:cfg.vertical,onEnd:()=>setTimeout(()=>sess&&sess.close(),2500),onClose:()=>{ if(rec.state!=='inactive') rec.stop(); else stopAll(); }});
   stream.getVideoTracks()[0].onended=()=>sess&&sess.close();
-  await new Promise(r=>setTimeout(r,500)); // deixa o aviso de compartilhamento sumir
+  /* recorta o vídeo só na área do slide (sem barra nem bordas), quando o navegador permite */
+  try{ if(window.CropTarget&&CropTarget.fromElement){ const ct=await CropTarget.fromElement(sess.frame); await stream.getVideoTracks()[0].cropTo(ct); } }catch(_){}
+  await sess.countdown(3); // 3, 2, 1 — fica fora do vídeo
+  if(musicEl) musicEl.play().catch(()=>{});
   rec.start(1000); sess.player.replay(); setStatus('Gravando…');
+}
+
+/* Modo palco: tela de espera com contagem regressiva antes de começar */
+function stageDialog(){
+  const m=modal(`<h3>Modo palco</h3><p class="sub">Mostra uma tela de espera com contagem regressiva enquanto o público chega. Ao zerar (ou ao apertar → ), a apresentação começa.</p>
+    <div class="f"><label for="stMin">Minutos até começar</label><input type="number" id="stMin" min="0.1" step="0.5" value="5"></div>
+    <div class="f"><label for="stMsg">Mensagem</label><input type="text" id="stMsg" value="Já vamos começar"></div>
+    <div class="row"><button class="btn" data-c>Cancelar</button><button class="btn pri" data-ok>Abrir modo palco</button></div>`,'confirm');
+  m.el.querySelector('[data-c]').onclick=m.close;
+  m.el.querySelector('[data-ok]').onclick=()=>{ const mins=Math.max(.1,+m.el.querySelector('#stMin').value||5), msg=m.el.querySelector('#stMsg').value; m.close(); present(0,{stage:{mins,msg}}); };
 }
 
 /* ---------- nuvem: mescla edições de outro aparelho com as locais ---------- */
