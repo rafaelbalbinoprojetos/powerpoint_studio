@@ -425,6 +425,77 @@
 .dk-world .dk-tile.flat{border-radius:0;outline-color:transparent;box-shadow:none;background:transparent}
 .dk-world .dk-tile.dim{filter:brightness(.42) saturate(.6)}
 .dk-world .dk-tile.dim::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 40%,rgba(0,0,0,.35))}
+
+/* ---------- layouts ---------- */
+/* título ao lado (cartões, números, fluxo) */
+.dk-lay-lado{display:grid;grid-template-columns:minmax(0,600px) minmax(0,1fr);grid-template-rows:auto auto 1fr;column-gap:90px;align-content:center}
+.dk-lay-lado>.dk-kicker,.dk-lay-lado>.dk-h2,.dk-lay-lado>.dk-lead{grid-column:1}
+.dk-lay-lado>.dk-kicker{align-self:end}
+.dk-lay-lado>.dk-h2{font-size:64px}
+.dk-lay-lado>.dk-lead{font-size:27px;align-self:start}
+.dk-lay-lado>:not(.dk-kicker):not(.dk-h2):not(.dk-lead){grid-column:2;grid-row:1/span 3;align-self:center;margin-top:0}
+.dk-lay-lado>.dk-grid,.dk-lay-lado>.dk-stats{grid-template-columns:1fr 1fr!important;gap:26px}
+.dk-lay-lado .dk-grid .dk-card{min-height:0;padding:30px 32px}
+.dk-lay-lado .dk-card h3{font-size:30px}.dk-lay-lado .dk-card p{font-size:21px}
+.dk-lay-lado .dk-stat .v{font-size:76px!important}
+/* fluxo vertical */
+.dk-t-fluxo.dk-lay-lado>.dk-flow{display:flex!important;flex-direction:column;gap:0}
+.dk-lay-lado .dk-node{min-height:0;padding:20px 26px;display:grid;grid-template-columns:auto 1fr;column-gap:20px;align-items:center}
+.dk-lay-lado .dk-node .dk-ico{grid-row:1/span 3;margin:0}
+.dk-lay-lado .dk-node b{font-size:30px;margin:4px 0}.dk-lay-lado .dk-node p{font-size:19px}
+.dk-lay-lado .dk-arrow{width:4px;height:28px;margin:6px 0 6px 48px;align-self:flex-start;background:linear-gradient(180deg,color-mix(in srgb,var(--accent) 20%,transparent),var(--accent));transform-origin:top}
+.dk-lay-lado .dk-arrow::after{right:auto;left:-8px;top:auto;bottom:-10px;border-left:10px solid transparent;border-right:10px solid transparent;border-top:12px solid var(--accent);border-bottom:0}
+.dk-t-fluxo.dk-lay-lado>:not(.dk-kicker):not(.dk-h2):not(.dk-lead):not(.dk-flow){grid-column:1;grid-row:auto;align-self:start;margin-top:30px}
+/* cartões em lista */
+.dk-lay-lista>.dk-grid{grid-template-columns:1fr!important;gap:16px}
+.dk-lay-lista .dk-grid .dk-card{min-height:0;display:grid;grid-template-columns:auto 260px 360px 1fr;align-items:center;column-gap:30px;padding:24px 34px}
+.dk-lay-lista .dk-card .dk-ico,.dk-lay-lista .dk-num{margin:0;grid-column:1}
+.dk-lay-lista .dk-card .dk-ico{width:50px;height:50px}.dk-lay-lista .dk-num{font-size:44px}
+.dk-lay-lista .dk-card .dk-ix{margin:0;grid-column:2}
+.dk-lay-lista .dk-card h3{margin:0;grid-column:3;font-size:32px}
+.dk-lay-lista .dk-card p{grid-column:4}
+/* primeiro cartão em destaque */
+.dk-lay-destaque>.dk-grid{grid-template-columns:1.6fr 1fr 1fr!important;grid-auto-rows:1fr}
+.dk-lay-destaque .dk-grid .dk-card:first-child{grid-row:span 2;background:linear-gradient(160deg,color-mix(in srgb,var(--accent) 30%,var(--surface)),var(--surface));border-color:var(--accent);box-shadow:0 0 60px var(--glow);display:flex;flex-direction:column;justify-content:flex-end}
+.dk-lay-destaque .dk-grid .dk-card:first-child h3{font-size:52px}.dk-lay-destaque .dk-grid .dk-card:first-child p{font-size:27px;color:var(--text)}
+.dk-lay-destaque .dk-grid .dk-card:first-child .dk-ico{width:84px;height:84px}
+.dk-lay-destaque .dk-grid .dk-card{min-height:240px}
+.dk-lay-destaque .dk-grid .dk-card:nth-child(4){grid-column:span 2}
+/* números gigantes */
+.dk-lay-gigante>.dk-stats{gap:0}
+.dk-lay-gigante .dk-stat{background:none;border:0;box-shadow:none;border-radius:0;border-left:2px solid var(--edge);padding:10px 50px}
+.dk-lay-gigante .dk-stat:first-child{border-left:0;padding-left:0}
+.dk-lay-gigante .dk-stat .v{color:var(--accent);text-shadow:0 0 40px var(--glow);transform-origin:left;font-size:calc(var(--fs,1) * 1em)}
+.dk-lay-gigante .dk-stat .v b{font-size:1.75em}
+/* faixa */
+.dk-lay-faixa>.dk-stats{grid-template-columns:repeat(auto-fit,minmax(0,1fr))!important;gap:0;margin-top:auto;border-radius:var(--r);overflow:hidden;border:var(--bw) solid var(--edge);background:var(--card)}
+.dk-lay-faixa .dk-stat{border:0;border-radius:0;box-shadow:none;background:none;border-right:1px solid var(--edge)}
+.dk-lay-faixa .dk-stat:last-child{border-right:0}
+.dk-lay-faixa .dk-stat .v{font-size:78px!important}
+/* comparação */
+.dk-lay-versus>.dk-cmp{gap:120px;position:relative}
+.dk-lay-versus>.dk-cmp::before{content:"VS";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:96px;height:96px;border-radius:50%;display:grid;place-items:center;font:700 32px/1 var(--f-display);color:var(--bg);background:var(--accent);box-shadow:0 0 50px var(--glow);z-index:2}
+.dk-lay-versus .dk-cmp-col.a{opacity:1;filter:saturate(.4)}
+.dk-lay-foco>.dk-cmp{grid-template-columns:.8fr 1.3fr;align-items:center}
+.dk-lay-foco .dk-cmp-col.a{opacity:.6;transform:scale(.94);transform-origin:right center}
+.dk-lay-foco .dk-cmp-col.b{padding:54px 60px;background:linear-gradient(160deg,color-mix(in srgb,var(--accent) 18%,var(--card)),var(--card))}
+.dk-lay-foco .dk-cmp-col.b .dk-cmp-i{font-size:32px}
+/* destaque, capa e encerramento */
+.dk-lay-centro{align-items:center;text-align:center;justify-content:center}
+.dk-lay-centro .dk-l{margin:0 auto;display:flex;flex-direction:column;align-items:center;max-width:1500px!important}
+.dk-lay-centro .dk-kicker{justify-content:center}
+.dk-lay-centro .dk-kicker::after{content:"";width:44px;height:2px;background:var(--accent);box-shadow:0 0 calc(12px * var(--gm,1)) var(--accent)}
+.dk-lay-centro .dk-lead{margin-left:auto;margin-right:auto}
+.dk-lay-centro .dk-chips,.dk-lay-centro .dk-bens{justify-content:center}
+.dk-lay-centro .dk-bens{text-align:left}
+.dk-lay-centro .dk-chain{margin-left:auto;margin-right:auto}
+.dk-lay-centro .dk-hero,.dk-lay-centro .dk-side{opacity:.25}
+.dk-lay-dividido{justify-content:center}
+.dk-lay-dividido .dk-l{max-width:none!important;display:grid;grid-template-columns:1.25fr 1fr;column-gap:80px;align-items:end}
+.dk-lay-dividido .dk-kicker{grid-column:1/-1;margin-bottom:10px}
+.dk-lay-dividido .dk-h1{grid-column:1;margin:0}
+.dk-lay-dividido .dk-lead{grid-column:2;margin:0;padding-left:44px;border-left:3px solid var(--accent);font-size:34px}
+.dk-lay-dividido .dk-side{opacity:.2}
 </style>
 <style>
 /* Layout: mesa de montagem — lista de slides | palco | inspetor; empilha no celular */
@@ -703,6 +774,16 @@ textarea{resize:vertical;min-height:62px;line-height:1.45}
 .rh-r.late .rh-g .ac{background:#ff5d6c}.rh-r.fast .rh-g .ac{background:#ffc04d}.rh-r.skip{opacity:.45}
 .rh-v{font-variant-numeric:tabular-nums;text-align:right}.rh-v small{display:block;font-size:11px;opacity:.65}.rh-r.late .rh-v small{color:#ff5d6c;opacity:1}
 @media (max-width:600px){.rh-r{grid-template-columns:22px minmax(0,1fr) 70px}.rh-g{display:none}}
+
+/* seletor de layout */
+.lay-pick{display:flex;flex-direction:column;gap:8px;padding-bottom:14px;border-bottom:1px solid var(--ui-line)}
+.lay-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.lay-o{display:flex;flex-direction:column;gap:5px;padding:5px;border-radius:10px;border:1.5px solid var(--ui-line);background:none;cursor:pointer;color:inherit;font:inherit;text-align:left}
+.lay-o:hover{border-color:var(--ui-dim)}
+.lay-o.on{border-color:var(--ui-acc,#3d6bff);box-shadow:0 0 0 2px color-mix(in srgb,var(--ui-acc,#3d6bff) 25%,transparent)}
+.lay-o .tv{position:relative;aspect-ratio:16/9;border-radius:6px;overflow:hidden;pointer-events:none}
+.lay-o small{font-size:11px;color:var(--ui-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lay-o.on small{color:inherit;font-weight:600}
 </style>
 
 </head>
@@ -1342,10 +1423,21 @@ function headShown(deck,s){ const h=deck.header; if(!h||!h.on||!s) return false;
 function bandHTML(deck,t){ const h=deck.header; if(!h||!h.on) return '';
   return `<div class="dk-band" aria-hidden="true">${h.image?`<img class="dk-band-bg" src="${im(h.image)}" alt="">`:''}<div class="dk-band-in"><span>${esc(h.text||deck.name||'')}</span>${h.logo!==false&&t.logo?`<img src="${im(t.logo)}" alt="">`:''}</div></div>`; }
 
+/* layouts: o mesmo conteúdo em arranjos diferentes (classe dk-lay-*) */
+const LAYOUTS={
+  cartoes:{'':'Grade',lado:'Título ao lado',lista:'Lista',destaque:'Primeiro em destaque'},
+  numeros:{'':'Cartões',lado:'Título ao lado',gigante:'Números gigantes',faixa:'Faixa'},
+  comparacao:{'':'Colunas',versus:'Versus',foco:'Foco na solução'},
+  fluxo:{'':'Horizontal',lado:'Vertical com título ao lado'},
+  destaque:{'':'Esquerda',centro:'Centralizado',dividido:'Dividido'},
+  capa:{'':'Esquerda',centro:'Centralizada'},
+  encerramento:{'':'Padrão',centro:'Centralizado'}
+};
 function slideHTML(deck,i,t){
   const s=deck.slides[i]; const T=TEMPLATES[s&&s.t]||TEMPLATES.destaque;
   let inner=''; try{ inner=T.render(Object.assign({},s.d||{}),t); }catch(e){ inner=`<p class="dk-lead">Erro neste slide: ${esc(e.message)}</p>`; }
-  return `<section class="dk-slide dk-t-${esc(s.t)}${headShown(deck,s)?' with-head':''}" data-i="${i}" aria-label="Slide ${i+1}">${inner}</section>`;
+  const lay=s.lay&&LAYOUTS[s.t]&&LAYOUTS[s.t][s.lay]?' dk-lay-'+esc(s.lay):'';
+  return `<section class="dk-slide dk-t-${esc(s.t)}${lay}${headShown(deck,s)?' with-head':''}" data-i="${i}" aria-label="Slide ${i+1}">${inner}</section>`;
 }
 function footHTML(deck,t,i){
   if(deck.footer===false) return '';
@@ -1652,7 +1744,7 @@ function renderStatic(root,deck,i){
 }
 
 window.Deck={TEMPLATES,PRESETS,FONTS,BACKGROUNDS,SHAPES,CARDS,ANIMS,TRANSITIONS,createPlayer,renderStatic,themeOf,themeVars,ensureFonts,esc,fillDefaults,
-  setImageResolver(fn){resolveImage=fn;}, resolveImage:v=>resolveImage(v), ICONS,version:'2.1'};
+  setImageResolver(fn){resolveImage=fn;}, resolveImage:v=>resolveImage(v), ICONS,LAYOUTS,version:'2.2'};
 })();
 
 </script>
@@ -1855,6 +1947,12 @@ function renderPane(){
   const h=document.createElement('div'); h.className='tpl-head';
   h.innerHTML=`<div><div class="sec" style="padding:0">Modelo</div><b>${esc(tpl.name)}</b></div><button class="btn sm" id="swapBtn">Trocar modelo</button>`;
   pane.appendChild(h); $('#swapBtn').onclick=()=>gallery('swap');
+  const LY=(D.LAYOUTS||{})[s.t];
+  if(LY){ const box=document.createElement('div'); box.className='lay-pick'; box.innerHTML='<div class="sec" style="padding:0">Layout</div><div class="lay-row">'+Object.entries(LY).map(([k,n])=>`<button class="lay-o${(s.lay||'')===k?' on':''}" data-lay="${k}" title="${esc(n)}"><div class="tv"></div><small>${esc(n)}</small></button>`).join('')+'</div>';
+    pane.appendChild(box);
+    box.querySelectorAll('.lay-o').forEach(b=>{ const k=b.dataset.lay, mini=Object.assign({},d,{slides:[Object.assign({},s,{lay:k})],header:Object.assign({},d.header||{},{on:false})});
+      try{ D.renderStatic(b.querySelector('.tv'),mini,0); }catch(_){}
+      b.onclick=()=>{ if(k) s.lay=k; else delete s.lay; touch(); renderAll(); }; }); }
   tpl.fields.forEach(f=>pane.appendChild(field(f,s.d,`${s.id}-${f.k}`,()=>liveEdit())));
   if(s.t==='video'){ const hv=document.createElement('p'); hv.className='tip'; hv.textContent='O vídeo não vai embutido no arquivo exportado: use um endereço público (https://…) ou deixe o arquivo de vídeo na mesma pasta do HTML.'; pane.appendChild(hv); }
   /* animação e notas */

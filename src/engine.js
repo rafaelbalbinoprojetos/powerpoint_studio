@@ -576,10 +576,21 @@ function headShown(deck,s){ const h=deck.header; if(!h||!h.on||!s) return false;
 function bandHTML(deck,t){ const h=deck.header; if(!h||!h.on) return '';
   return `<div class="dk-band" aria-hidden="true">${h.image?`<img class="dk-band-bg" src="${im(h.image)}" alt="">`:''}<div class="dk-band-in"><span>${esc(h.text||deck.name||'')}</span>${h.logo!==false&&t.logo?`<img src="${im(t.logo)}" alt="">`:''}</div></div>`; }
 
+/* layouts: o mesmo conteúdo em arranjos diferentes (classe dk-lay-*) */
+const LAYOUTS={
+  cartoes:{'':'Grade',lado:'Título ao lado',lista:'Lista',destaque:'Primeiro em destaque'},
+  numeros:{'':'Cartões',lado:'Título ao lado',gigante:'Números gigantes',faixa:'Faixa'},
+  comparacao:{'':'Colunas',versus:'Versus',foco:'Foco na solução'},
+  fluxo:{'':'Horizontal',lado:'Vertical com título ao lado'},
+  destaque:{'':'Esquerda',centro:'Centralizado',dividido:'Dividido'},
+  capa:{'':'Esquerda',centro:'Centralizada'},
+  encerramento:{'':'Padrão',centro:'Centralizado'}
+};
 function slideHTML(deck,i,t){
   const s=deck.slides[i]; const T=TEMPLATES[s&&s.t]||TEMPLATES.destaque;
   let inner=''; try{ inner=T.render(Object.assign({},s.d||{}),t); }catch(e){ inner=`<p class="dk-lead">Erro neste slide: ${esc(e.message)}</p>`; }
-  return `<section class="dk-slide dk-t-${esc(s.t)}${headShown(deck,s)?' with-head':''}" data-i="${i}" aria-label="Slide ${i+1}">${inner}</section>`;
+  const lay=s.lay&&LAYOUTS[s.t]&&LAYOUTS[s.t][s.lay]?' dk-lay-'+esc(s.lay):'';
+  return `<section class="dk-slide dk-t-${esc(s.t)}${lay}${headShown(deck,s)?' with-head':''}" data-i="${i}" aria-label="Slide ${i+1}">${inner}</section>`;
 }
 function footHTML(deck,t,i){
   if(deck.footer===false) return '';
@@ -886,6 +897,6 @@ function renderStatic(root,deck,i){
 }
 
 window.Deck={TEMPLATES,PRESETS,FONTS,BACKGROUNDS,SHAPES,CARDS,ANIMS,TRANSITIONS,createPlayer,renderStatic,themeOf,themeVars,ensureFonts,esc,fillDefaults,
-  setImageResolver(fn){resolveImage=fn;}, resolveImage:v=>resolveImage(v), ICONS,version:'2.1'};
+  setImageResolver(fn){resolveImage=fn;}, resolveImage:v=>resolveImage(v), ICONS,LAYOUTS,version:'2.2'};
 })();
 

@@ -50,6 +50,7 @@ O deck é gravado no banco do Estúdio. Rafa abre o Estúdio, escolhe a apresent
 - `hidden: true`: slide oculto, pulado na navegação normal; só abre por um link de um `onepage`.
 - `anim`: `suave`, `dinamico` ou `nenhuma` (padrão: completa). `speed`: 0.5 a 2. `tr` (transição ao chegar): `magico`, `voo`, `fade`, `zoom`, `subir`, `nenhuma` (padrão: deslizar). **`magico` (movimento mágico)**: título, rótulo, imagens e números iguais viajam do slide anterior para a nova posição. Para usar bem, repita o mesmo `kicker`/`title` (ou o mesmo número/imagem) em slides seguidos com modelos diferentes, ex.: `destaque` → `cartoes` com o mesmo título; `numeros` → `painel` com o mesmo valor. `dur`: segundos no avanço automático.
 - `head`: `show` ou `hide` força a faixa de cabeçalho neste slide.
+- `lay`: layout alternativo do mesmo conteúdo (vazio = padrão). `cartoes`: `lado`, `lista`, `destaque` · `numeros`: `lado`, `gigante`, `faixa` · `comparacao`: `versus`, `foco` · `fluxo`: `lado` (vertical) · `destaque`: `centro`, `dividido` · `capa` e `encerramento`: `centro`. Varie layouts para slides seguidos do mesmo modelo não parecerem repetidos.
 - `src` + `live: true` (só modelos com itens de valor: gráficos, pizza, barras, funil etc.): link de Google Planilhas publicado ou CSV; coluna A = rótulo, B = valor. Com `live`, os números são buscados de novo ao apresentar.
 
 ### Temas (`theme.preset`)

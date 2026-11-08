@@ -136,3 +136,10 @@ o total e se você está adiantado ou atrasado. R pausa o cronômetro.
 Ao sair (Esc), aparece o relatório: tempo planejado x real de cada slide, os
 slides onde você mais passou do tempo e a comparação com o ensaio anterior.
 "Usar estes tempos no avanço automático" grava seus tempos em cada slide.
+
+LAYOUTS
+Nos modelos Cartões, Números, Comparação, Fluxo, Destaque, Capa e Encerramento
+aparece "Layout" no topo da aba Conteúdo, com miniaturas: o mesmo texto em
+arranjos diferentes (título ao lado, lista, primeiro em destaque, números
+gigantes, versus, fluxo vertical, centralizado...). Um clique troca, nada do
+conteúdo é perdido.

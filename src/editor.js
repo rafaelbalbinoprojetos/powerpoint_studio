@@ -195,6 +195,12 @@ function renderPane(){
   const h=document.createElement('div'); h.className='tpl-head';
   h.innerHTML=`<div><div class="sec" style="padding:0">Modelo</div><b>${esc(tpl.name)}</b></div><button class="btn sm" id="swapBtn">Trocar modelo</button>`;
   pane.appendChild(h); $('#swapBtn').onclick=()=>gallery('swap');
+  const LY=(D.LAYOUTS||{})[s.t];
+  if(LY){ const box=document.createElement('div'); box.className='lay-pick'; box.innerHTML='<div class="sec" style="padding:0">Layout</div><div class="lay-row">'+Object.entries(LY).map(([k,n])=>`<button class="lay-o${(s.lay||'')===k?' on':''}" data-lay="${k}" title="${esc(n)}"><div class="tv"></div><small>${esc(n)}</small></button>`).join('')+'</div>';
+    pane.appendChild(box);
+    box.querySelectorAll('.lay-o').forEach(b=>{ const k=b.dataset.lay, mini=Object.assign({},d,{slides:[Object.assign({},s,{lay:k})],header:Object.assign({},d.header||{},{on:false})});
+      try{ D.renderStatic(b.querySelector('.tv'),mini,0); }catch(_){}
+      b.onclick=()=>{ if(k) s.lay=k; else delete s.lay; touch(); renderAll(); }; }); }
   tpl.fields.forEach(f=>pane.appendChild(field(f,s.d,`${s.id}-${f.k}`,()=>liveEdit())));
   if(s.t==='video'){ const hv=document.createElement('p'); hv.className='tip'; hv.textContent='O vídeo não vai embutido no arquivo exportado: use um endereço público (https://…) ou deixe o arquivo de vídeo na mesma pasta do HTML.'; pane.appendChild(hv); }
   /* animação e notas */
