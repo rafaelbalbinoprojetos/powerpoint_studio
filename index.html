@@ -1488,7 +1488,7 @@ function splitWords(root){
 const fmtN=(v,dec)=>v.toLocaleString('pt-BR',{minimumFractionDigits:dec,maximumFractionDigits:dec});
 /* estilos de entrada por slide: padrao | suave | dinamico */
 const ANIMS={padrao:'Padrão (completa)',suave:'Suave (só aparece)',dinamico:'Dinâmica (mais movimento)',nenhuma:'Sem animação'};
-const TRANSITIONS={magico:'Movimento mágico (elementos viajam)',deslizar:'Deslizar',fade:'Esmaecer',zoom:'Zoom',subir:'Subir',voo:'Voo pela tela infinita (estilo Prezi)',nenhuma:'Corte seco'};
+const TRANSITIONS={magico:'Movimento mágico (elementos viajam)',morph:'Morph (caixas se transformam no próximo slide)',deslizar:'Deslizar',fade:'Esmaecer',zoom:'Zoom',subir:'Subir',voo:'Voo pela tela infinita (estilo Prezi)',nenhuma:'Corte seco'};
 function build(sl,G,keep,o={}){
   const style=o.anim||'padrao';
   const tl=G.timeline({defaults:{ease:'expo.out',duration:1.1}}); let at=0;
@@ -1729,6 +1729,7 @@ function createPlayer(root,deck,opts={}){
     const anim=G && !reduce && !instant && tr!=='nenhuma';
     if(anim){ G.to(bg.cam,{x:bg.cam.x+dir*1.4,duration:1.6,ease:'power3.inOut'}); G.fromTo(bg.cam,{amp:1},{amp:1.6,duration:.6,yoyo:true,repeat:1,ease:'sine.inOut'}); }
     if(prev && anim && prev!==slides[n] && tr==='voo'){ busy=true; if(tl) tl.pause(); return fly(prev,cur,n); }
+    if(prev && anim && prev!==slides[n] && tr==='morph'){ busy=true; if(tl) tl.pause(); if(morph(prev,n)) return; }
     if(prev && anim && prev!==slides[n] && tr==='magico'){ busy=true; if(tl) tl.pause(); if(magic(prev,n)) return; }
     if(prev && anim && prev!==slides[n]){ busy=true; if(tl) tl.pause(); G.to(prev,Object.assign((EXIT[tr]||EXIT.fade)(dir),{duration:.45,ease:'power2.in',onComplete:done})); }
     else done();
@@ -1753,6 +1754,46 @@ function createPlayer(root,deck,opts={}){
       .call(()=>tA.classList.remove('flat'),null,.05)
       .to(bIn,{opacity:0,duration:.45,ease:'power1.in'},T-.55)
       .call(()=>tB.classList.add('flat'),null,T-.35);
+    return true;
+  }
+  /* ---------- morph: as caixas do slide atual se transformam nas do próximo (posição, tamanho, cantos e cor) ---------- */
+  function morph(pv,n){
+    const nx=fresh(n); nx.classList.add('on');
+    const sr=stage.getBoundingClientRect(), sc=sr.width/1920||1;
+    const R=el=>{ const r=el.getBoundingClientRect(); return {x:(r.left-sr.left)/sc,y:(r.top-sr.top)/sc,w:Math.max(1,r.width/sc),h:Math.max(1,r.height/sc)}; };
+    const SURF='.dk-card,.dk-node,.dk-frame,.dk-ben,.dk-screen,.dk-hero,.dk-side,.dk-bar-c,.dk-tl-cols>.dk-ev,.dk-row,.dk-chip';
+    const surf=root=>[...root.querySelectorAll(SURF)].filter(el=>{ const r=el.getBoundingClientRect(); return r.width>8&&r.height>8&&!el.parentElement.closest(SURF); });
+    const A=surf(pv), B=surf(nx); if(!A.length&&!B.length){ nx.classList.remove('on'); return false; }
+    const ov=document.createElement('section'); ov.className='dk-slide dk-mm-ov'; stage.appendChild(ov);
+    const look=el=>{ const cs=getComputedStyle(el); return {bg:cs.backgroundColor,bi:cs.backgroundImage,br:cs.borderRadius,bd:cs.borderColor,bw:cs.borderTopWidth,sh:cs.boxShadow}; };
+    const ghost=(r,lk)=>{ const g=document.createElement('div'); Object.assign(g.style,{position:'absolute',left:r.x+'px',top:r.y+'px',width:r.w+'px',height:r.h+'px',boxSizing:'border-box',borderRadius:lk.br,overflow:'hidden'}); ov.appendChild(g); return g; };
+    const layer=(g,lk,src)=>{ const l=document.createElement('div'); Object.assign(l.style,{position:'absolute',inset:'0',background:lk.bg,backgroundImage:lk.bi,border:lk.bw+' solid '+lk.bd,borderRadius:'inherit',boxShadow:lk.sh}); if(src&&src.tagName==='IMG'){ l.style.background='center/cover no-repeat url("'+src.currentSrc+'")'; } g.appendChild(l); return l; };
+    const mtl=G.timeline({defaults:{duration:1.05,ease:'power3.inOut'}});
+    const near=(r,list)=>list.reduce((b,o)=>{ const d=Math.hypot(o.r.x+o.r.w/2-r.x-r.w/2,o.r.y+o.r.h/2-r.y-r.h/2); return !b||d<b.d?{o,d}:b; },null);
+    const RA=A.map(el=>({el,r:R(el),lk:look(el)})), RB=B.map(el=>({el,r:R(el),lk:look(el)}));
+    const m=Math.min(RA.length,RB.length);
+    const hideB=[];
+    for(let i=0;i<Math.max(RA.length,RB.length);i++){
+      const a=RA[i], b=RB[i];
+      const from=a||{r:Object.assign({},near(b.r,RA.length?RA:RB).o.r),lk:b.lk}, to=b||{r:Object.assign({},near(a.r,RB.length?RB:RA).o.r),lk:a.lk};
+      if(!a){ from.r={x:from.r.x+from.r.w/2-4,y:from.r.y+from.r.h/2-4,w:8,h:8}; }
+      if(!b){ to.r={x:to.r.x+to.r.w/2-4,y:to.r.y+to.r.h/2-4,w:8,h:8}; }
+      const g=ghost(from.r,from.lk), la=layer(g,from.lk,a&&a.el), lb=layer(g,to.lk,b&&b.el);
+      if(a){ const c=a.el.cloneNode(true); c.removeAttribute('data-a'); c.querySelectorAll('[data-a]').forEach(e=>e.removeAttribute('data-a')); Object.assign(c.style,{position:'absolute',left:'0',top:'0',width:from.r.w+'px',height:from.r.h+'px',margin:'0',background:'none',border:'0',boxShadow:'none',transform:'none',opacity:'1',visibility:'visible'}); g.appendChild(c); mtl.to(c,{opacity:0,duration:.3,ease:'power1.out'},0); a.el.style.visibility='hidden'; }
+      mtl.fromTo(lb,{opacity:0},{opacity:1,duration:.7,ease:'power1.inOut'},.15).to(la,{opacity:0,duration:.7,ease:'power1.inOut'},.15);
+      mtl.to(g,{left:to.r.x,top:to.r.y,width:to.r.w,height:to.r.h,borderRadius:to.lk.br,opacity:b?1:0,ease:'power3.inOut'},i*.03);
+      if(b){ b.el.setAttribute('data-mm',''); b.el.style.visibility='hidden'; hideB.push(b.el); }
+    }
+    /* título viaja como no movimento mágico */
+    const ta=pv.querySelector('[data-f="title"]'); var tb=nx.querySelector('[data-f="title"]');
+    if(ta&&tb){ const ra=R(ta), rb=R(tb), ca=ta.cloneNode(true), cb=tb.cloneNode(true);
+      const typo=(src,c,r)=>{ const cs=getComputedStyle(src); ['fontSize','fontFamily','fontWeight','lineHeight','letterSpacing','color','textShadow','textAlign'].forEach(k=>{ c.style[k]=cs[k]; }); Object.assign(c.style,{position:'absolute',left:r.x+'px',top:r.y+'px',width:r.w+'px',margin:'0',maxWidth:'none',transformOrigin:'0 0',zIndex:2}); c.removeAttribute('data-a'); c.querySelectorAll('*').forEach(e=>{ e.style.transform=''; e.style.opacity=''; e.style.filter=''; }); ov.appendChild(c); };
+      typo(ta,ca,ra); typo(tb,cb,rb); const k=rb.h/ra.h||1;
+      mtl.fromTo(ca,{x:0,y:0,scale:1},{x:rb.x-ra.x,y:rb.y-ra.y,scale:k},0).fromTo(cb,{x:ra.x-rb.x,y:ra.y-rb.y,scale:1/k},{x:0,y:0,scale:1},0).fromTo(ca,{opacity:1},{opacity:0,duration:.4,ease:'power1.in'},0).fromTo(cb,{opacity:0},{opacity:1,duration:.5,ease:'power1.out'},.45);
+      ta.style.visibility='hidden'; tb.setAttribute('data-mm',''); tb.style.visibility='hidden'; hideB.push(tb); }
+    mtl.to(pv,{opacity:0,duration:.4,ease:'power1.out'},0);
+    mtl.eventCallback('onComplete',()=>{ hideB.forEach(el=>{ el.style.visibility=''; if(el!==tb&&el.children.length) G.fromTo(el.children,{opacity:0,y:12},{opacity:1,y:0,duration:.45,stagger:.05,ease:'power2.out',clearProps:'opacity,transform'}); }); ov.remove(); pv.classList.remove('on'); videos(pv,false); G.set(pv,{clearProps:'all'}); pv.querySelectorAll('[style*="visibility"]').forEach(e=>{ e.style.visibility=''; }); busy=false; opts.onChange&&opts.onChange(n); });
+    kill(); enter(n,nx,.55); cur=n;
     return true;
   }
   /* ---------- movimento mágico: elementos equivalentes viajam de um slide para o outro ---------- */
