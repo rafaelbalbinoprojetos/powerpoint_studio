@@ -489,3 +489,11 @@
 .dk-beat{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at 50% 55%,var(--glow) 0%,transparent 65%);opacity:calc(var(--bt,0) * .55);mix-blend-mode:screen}
 .dk-player .hl{text-shadow:0 0 calc(28px * var(--gm,1) + var(--bt,0) * 40px) var(--glow)}
 .dk-player .dk-kicker::before{box-shadow:0 0 calc(12px * var(--gm,1) + var(--bt,0) * 26px) var(--accent)}
+
+/* vídeo: layout centralizado e texto embaixo por padrão */
+.dk-t-video{justify-content:flex-end}
+.dk-t-video.dk-lay-centro{justify-content:center}
+.dk-t-video .dk-video.dim{filter:brightness(.42) saturate(1.05)}
+.dk-t-video::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 45%,color-mix(in srgb,var(--bg) 70%,transparent));pointer-events:none}
+.dk-t-video.dk-lay-centro::after{background:radial-gradient(ellipse at center,color-mix(in srgb,var(--bg) 45%,transparent),transparent 70%)}
+.dk-t-video .dk-vtxt{z-index:2}

@@ -178,3 +178,6 @@ Morph                transição em que as caixas viram as do próximo slide
 Fundo reage ao mouse aba Tema (pode desligar)
 Trilha sonora        aba Tema > Trilha sonora; M liga/desliga ao apresentar;
                      o fundo pulsa na batida e a troca de slide cai no tempo
+Vídeo                botão "Enviar vídeo do computador", começar em N
+                     segundos, texto entra no tempo certo, som do vídeo,
+                     ao terminar: repetir, parar ou ir para o próximo slide

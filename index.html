@@ -501,6 +501,14 @@
 .dk-beat{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at 50% 55%,var(--glow) 0%,transparent 65%);opacity:calc(var(--bt,0) * .55);mix-blend-mode:screen}
 .dk-player .hl{text-shadow:0 0 calc(28px * var(--gm,1) + var(--bt,0) * 40px) var(--glow)}
 .dk-player .dk-kicker::before{box-shadow:0 0 calc(12px * var(--gm,1) + var(--bt,0) * 26px) var(--accent)}
+
+/* vídeo: layout centralizado e texto embaixo por padrão */
+.dk-t-video{justify-content:flex-end}
+.dk-t-video.dk-lay-centro{justify-content:center}
+.dk-t-video .dk-video.dim{filter:brightness(.42) saturate(1.05)}
+.dk-t-video::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 45%,color-mix(in srgb,var(--bg) 70%,transparent));pointer-events:none}
+.dk-t-video.dk-lay-centro::after{background:radial-gradient(ellipse at center,color-mix(in srgb,var(--bg) 45%,transparent),transparent 70%)}
+.dk-t-video .dk-vtxt{z-index:2}
 </style>
 <style>
 /* Layout: mesa de montagem — lista de slides | palco | inspetor; empilha no celular */
@@ -1067,9 +1075,9 @@ Object.assign(TEMPLATES,{
   render(d){ const sp=s=>String(s||'').split('|').map(x=>x.trim()); const h=sp(d.header).filter(Boolean); const hot=parseInt(d.hotRow,10);
     return `${head(d)}<table class="dk-table">${h.length?`<thead><tr>${h.map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead>`:''}<tbody data-a="stagger">${arr(d.rows).map((r,i)=>`<tr${i+1===hot?' class="hot"':''}>${sp(r).map(c=>`<td>${rich(c)}</td>`).join('')}</tr>`).join('')}</tbody></table>`; }},
  video:{name:'Vídeo',desc:'Vídeo em tela cheia (em loop, sem som) com título por cima',
-  fields:[{k:'src',t:'text',l:'Endereço do vídeo (.mp4 ou .webm)'},{k:'kicker',t:'text',l:'Rótulo'},{k:'title',t:'area',l:'Título'},{k:'lead',t:'area',l:'Texto de apoio'},{k:'dim',t:'bool',l:'Escurecer o vídeo para o texto aparecer'}],
+  fields:[{k:'src',t:'text',l:'Endereço do vídeo (.mp4 ou .webm) ou use “Enviar vídeo”'},{k:'kicker',t:'text',l:'Rótulo'},{k:'title',t:'area',l:'Título'},{k:'lead',t:'area',l:'Texto de apoio'},{k:'dim',t:'bool',l:'Escurecer o vídeo para o texto aparecer'},{k:'start',t:'text',l:'Começar o vídeo em (segundos)'},{k:'textAt',t:'text',l:'Texto entra aos (segundos; vazio = junto com o vídeo)'},{k:'sound',t:'bool',l:'Tocar o som do vídeo'},{k:'loop',t:'select',l:'Ao terminar',opts:{'':'Repetir',parar:'Parar no último quadro',proximo:'Ir para o próximo slide'}}],
   sample:{src:'',kicker:'Na prática',title:'Veja *funcionando*',lead:'',dim:true},
-  render(d){ return `${d.src?`<video class="dk-video${d.dim?' dim':''}" src="${esc(d.src)}" muted loop playsinline preload="metadata"></video>`:'<div class="dk-video dk-ph">Informe o endereço do vídeo</div>'}<div class="dk-l dk-vtxt">${head(d,'h1')}</div>`; }}
+  render(d){ return `${d.src?`<video class="dk-video${d.dim?' dim':''}" src="${esc(resolveImage(d.src))}" muted${d.loop?'':' loop'} playsinline preload="metadata" data-start="${+d.start||0}" data-sound="${d.sound?1:0}" data-end="${esc(d.loop||'')}"></video>`:'<div class="dk-video dk-ph">Informe o endereço do vídeo ou envie um arquivo</div>'}<div class="dk-l dk-vtxt"${+d.textAt>0?` data-textat="${+d.textAt}"`:''}>${head(d,'h1')}</div>`; }}
 });
 
 /* ---------- modelos cinematográficos (3D) ---------- */
@@ -1470,7 +1478,8 @@ const LAYOUTS={
   fluxo:{'':'Horizontal',lado:'Vertical com título ao lado'},
   destaque:{'':'Esquerda',centro:'Centralizado',dividido:'Dividido'},
   capa:{'':'Esquerda',centro:'Centralizada'},
-  encerramento:{'':'Padrão',centro:'Centralizado'}
+  encerramento:{'':'Padrão',centro:'Centralizado'},
+  video:{'':'Embaixo à esquerda',centro:'Centralizado'}
 };
 function slideHTML(deck,i,t){
   const s=deck.slides[i]; const T=TEMPLATES[s&&s.t]||TEMPLATES.destaque;
@@ -1697,7 +1706,7 @@ function createPlayer(root,deck,opts={}){
   const kill=()=>{ if(tl) tl.kill(); loops.forEach(l=>l.kill()); loops=[]; tl=null; };
   const tame=sl=>sl.querySelectorAll('video').forEach(v=>{ v.removeAttribute('autoplay'); v.pause(); });
   slides.forEach(tame);
-  const videos=(sl,on)=>sl.querySelectorAll('video').forEach(v=>{ if(on){ try{v.currentTime=0;}catch(_){} v.play().catch(()=>{}); } else v.pause(); });
+  const videos=(sl,on)=>sl.querySelectorAll('video').forEach(v=>{ if(on){ try{v.currentTime=+v.dataset.start||0;}catch(_){} v.muted=!(v.dataset.sound==='1'&&!opts.still); if(v.dataset.end==='proximo') v.onended=()=>{ if(sl.classList.contains('on')) next(); }; v.play().catch(()=>{ v.muted=true; v.play().catch(()=>{}); }); } else { v.pause(); v.onended=null; } });
   const pgTxt=n=>{ const pg=stage.querySelector('.dk-pg'); if(pg) pg.textContent=String(n+1).padStart(2,'0')+' / '+String(slides.length).padStart(2,'0'); };
   const S=n=>deck.slides[n]||{};
   /* avanço automático: deck.auto={secs,loop}; slide.dur sobrescreve */
@@ -1724,7 +1733,7 @@ function createPlayer(root,deck,opts={}){
     const sl=pre||fresh(n); sl.classList.add('on'); videos(sl,true);
     if(band) band.classList.toggle('on',headShown(deck,S(n)));
     backBtn.hidden=!(hid(n)&&backTo!=null);
-    if(G && !reduce && S(n).anim!=='nenhuma'){ G.set(sl,{clearProps:'all'}); tl=build(sl,G,loops,{anim:S(n).anim,speed:+S(n).speed||0}); if(delay) tl.delay(delay);
+    if(G && !reduce && S(n).anim!=='nenhuma'){ G.set(sl,{clearProps:'all'}); tl=build(sl,G,loops,{anim:S(n).anim,speed:+S(n).speed||0}); { const ta=sl.querySelector('[data-textat]'); const at=ta?+ta.dataset.textat||0:0; if(delay||at) tl.delay((delay||0)+at); }
       sl.querySelectorAll('.dk-ico').forEach((ic,i)=>tl.fromTo(ic.querySelectorAll('path,circle'),{attr:{'stroke-dashoffset':1}},{attr:{'stroke-dashoffset':0},duration:1.4,stagger:.15,ease:'power2.inOut'},.45+i*.2)); }
     else if(G) loops=hubLoops(sl,G);
     loops.push(...start3D(sl,{still:reduce}));
@@ -1918,6 +1927,11 @@ async function localSave(){
   try{ await IDB.set('decks',clone(decks)); return true; }
   catch(_){ return lsSet(LS,JSON.stringify(decks)); }
 }
+/* vídeos guardados no navegador: local:vid-xxx vira um endereço temporário */
+const localMedia={};
+{ const base=v=>v.startsWith('asset:')?'/_blob/'+v.slice(6):v; D.setImageResolver(v=>{ v=String(v||''); if(v.startsWith('local:')) return localMedia[v]||''; return base(v); }); }
+async function preloadLocal(){ const keys=new Set(); Object.values(decks).forEach(dk=>(dk.slides||[]).forEach(sl=>{ const v=sl.d&&sl.d.src; if(typeof v==='string'&&v.startsWith('local:')) keys.add(v); }));
+  for(const k of keys){ if(localMedia[k]) continue; try{ const b=await IDB.get(k.slice(6)); if(b) localMedia[k]=URL.createObjectURL(b); }catch(_){} } }
 /* biblioteca de slides reutilizáveis (fica neste navegador, vale para todas as apresentações) */
 let myLib=[];
 async function loadLib(){ try{ myLib=(await IDB.get('library'))||[]; }catch(_){ try{ myLib=JSON.parse(lsGet(LS+'-library')||'[]'); }catch(e){ myLib=[]; } } }
@@ -2126,7 +2140,13 @@ function renderPane(){
       try{ D.renderStatic(b.querySelector('.tv'),mini,0); }catch(_){}
       b.onclick=()=>{ if(k) s.lay=k; else delete s.lay; touch(); renderAll(); }; }); }
   tpl.fields.forEach(f=>pane.appendChild(field(f,s.d,`${s.id}-${f.k}`,()=>liveEdit())));
-  if(s.t==='video'){ const hv=document.createElement('p'); hv.className='tip'; hv.textContent='O vídeo não vai embutido no arquivo exportado: use um endereço público (https://…) ou deixe o arquivo de vídeo na mesma pasta do HTML.'; pane.appendChild(hv); }
+  if(s.t==='video'){ const vb=document.createElement('div'); vb.className='btnrow'; vb.innerHTML='<button class="btn sm" id="vidUp">Enviar vídeo do computador…</button>'; pane.insertBefore(vb,pane.children[2]||null);
+    vb.querySelector('#vidUp').onclick=()=>{ const inp=document.createElement('input'); inp.type='file'; inp.accept='video/mp4,video/webm,video/*'; inp.onchange=async()=>{ const f=inp.files[0]; if(!f) return;
+      if(f.size>200e6){ setStatus('Vídeo muito grande (máx. 200 MB)'); return; } setStatus('Guardando o vídeo…');
+      let src=''; if(assets){ try{ src='asset:'+(await assets.upload(f)).id; }catch(_){ src=''; } }
+      if(!src){ const key='vid-'+uid(); try{ await IDB.set(key,f); }catch(err){ setStatus('Não foi possível guardar o vídeo neste navegador'); return; } localMedia['local:'+key]=URL.createObjectURL(f); src='local:'+key; }
+      s.d.src=src; touch(); renderPreview(true); renderPane(); setStatus('Vídeo pronto: '+f.name,true); }; inp.click(); }; }
+  if(s.t==='video'){ const hv=document.createElement('p'); hv.className='tip'; hv.textContent='Vídeo enviado do computador fica guardado neste navegador e toca aqui. Ele não vai embutido no arquivo exportado: para compartilhar, use um endereço público (https://…) ou deixe o arquivo na mesma pasta do HTML.'; pane.appendChild(hv); }
   /* animação e notas */
   const box=document.createElement('div'); box.className='slideopts';
   box.innerHTML=`<div class="sec">Animação deste slide</div>
@@ -3040,7 +3060,7 @@ function mergeDeck(base,local,remote){
 /* ---------- inicialização ---------- */
 (async function boot(){
   decks=await localLoad(); localIds=new Set(Object.keys(decks));
-  await loadThemes(); await loadLib();
+  await loadThemes(); await loadLib(); await preloadLocal();
   if(!Object.keys(decks).length){ if(window.SEED_DECKS) Object.assign(decks,clone(window.SEED_DECKS)); else { const id=uid(); decks[id]=starter(); } }
   Object.values(decks).forEach(normalize);
   const last=lsGet(LS+'-cur');

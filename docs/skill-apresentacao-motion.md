@@ -88,7 +88,7 @@ Para uma marca própria, mantenha o preset mais próximo e sobrescreva no `theme
 | `citacao` | Depoimento ou frase marcante | `quote`, `author`, `role`, `image` (foto, opcional) |
 | `equipe` | Pessoas | `kicker`, `title`, `people`: [{`name`, `role`, `photo`}] (até 6; sem foto mostra as iniciais) |
 | `tabela` | Dados tabulares curtos | `kicker`, `title`, `header` ("A \| B \| C"), `rows` (lista, colunas com `\|`), `hotRow` (número da linha destacada) |
-| `video` | Vídeo em tela cheia, sem som | `src` (URL .mp4/.webm), `kicker`, `title`, `lead`, `dim` (bool) |
+| `video` | Vídeo em tela cheia, sem som | `src` (URL .mp4/.webm), `kicker`, `title`, `lead`, `dim` (bool)  Extras: `start` (segundos), `textAt` (texto entra aos N s), `sound` (bool), `loop` (`parar`, `proximo`) |
 | `mergulho` | Efeito 3D: a câmera atravessa imagens, uma atrás da outra, até a mensagem final | `layers`: [{`image`, `caption`}] (2 a 5, da frente para o fundo), `kicker`, `title`, `lead` |
 | `galeria3d` | Carrossel de imagens girando em perspectiva | `kicker`, `title`, `lead`, `images`: [{`image`, `caption`}] (3 a 8) |
 | `revelar` | Imagem em tela cheia surgindo por máscara, com título | `image`, `kicker`, `title`, `lead`, `curtain` (bool: cortina em vez de círculo), `dim` (bool) |

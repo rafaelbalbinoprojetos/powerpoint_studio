@@ -181,9 +181,9 @@ Object.assign(TEMPLATES,{
   render(d){ const sp=s=>String(s||'').split('|').map(x=>x.trim()); const h=sp(d.header).filter(Boolean); const hot=parseInt(d.hotRow,10);
     return `${head(d)}<table class="dk-table">${h.length?`<thead><tr>${h.map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead>`:''}<tbody data-a="stagger">${arr(d.rows).map((r,i)=>`<tr${i+1===hot?' class="hot"':''}>${sp(r).map(c=>`<td>${rich(c)}</td>`).join('')}</tr>`).join('')}</tbody></table>`; }},
  video:{name:'Vídeo',desc:'Vídeo em tela cheia (em loop, sem som) com título por cima',
-  fields:[{k:'src',t:'text',l:'Endereço do vídeo (.mp4 ou .webm)'},{k:'kicker',t:'text',l:'Rótulo'},{k:'title',t:'area',l:'Título'},{k:'lead',t:'area',l:'Texto de apoio'},{k:'dim',t:'bool',l:'Escurecer o vídeo para o texto aparecer'}],
+  fields:[{k:'src',t:'text',l:'Endereço do vídeo (.mp4 ou .webm) ou use “Enviar vídeo”'},{k:'kicker',t:'text',l:'Rótulo'},{k:'title',t:'area',l:'Título'},{k:'lead',t:'area',l:'Texto de apoio'},{k:'dim',t:'bool',l:'Escurecer o vídeo para o texto aparecer'},{k:'start',t:'text',l:'Começar o vídeo em (segundos)'},{k:'textAt',t:'text',l:'Texto entra aos (segundos; vazio = junto com o vídeo)'},{k:'sound',t:'bool',l:'Tocar o som do vídeo'},{k:'loop',t:'select',l:'Ao terminar',opts:{'':'Repetir',parar:'Parar no último quadro',proximo:'Ir para o próximo slide'}}],
   sample:{src:'',kicker:'Na prática',title:'Veja *funcionando*',lead:'',dim:true},
-  render(d){ return `${d.src?`<video class="dk-video${d.dim?' dim':''}" src="${esc(d.src)}" muted loop playsinline preload="metadata"></video>`:'<div class="dk-video dk-ph">Informe o endereço do vídeo</div>'}<div class="dk-l dk-vtxt">${head(d,'h1')}</div>`; }}
+  render(d){ return `${d.src?`<video class="dk-video${d.dim?' dim':''}" src="${esc(resolveImage(d.src))}" muted${d.loop?'':' loop'} playsinline preload="metadata" data-start="${+d.start||0}" data-sound="${d.sound?1:0}" data-end="${esc(d.loop||'')}"></video>`:'<div class="dk-video dk-ph">Informe o endereço do vídeo ou envie um arquivo</div>'}<div class="dk-l dk-vtxt"${+d.textAt>0?` data-textat="${+d.textAt}"`:''}>${head(d,'h1')}</div>`; }}
 });
 
 /* ---------- modelos cinematográficos (3D) ---------- */
@@ -584,7 +584,8 @@ const LAYOUTS={
   fluxo:{'':'Horizontal',lado:'Vertical com título ao lado'},
   destaque:{'':'Esquerda',centro:'Centralizado',dividido:'Dividido'},
   capa:{'':'Esquerda',centro:'Centralizada'},
-  encerramento:{'':'Padrão',centro:'Centralizado'}
+  encerramento:{'':'Padrão',centro:'Centralizado'},
+  video:{'':'Embaixo à esquerda',centro:'Centralizado'}
 };
 function slideHTML(deck,i,t){
   const s=deck.slides[i]; const T=TEMPLATES[s&&s.t]||TEMPLATES.destaque;
@@ -811,7 +812,7 @@ function createPlayer(root,deck,opts={}){
   const kill=()=>{ if(tl) tl.kill(); loops.forEach(l=>l.kill()); loops=[]; tl=null; };
   const tame=sl=>sl.querySelectorAll('video').forEach(v=>{ v.removeAttribute('autoplay'); v.pause(); });
   slides.forEach(tame);
-  const videos=(sl,on)=>sl.querySelectorAll('video').forEach(v=>{ if(on){ try{v.currentTime=0;}catch(_){} v.play().catch(()=>{}); } else v.pause(); });
+  const videos=(sl,on)=>sl.querySelectorAll('video').forEach(v=>{ if(on){ try{v.currentTime=+v.dataset.start||0;}catch(_){} v.muted=!(v.dataset.sound==='1'&&!opts.still); if(v.dataset.end==='proximo') v.onended=()=>{ if(sl.classList.contains('on')) next(); }; v.play().catch(()=>{ v.muted=true; v.play().catch(()=>{}); }); } else { v.pause(); v.onended=null; } });
   const pgTxt=n=>{ const pg=stage.querySelector('.dk-pg'); if(pg) pg.textContent=String(n+1).padStart(2,'0')+' / '+String(slides.length).padStart(2,'0'); };
   const S=n=>deck.slides[n]||{};
   /* avanço automático: deck.auto={secs,loop}; slide.dur sobrescreve */
@@ -838,7 +839,7 @@ function createPlayer(root,deck,opts={}){
     const sl=pre||fresh(n); sl.classList.add('on'); videos(sl,true);
     if(band) band.classList.toggle('on',headShown(deck,S(n)));
     backBtn.hidden=!(hid(n)&&backTo!=null);
-    if(G && !reduce && S(n).anim!=='nenhuma'){ G.set(sl,{clearProps:'all'}); tl=build(sl,G,loops,{anim:S(n).anim,speed:+S(n).speed||0}); if(delay) tl.delay(delay);
+    if(G && !reduce && S(n).anim!=='nenhuma'){ G.set(sl,{clearProps:'all'}); tl=build(sl,G,loops,{anim:S(n).anim,speed:+S(n).speed||0}); { const ta=sl.querySelector('[data-textat]'); const at=ta?+ta.dataset.textat||0:0; if(delay||at) tl.delay((delay||0)+at); }
       sl.querySelectorAll('.dk-ico').forEach((ic,i)=>tl.fromTo(ic.querySelectorAll('path,circle'),{attr:{'stroke-dashoffset':1}},{attr:{'stroke-dashoffset':0},duration:1.4,stagger:.15,ease:'power2.inOut'},.45+i*.2)); }
     else if(G) loops=hubLoops(sl,G);
     loops.push(...start3D(sl,{still:reduce}));

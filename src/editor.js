@@ -42,6 +42,11 @@ async function localSave(){
   try{ await IDB.set('decks',clone(decks)); return true; }
   catch(_){ return lsSet(LS,JSON.stringify(decks)); }
 }
+/* vídeos guardados no navegador: local:vid-xxx vira um endereço temporário */
+const localMedia={};
+{ const base=v=>v.startsWith('asset:')?'/_blob/'+v.slice(6):v; D.setImageResolver(v=>{ v=String(v||''); if(v.startsWith('local:')) return localMedia[v]||''; return base(v); }); }
+async function preloadLocal(){ const keys=new Set(); Object.values(decks).forEach(dk=>(dk.slides||[]).forEach(sl=>{ const v=sl.d&&sl.d.src; if(typeof v==='string'&&v.startsWith('local:')) keys.add(v); }));
+  for(const k of keys){ if(localMedia[k]) continue; try{ const b=await IDB.get(k.slice(6)); if(b) localMedia[k]=URL.createObjectURL(b); }catch(_){} } }
 /* biblioteca de slides reutilizáveis (fica neste navegador, vale para todas as apresentações) */
 let myLib=[];
 async function loadLib(){ try{ myLib=(await IDB.get('library'))||[]; }catch(_){ try{ myLib=JSON.parse(lsGet(LS+'-library')||'[]'); }catch(e){ myLib=[]; } } }
@@ -250,7 +255,13 @@ function renderPane(){
       try{ D.renderStatic(b.querySelector('.tv'),mini,0); }catch(_){}
       b.onclick=()=>{ if(k) s.lay=k; else delete s.lay; touch(); renderAll(); }; }); }
   tpl.fields.forEach(f=>pane.appendChild(field(f,s.d,`${s.id}-${f.k}`,()=>liveEdit())));
-  if(s.t==='video'){ const hv=document.createElement('p'); hv.className='tip'; hv.textContent='O vídeo não vai embutido no arquivo exportado: use um endereço público (https://…) ou deixe o arquivo de vídeo na mesma pasta do HTML.'; pane.appendChild(hv); }
+  if(s.t==='video'){ const vb=document.createElement('div'); vb.className='btnrow'; vb.innerHTML='<button class="btn sm" id="vidUp">Enviar vídeo do computador…</button>'; pane.insertBefore(vb,pane.children[2]||null);
+    vb.querySelector('#vidUp').onclick=()=>{ const inp=document.createElement('input'); inp.type='file'; inp.accept='video/mp4,video/webm,video/*'; inp.onchange=async()=>{ const f=inp.files[0]; if(!f) return;
+      if(f.size>200e6){ setStatus('Vídeo muito grande (máx. 200 MB)'); return; } setStatus('Guardando o vídeo…');
+      let src=''; if(assets){ try{ src='asset:'+(await assets.upload(f)).id; }catch(_){ src=''; } }
+      if(!src){ const key='vid-'+uid(); try{ await IDB.set(key,f); }catch(err){ setStatus('Não foi possível guardar o vídeo neste navegador'); return; } localMedia['local:'+key]=URL.createObjectURL(f); src='local:'+key; }
+      s.d.src=src; touch(); renderPreview(true); renderPane(); setStatus('Vídeo pronto: '+f.name,true); }; inp.click(); }; }
+  if(s.t==='video'){ const hv=document.createElement('p'); hv.className='tip'; hv.textContent='Vídeo enviado do computador fica guardado neste navegador e toca aqui. Ele não vai embutido no arquivo exportado: para compartilhar, use um endereço público (https://…) ou deixe o arquivo na mesma pasta do HTML.'; pane.appendChild(hv); }
   /* animação e notas */
   const box=document.createElement('div'); box.className='slideopts';
   box.innerHTML=`<div class="sec">Animação deste slide</div>
@@ -1164,7 +1175,7 @@ function mergeDeck(base,local,remote){
 /* ---------- inicialização ---------- */
 (async function boot(){
   decks=await localLoad(); localIds=new Set(Object.keys(decks));
-  await loadThemes(); await loadLib();
+  await loadThemes(); await loadLib(); await preloadLocal();
   if(!Object.keys(decks).length){ if(window.SEED_DECKS) Object.assign(decks,clone(window.SEED_DECKS)); else { const id=uid(); decks[id]=starter(); } }
   Object.values(decks).forEach(normalize);
   const last=lsGet(LS+'-cur');
