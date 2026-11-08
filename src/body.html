@@ -1,0 +1,43 @@
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="brand"><i></i>Estúdio Motion</div>
+    <div class="deckpick">
+      <select id="deckSel" aria-label="Apresentação"></select>
+      <input type="text" id="deckName" aria-label="Nome da apresentação" placeholder="Nome da apresentação">
+      <button class="btn sm" id="deckMenu" aria-haspopup="true">Mais</button>
+    </div>
+    <span class="sp"></span>
+    <span class="status" id="status">Carregando…</span>
+    <button class="btn" id="exportBtn" title="Baixar arquivo HTML que roda sozinho">Exportar</button>
+    <button class="btn pri" id="playBtn">▶ Apresentar</button>
+  </header>
+
+  <div class="work">
+    <aside class="rail" id="rail" aria-label="Slides"></aside>
+    <main class="center">
+      <div class="pv"><div class="pvbox" id="pv"></div></div>
+      <div class="tools">
+        <button class="btn sm" id="prevBtn" aria-label="Slide anterior">‹</button>
+        <span class="lbl" id="pvN">1 / 1</span>
+        <button class="btn sm" id="nextBtn" aria-label="Próximo slide">›</button>
+        <button class="btn sm" id="replayBtn">↻ Ver animação</button>
+        <span class="sp" style="flex:1"></span>
+        <button class="btn sm" id="upBtn" title="Mover para cima">↑</button>
+        <button class="btn sm" id="downBtn" title="Mover para baixo">↓</button>
+        <button class="btn sm" id="dupBtn">Duplicar</button>
+        <button class="btn sm danger" id="delBtn">Excluir</button>
+      </div>
+    </main>
+    <aside class="insp">
+      <div class="tabs" role="tablist">
+        <button class="on" data-tab="content" role="tab">Conteúdo</button>
+        <button data-tab="theme" role="tab">Tema</button>
+      </div>
+      <div class="pane" id="pane"></div>
+    </aside>
+  </div>
+</div>
+
+<input type="file" id="fileIn" accept="image/*" hidden>
