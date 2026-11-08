@@ -1540,7 +1540,9 @@ function presenterMode(){
   const send=m=>{ try{ opener&&opener.postMessage(Object.assign({em:1},m),'*'); }catch(_){} };
   const paint=()=>{ if(!dk) return; c1&&c1(); c2&&c2();
     c1=D.renderStatic($('#pcur'),dk,n);
-    if(n+1<dk.slides.length) c2=D.renderStatic($('#pnext'),dk,n+1); else { $('#pnext').innerHTML='<div class="end">Fim da apresentação</div>'; c2=null; }
+    let nx=n+1; if(!(dk.slides[n]||{}).hidden) while(nx<dk.slides.length&&dk.slides[nx].hidden) nx++; // pula slides ocultos
+    if((dk.slides[n]||{}).hidden) $('#pnext').innerHTML='<div class="end">Próximo: volta ao resumo</div>', c2=null;
+    else if(nx<dk.slides.length) c2=D.renderStatic($('#pnext'),dk,nx); else { $('#pnext').innerHTML='<div class="end">Fim da apresentação</div>'; c2=null; }
     const s=dk.slides[n]||{}; $('#pnotes').textContent=s.notes||'Sem notas para este slide.'; $('#pnotes').classList.toggle('empty',!s.notes);
     $('#pn').textContent=(n+1)+' / '+dk.slides.length; };
   addEventListener('message',e=>{ if(e.source!==opener||!e.data||!e.data.em) return; const m=e.data;
