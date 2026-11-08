@@ -113,9 +113,45 @@ const TEMPLATES={
   render(d,t){ return `<div class="dk-l">${head(d)}${arr(d.bullets).length?`<div class="dk-bens" data-a="stagger">${arr(d.bullets).map(b=>`<div class="dk-ben"><i></i>${rich(b)}</div>`).join('')}</div>`:''}${arr(d.next).length?`<div data-a="up" style="margin-top:30px"><span class="dk-ix" style="color:var(--alert)">${esc(d.nextTitle||'Próximos passos')}</span><div class="dk-bens" style="margin-top:0">${arr(d.next).map(b=>`<div class="dk-ben" style="font-size:21px;padding:14px 20px"><i style="background:var(--alert);box-shadow:0 0 12px var(--alert)"></i>${rich(b)}</div>`).join('')}</div></div>`:''}${d.closing?`<p class="dk-closing" data-a="up">${rich(d.closing)}</p>`:''}</div>${d.showLogo&&t.logo?`<img class="dk-endlogo" src="${im(t.logo)}" alt="" data-a="logo">`:''}${d.image?`<img class="dk-hero" src="${im(d.image)}" alt="" data-a="hero" data-float>`:''}`; }}
 };
 
+/* ---------- modelos novos ---------- */
+Object.assign(TEMPLATES,{
+ comparacao:{name:'Comparação',desc:'Antes e depois (ou opção A × B) em duas colunas',
+  fields:[{k:'kicker',t:'text',l:'Rótulo'},{k:'title',t:'area',l:'Título'},{k:'leftTitle',t:'text',l:'Coluna 1: título'},{k:'left',t:'list',l:'Coluna 1: itens'},{k:'rightTitle',t:'text',l:'Coluna 2: título'},{k:'right',t:'list',l:'Coluna 2: itens'}],
+  sample:{kicker:'Antes e depois',title:'O que *muda* na rotina',leftTitle:'Hoje',left:['Planilhas soltas','Decisão sem histórico','Retrabalho mensal'],rightTitle:'Com o sistema',right:['Uma base única','Cada decisão justificada','Alertas automáticos']},
+  render(d){ const col=(ti,it,cls)=>`<div class="dk-card dk-cmp-col ${cls}"><span class="dk-ix">${esc(ti)}</span>${arr(it).map(x=>`<div class="dk-cmp-i"><i></i>${rich(x)}</div>`).join('')}</div>`;
+    return `${head(d)}<div class="dk-cmp" data-a="cards">${col(d.leftTitle,d.left,'a')}${col(d.rightTitle,d.right,'b')}</div>`; }},
+ grafico:{name:'Gráfico',desc:'Barras que crescem com os valores informados',
+  fields:[{k:'kicker',t:'text',l:'Rótulo'},{k:'title',t:'area',l:'Título'},{k:'lead',t:'area',l:'Subtítulo'},{k:'unit',t:'text',l:'Unidade (ex.: R$ mil, %)'},{k:'bars',t:'items',l:'Barras',max:8,sub:[{k:'label',t:'text',l:'Rótulo'},{k:'value',t:'text',l:'Valor'},{k:'hot',t:'bool',l:'Destacar barra'}]}],
+  sample:{kicker:'Evolução',title:'Custo evitado *por trimestre*',lead:'',unit:'R$ mil',bars:[{label:'T1',value:'120'},{label:'T2',value:'210'},{label:'T3',value:'260'},{label:'T4',value:'410',hot:true}]},
+  render(d){ const b=arr(d.bars).slice(0,8); const vals=b.map(x=>(parseNum(x.value)||{n:0}).n); const mx=Math.max(1,...vals);
+    return `${head(d)}<div class="dk-chart" data-a="bars" style="${cols(Math.max(1,b.length))}">${b.map((x,i)=>`<div class="dk-bar${x.hot?' hot':''}"><div class="dk-bar-v"><b${countAttr(x.value)}>${esc(x.value)}</b>${d.unit?`<small>${esc(d.unit)}</small>`:''}</div><div class="dk-bar-c"><i style="height:${Math.max(2,vals[i]/mx*100)}%"></i></div><span>${esc(x.label)}</span></div>`).join('')}</div>`; }},
+ citacao:{name:'Citação',desc:'Uma frase marcante com autor e foto',
+  fields:[{k:'quote',t:'area',l:'Citação'},{k:'author',t:'text',l:'Autor'},{k:'role',t:'text',l:'Cargo ou contexto'},{k:'image',t:'image',l:'Foto do autor (opcional)'}],
+  sample:{quote:'Pela primeira vez, a gente *decide olhando o mesmo número*.',author:'Nome da pessoa',role:'Gerente de área',image:''},
+  render(d){ return `<div class="dk-quote"><div class="dk-qmark" data-a="logo">“</div><blockquote class="dk-h1" data-a="words">${rich(d.quote)}</blockquote><div class="dk-qby" data-a="up">${d.image?`<img src="${im(d.image)}" alt="">`:''}<div><b>${esc(d.author)}</b><small>${esc(d.role)}</small></div></div></div>`; }},
+ equipe:{name:'Equipe',desc:'De 1 a 6 pessoas com foto, nome e papel',
+  fields:[{k:'kicker',t:'text',l:'Rótulo'},{k:'title',t:'area',l:'Título'},{k:'people',t:'items',l:'Pessoas',max:6,sub:[{k:'name',t:'text',l:'Nome'},{k:'role',t:'text',l:'Papel'},{k:'photo',t:'image',l:'Foto'}]}],
+  sample:{kicker:'Quem faz',title:'A *equipe* por trás',people:[{name:'Pessoa 1',role:'Coordenação',photo:''},{name:'Pessoa 2',role:'Dados',photo:''},{name:'Pessoa 3',role:'Desenvolvimento',photo:''}]},
+  render(d){ const p=arr(d.people).slice(0,6);
+    return `${head(d)}<div class="dk-team" style="${cols(Math.min(p.length||1,p.length>4?3:4))}" data-a="cards">${p.map(x=>`<div class="dk-card dk-person">${x.photo?`<img src="${im(x.photo)}" alt="">`:`<span class="dk-av">${esc(String(x.name||'?').trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase())}</span>`}<h3>${esc(x.name)}</h3><p>${esc(x.role)}</p></div>`).join('')}</div>`; }},
+ tabela:{name:'Tabela',desc:'Tabela simples com linhas entrando em sequência',
+  fields:[{k:'kicker',t:'text',l:'Rótulo'},{k:'title',t:'area',l:'Título'},{k:'header',t:'text',l:'Cabeçalho (separe colunas com | )'},{k:'rows',t:'list',l:'Linhas (uma por linha, colunas com | )'},{k:'hotRow',t:'text',l:'Destacar linha nº (opcional)'}],
+  sample:{kicker:'Comparativo',title:'Indicadores *por área*',header:'Área | Reservas | Economia',rows:['Funilaria | 312 | R$ 410 mil','Pintura | 208 | R$ 260 mil','Montagem | 145 | R$ 180 mil'],hotRow:'1'},
+  render(d){ const sp=s=>String(s||'').split('|').map(x=>x.trim()); const h=sp(d.header).filter(Boolean); const hot=parseInt(d.hotRow,10);
+    return `${head(d)}<table class="dk-table">${h.length?`<thead><tr>${h.map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead>`:''}<tbody data-a="stagger">${arr(d.rows).map((r,i)=>`<tr${i+1===hot?' class="hot"':''}>${sp(r).map(c=>`<td>${rich(c)}</td>`).join('')}</tr>`).join('')}</tbody></table>`; }},
+ video:{name:'Vídeo',desc:'Vídeo em tela cheia (em loop, sem som) com título por cima',
+  fields:[{k:'src',t:'text',l:'Endereço do vídeo (.mp4 ou .webm)'},{k:'kicker',t:'text',l:'Rótulo'},{k:'title',t:'area',l:'Título'},{k:'lead',t:'area',l:'Texto de apoio'},{k:'dim',t:'bool',l:'Escurecer o vídeo para o texto aparecer'}],
+  sample:{src:'',kicker:'Na prática',title:'Veja *funcionando*',lead:'',dim:true},
+  render(d){ return `${d.src?`<video class="dk-video${d.dim?' dim':''}" src="${esc(d.src)}" muted loop playsinline preload="metadata"></video>`:'<div class="dk-video dk-ph">Informe o endereço do vídeo</div>'}<div class="dk-l dk-vtxt">${head(d,'h1')}</div>`; }}
+});
+
+/* campos que faltam no slide ganham valor vazio (não texto de exemplo) */
+function emptyOf(f){ return f.t==='bool'?false:(f.t==='list'||f.t==='items')?[]:''; }
+function fillDefaults(s){ const T=TEMPLATES[s&&s.t]; if(!T) return s; s.d=s.d||{}; T.fields.forEach(f=>{ if(s.d[f.k]===undefined) s.d[f.k]=emptyOf(f); }); return s; }
+
 function slideHTML(deck,i,t){
   const s=deck.slides[i]; const T=TEMPLATES[s&&s.t]||TEMPLATES.destaque;
-  let inner=''; try{ inner=T.render(Object.assign({},T.sample&&{},s.d||{}),t); }catch(e){ inner=`<p class="dk-lead">Erro neste slide: ${esc(e.message)}</p>`; }
+  let inner=''; try{ inner=T.render(Object.assign({},s.d||{}),t); }catch(e){ inner=`<p class="dk-lead">Erro neste slide: ${esc(e.message)}</p>`; }
   return `<section class="dk-slide dk-t-${esc(s.t)}" data-i="${i}" aria-label="Slide ${i+1}">${inner}</section>`;
 }
 function footHTML(deck,t,i){
@@ -136,10 +172,22 @@ function splitWords(root){
 
 /* ---------- animações ---------- */
 const fmtN=(v,dec)=>v.toLocaleString('pt-BR',{minimumFractionDigits:dec,maximumFractionDigits:dec});
-function build(sl,G,keep){
+/* estilos de entrada por slide: padrao | suave | dinamico */
+const ANIMS={padrao:'Padrão (completa)',suave:'Suave (só aparece)',dinamico:'Dinâmica (mais movimento)',nenhuma:'Sem animação'};
+const TRANSITIONS={deslizar:'Deslizar',fade:'Esmaecer',zoom:'Zoom',subir:'Subir',nenhuma:'Corte seco'};
+function build(sl,G,keep,o={}){
+  const style=o.anim||'padrao';
   const tl=G.timeline({defaults:{ease:'expo.out',duration:1.1}}); let at=0;
-  sl.querySelectorAll('[data-a]').forEach(el=>{
+  if(style==='suave'){
+    sl.querySelectorAll('[data-a]').forEach(el=>{
+      const multi=['stagger','cards','fromleft'].includes(el.dataset.a);
+      tl.from(multi?el.children:el,{opacity:0,duration:.9,ease:'power2.out',stagger:multi?.08:0},at); at+=.12;
+      if(el.dataset.a==='bars') tl.from(el.querySelectorAll('.dk-bar-c i'),{scaleY:0,transformOrigin:'50% 100%',stagger:.06,duration:1,ease:'power3.out'},at);
+    });
+  } else sl.querySelectorAll('[data-a]').forEach(el=>{
     switch(el.dataset.a){
+      case 'bars': tl.from(el.querySelectorAll('.dk-bar-c i'),{scaleY:0,transformOrigin:'50% 100%',stagger:.1,duration:1.3,ease:'power3.out'},at+.2);
+        tl.from(el.querySelectorAll('.dk-bar-v, .dk-bar > span'),{opacity:0,y:20,stagger:.05,duration:.7},at+.5); at+=.3; break;
       case 'left': tl.from(el,{x:-60,opacity:0},at); at+=.12; break;
       case 'words': tl.from(el.querySelectorAll('.dk-w'),{yPercent:110,opacity:0,rotationX:-60,filter:'blur(8px)',stagger:.045,duration:1.2,transformOrigin:'50% 100%'},at); at+=.35; break;
       case 'up': tl.from(el,{y:40,opacity:0,filter:'blur(6px)'},at+.15); at+=.15; break;
@@ -171,6 +219,8 @@ function build(sl,G,keep){
   });
   const fl=sl.querySelector('[data-float]'); if(fl) tl.to(fl,{y:-14,duration:3,yoyo:true,repeat:-1,ease:'sine.inOut'},2);
   keep.push(...hubLoops(sl,G));
+  if(style==='dinamico') tl.from(sl,{scale:1.08,rotationX:7,y:40,transformPerspective:1600,transformOrigin:'50% 60%',duration:1.8,ease:'expo.out'},0); // câmera se aproximando
+  if(o.speed) tl.timeScale(tl.timeScale()*o.speed);
   return tl;
 }
 function hubLoops(sl,G){
@@ -239,31 +289,52 @@ function createPlayer(root,deck,opts={}){
   const bg=background(player.querySelector('.dk-bg'),t,reduce);
   function fit(){const r=player.getBoundingClientRect(); if(!r.width) return; const s=Math.min(r.width/1920,r.height/1080);stage.style.transform=`translate(-50%,-50%) scale(${s})`;}
   const ro=new ResizeObserver(fit); ro.observe(player); fit();
-  let cur=-1,busy=false,tl=null,loops=[];
+  let cur=-1,busy=false,tl=null,loops=[],autoT=null;
   const kill=()=>{ if(tl) tl.kill(); loops.forEach(l=>l.kill()); loops=[]; tl=null; };
-  function enter(n){
-    const sl=slides[n]; sl.classList.add('on');
-    if(G && !reduce){ G.set(sl,{clearProps:'all'}); tl=build(sl,G,loops); }
-    const pg=stage.querySelector('.dk-pg'); if(pg) pg.textContent=String(n+1).padStart(2,'0')+' / '+String(slides.length).padStart(2,'0');
+  const tame=sl=>sl.querySelectorAll('video').forEach(v=>{ v.removeAttribute('autoplay'); v.pause(); });
+  slides.forEach(tame);
+  const videos=(sl,on)=>sl.querySelectorAll('video').forEach(v=>{ if(on){ try{v.currentTime=0;}catch(_){} v.play().catch(()=>{}); } else v.pause(); });
+  const pgTxt=n=>{ const pg=stage.querySelector('.dk-pg'); if(pg) pg.textContent=String(n+1).padStart(2,'0')+' / '+String(slides.length).padStart(2,'0'); };
+  const S=n=>deck.slides[n]||{};
+  /* avanço automático: deck.auto={secs,loop}; slide.dur sobrescreve */
+  function arm(n){
+    clearTimeout(autoT); if(!opts.autoplay) return;
+    const a=deck.auto||{}; const secs=+S(n).dur||+a.secs||0; if(secs<=0) return;
+    autoT=setTimeout(()=>{ if(n<slides.length-1) go(n+1,1); else if(a.loop) go(0,1); else opts.onEnd&&opts.onEnd(); },secs*1000);
   }
+  function enter(n){
+    const sl=slides[n]; sl.classList.add('on'); videos(sl,true);
+    if(G && !reduce && S(n).anim!=='nenhuma'){ G.set(sl,{clearProps:'all'}); tl=build(sl,G,loops,{anim:S(n).anim,speed:+S(n).speed||0}); }
+    else if(G) loops=hubLoops(sl,G);
+    pgTxt(n); arm(n);
+  }
+  const EXIT={deslizar:d=>({opacity:0,x:-d*80,scale:.97,filter:'blur(10px)'}),fade:()=>({opacity:0}),zoom:()=>({opacity:0,scale:1.12,filter:'blur(14px)'}),subir:d=>({opacity:0,y:-d*90,filter:'blur(8px)'})};
   function go(n,dir,instant){
     if(!slides.length) return; n=Math.max(0,Math.min(slides.length-1,n));
     if(busy) return; if(n===cur && !instant) return;
-    dir=dir||(n>cur?1:-1); const prev=slides[cur];
-    const done=()=>{ if(prev&&prev!==slides[n]){prev.classList.remove('on'); if(G) G.set(prev,{clearProps:'all'});} kill(); enter(n); cur=n; busy=false; opts.onChange&&opts.onChange(n); };
-    if(G && !reduce && !instant){ G.to(bg.cam,{x:bg.cam.x+dir*1.4,duration:1.6,ease:'power3.inOut'}); G.fromTo(bg.cam,{amp:1},{amp:1.6,duration:.6,yoyo:true,repeat:1,ease:'sine.inOut'}); }
-    if(prev && G && !reduce && !instant && prev!==slides[n]){ busy=true; if(tl) tl.pause(); G.to(prev,{opacity:0,x:-dir*80,scale:.97,filter:'blur(10px)',duration:.45,ease:'power2.in',onComplete:done}); }
+    dir=dir||(n>cur?1:-1); const prev=slides[cur]; const tr=S(dir>0?n:cur).tr||'deslizar';
+    const done=()=>{ if(prev&&prev!==slides[n]){prev.classList.remove('on'); videos(prev,false); if(G) G.set(prev,{clearProps:'all'});} kill(); enter(n); cur=n; busy=false; opts.onChange&&opts.onChange(n); };
+    const anim=G && !reduce && !instant && tr!=='nenhuma';
+    if(anim){ G.to(bg.cam,{x:bg.cam.x+dir*1.4,duration:1.6,ease:'power3.inOut'}); G.fromTo(bg.cam,{amp:1},{amp:1.6,duration:.6,yoyo:true,repeat:1,ease:'sine.inOut'}); }
+    if(prev && anim && prev!==slides[n]){ busy=true; if(tl) tl.pause(); G.to(prev,Object.assign((EXIT[tr]||EXIT.deslizar)(dir),{duration:.45,ease:'power2.in',onComplete:done})); }
     else done();
   }
   function still(n){ // mostra o slide sem animar
-    n=Math.max(0,Math.min(slides.length-1,n)); slides.forEach(s=>s.classList.remove('on')); kill(); slides[n].classList.add('on'); cur=n;
-    const pg=stage.querySelector('.dk-pg'); if(pg) pg.textContent=String(n+1).padStart(2,'0')+' / '+String(slides.length).padStart(2,'0');
+    n=Math.max(0,Math.min(slides.length-1,n)); slides.forEach(s=>{ s.classList.remove('on'); videos(s,false); }); kill(); slides[n].classList.add('on'); cur=n;
+    pgTxt(n); videos(slides[n],true);
     if(G){ loops=hubLoops(slides[n],G); slides[n].querySelectorAll('.feed').forEach(p=>{p.style.strokeDashoffset=0;}); }
   }
   function replay(){ const n=cur; slides[n].classList.remove('on'); kill(); enter(n); }
+  /* troca só um slide (edição ao vivo, sem reconstruir o deck inteiro) */
+  function update(n,nd){
+    deck=nd; if(!slides[n]) return;
+    const tmp=document.createElement('div'); tmp.innerHTML=slideHTML(deck,n,t); const ns=tmp.firstElementChild;
+    splitWords(ns); tame(ns); slides[n].replaceWith(ns); slides[n]=ns;
+    if(n===cur) still(n);
+  }
   go(opts.start||0,1,true);
-  return {go,still,replay,next:()=>go(cur+1,1),prev:()=>go(cur-1,-1),get index(){return cur;},get count(){return slides.length;},el:player,
-    destroy(){kill();bg.stop();ro.disconnect();root.innerHTML='';}};
+  return {go,still,replay,update,next:()=>go(cur+1,1),prev:()=>go(cur-1,-1),get index(){return cur;},get count(){return slides.length;},el:player,
+    destroy(){kill();clearTimeout(autoT);slides.forEach(s=>videos(s,false));bg.stop();ro.disconnect();root.innerHTML='';}};
 }
 
 /* ---------- miniatura estática ---------- */
@@ -275,7 +346,7 @@ function renderStatic(root,deck,i){
   fit(); const ro=new ResizeObserver(fit); ro.observe(p); return ()=>ro.disconnect();
 }
 
-window.Deck={TEMPLATES,PRESETS,FONTS,BACKGROUNDS,createPlayer,renderStatic,themeOf,themeVars,ensureFonts,esc,
-  setImageResolver(fn){resolveImage=fn;}, resolveImage:v=>resolveImage(v), version:'1.0'};
+window.Deck={TEMPLATES,PRESETS,FONTS,BACKGROUNDS,ANIMS,TRANSITIONS,createPlayer,renderStatic,themeOf,themeVars,ensureFonts,esc,fillDefaults,
+  setImageResolver(fn){resolveImage=fn;}, resolveImage:v=>resolveImage(v), version:'2.0'};
 })();
 

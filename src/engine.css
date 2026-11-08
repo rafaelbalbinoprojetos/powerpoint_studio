@@ -148,3 +148,55 @@
 .dk-frame img{width:100%;height:100%;object-fit:cover;display:block}
 .dk-ph{display:grid;place-items:center;height:100%;color:var(--faint);font-family:var(--f-mono);font-size:20px;letter-spacing:.14em;text-transform:uppercase;background:repeating-linear-gradient(45deg,transparent 0 18px,color-mix(in srgb,var(--muted) 8%,transparent) 18px 36px)}
 
+
+/* comparacao */
+.dk-cmp{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:auto}
+.dk-cmp-col{padding:40px 44px}
+.dk-cmp-col.a{opacity:.85}
+.dk-cmp-col.a .dk-ix{color:var(--muted)}
+.dk-cmp-col.b{border-color:var(--accent);box-shadow:0 0 60px var(--glow)}
+.dk-cmp-i{display:flex;gap:18px;align-items:center;font-size:28px;line-height:1.35;color:var(--text);padding:16px 0;border-bottom:1px solid var(--edge)}
+.dk-cmp-i:last-child{border-bottom:0}
+.dk-cmp-i i{flex:none;width:14px;height:14px;border-radius:50%;background:var(--bad)}
+.dk-cmp-col.b .dk-cmp-i i{background:var(--ok);box-shadow:0 0 12px var(--ok)}
+
+/* grafico */
+.dk-chart{display:grid;gap:28px;margin-top:auto;height:600px;align-items:end}
+.dk-bar{display:flex;flex-direction:column;height:100%;align-items:stretch;text-align:center}
+.dk-bar-v{font-family:var(--f-display);font-weight:600;font-size:44px;color:var(--title);font-variant-numeric:tabular-nums;margin-bottom:14px}
+.dk-bar-v small{display:block;font-family:var(--f-mono);font-size:15px;letter-spacing:.12em;color:var(--muted);font-weight:400;margin-top:4px}
+.dk-bar-c{flex:1;display:flex;align-items:flex-end;border-bottom:2px solid var(--edge)}
+.dk-bar-c i{display:block;width:100%;border-radius:14px 14px 0 0;background:linear-gradient(180deg,color-mix(in srgb,var(--accent) 70%,transparent),color-mix(in srgb,var(--accent) 20%,transparent))}
+.dk-bar.hot .dk-bar-c i{background:linear-gradient(180deg,var(--accent),color-mix(in srgb,var(--accent) 45%,transparent));box-shadow:0 0 50px var(--glow)}
+.dk-bar > span{font-family:var(--f-mono);font-size:18px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-top:16px}
+
+/* citacao */
+.dk-t-citacao{justify-content:center}
+.dk-quote{max-width:1500px;position:relative}
+.dk-qmark{font-family:var(--f-display);font-size:300px;line-height:.6;color:var(--accent);text-shadow:0 0 60px var(--glow);height:130px}
+.dk-quote blockquote{margin:0;font-size:84px;line-height:1.12}
+.dk-qby{display:flex;align-items:center;gap:26px;margin-top:56px}
+.dk-qby img{width:110px;height:110px;border-radius:50%;object-fit:cover;border:3px solid var(--accent)}
+.dk-qby b{display:block;font-family:var(--f-display);font-size:34px;color:var(--title);font-weight:600}
+.dk-qby small{font-family:var(--f-mono);font-size:18px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+
+/* equipe */
+.dk-team{display:grid;gap:30px;margin-top:auto}
+.dk-person{text-align:center;padding:36px 28px}
+.dk-person img,.dk-av{width:170px;height:170px;border-radius:50%;object-fit:cover;margin:0 auto 22px;display:grid;place-items:center;border:3px solid var(--edge)}
+.dk-av{background:radial-gradient(circle,color-mix(in srgb,var(--accent) 40%,var(--surface)),var(--surface));font-family:var(--f-display);font-size:58px;font-weight:600;color:var(--title)}
+.dk-person h3{margin-bottom:6px}
+
+/* tabela */
+.dk-table{width:100%;border-collapse:separate;border-spacing:0 10px;margin-top:auto;font-size:28px}
+.dk-table th{font-family:var(--f-mono);font-size:17px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);text-align:left;font-weight:500;padding:0 28px 6px}
+.dk-table td{padding:22px 28px;background:color-mix(in srgb,var(--surface) 78%,transparent);border-top:1px solid var(--edge);border-bottom:1px solid var(--edge);color:var(--text)}
+.dk-table td:first-child{border-left:1px solid var(--edge);border-radius:14px 0 0 14px;color:var(--title);font-weight:600}
+.dk-table td:last-child{border-right:1px solid var(--edge);border-radius:0 14px 14px 0}
+.dk-table tr.hot td{background:color-mix(in srgb,var(--accent) 22%,var(--surface));border-color:var(--accent)}
+
+/* video */
+.dk-t-video{justify-content:flex-end}
+.dk-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.dk-video.dim{filter:brightness(.45)}
+.dk-vtxt{position:relative;z-index:1;max-width:1400px}

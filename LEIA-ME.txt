@@ -14,7 +14,7 @@ exemplo-edog-original/         A primeira versão do e-Dog, feita à mão.
                                Abra exemplo-edog-original/index.html.
 
 ONDE FICAM SALVAS AS APRESENTAÇÕES
-Ficam salvas no próprio navegador, de forma automática.
+Ficam salvas no próprio navegador (IndexedDB), de forma automática.
 - Outro navegador ou outro computador não enxerga essas apresentações.
 - Limpar os dados de navegação apaga tudo. Faça backup.
 
@@ -41,16 +41,35 @@ IMAGENS
 Use PNG com fundo transparente para mascotes e figuras recortadas
 (capa, encerramento, destaque e "imagem espiando").
 No editor local, as imagens são reduzidas para no máximo 1400 px e guardadas
-dentro da apresentação. Muitas fotos grandes podem estourar o espaço do
-navegador (cerca de 5 MB). Se aparecer "Não foi possível salvar", baixe um
-backup e remova imagens.
+dentro da apresentação. O espaço do navegador agora é bem maior (IndexedDB);
+se aparecer "Não foi possível salvar", baixe um backup e remova imagens.
+
+NOVIDADES (versão 2)
+Ctrl+Z / Ctrl+Shift+Z    desfaz e refaz (botões ↶ ↷ ao lado de "Ver animação")
+Novos modelos            Comparação, Gráfico, Citação, Equipe, Tabela e Vídeo
+Animação por slide       em "Conteúdo": entrada (padrão, suave, dinâmica, sem
+                         animação), velocidade, transição e tempo no avanço automático
+Notas do apresentador    campo no fim de "Conteúdo"; durante a apresentação aperte
+                         P (ou 🗒) para abrir a janela com slide atual, próximo,
+                         notas e cronômetro
+Avanço automático        aba "Tema": segundos por slide e opção de recomeçar
+                         (vale no modo Apresentar e no HTML exportado)
+Meus temas               aba "Tema" > "Salvar tema atual"
+Mais > Roteiro           cola um texto com "# Título" por slide e gera os slides
+Mais > PDF               abre a impressão com um slide por página
+Mais > Gravar vídeo      grava a aba enquanto a apresentação roda sozinha
+                         (Chrome/Edge; sai .mp4 ou .webm)
 
 PARA PROGRAMADORES
-Tudo está no index.html:
-- <style id="dk-css">   estilos dos slides
-- <script id="dk-js">   motor: modelos (TEMPLATES), temas (PRESETS),
-                         fundos animados e animações
-- <script id="gsap-js"> biblioteca de animação GSAP 3.12.5 (GreenSock)
+O código fica em src/ e o index.html é GERADO. Não edite o index.html à mão:
+  src/head.html, src/body.html   estrutura da página
+  src/engine.css                 estilos dos slides
+  src/editor.css                 estilos do editor
+  src/engine.js                  motor: TEMPLATES, PRESETS, animações, player
+  src/editor.js                  editor, salvamento, exportações
+  src/seed.js                    apresentação de exemplo (e-Dog)
+  src/vendor/gsap.min.js         GSAP 3.12.5 (GreenSock)
+Depois de mudar algo, rode no PowerShell:  .\build.ps1
 Para criar um modelo novo, adicione uma entrada em TEMPLATES com
 name, desc, fields, sample e render(d, t). O editor monta o formulário a
 partir de "fields" de forma automática.

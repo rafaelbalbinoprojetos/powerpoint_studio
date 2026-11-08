@@ -5,9 +5,15 @@ const $=s=>document.querySelector(s), esc=D.esc;
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 const clone=o=>JSON.parse(JSON.stringify(o));
 
+/* janela do apresentador abre este mesmo arquivo com #presenter */
+if(/^#presenter/.test(location.hash)) return presenterMode();
+
 /* ---------- estado ---------- */
 let decks={}, curId=null, sel=0, tab='content', player=null, db=null, assets=null, downloads=null;
 let dirty=false, saveT=null, mode='local', saving=false, pendingSave=false;
+let myThemes=[];                 // temas salvos pelo usuário
+const remoteBase={};             // última versão vinda da nuvem (para mesclar)
+let localIds=new Set();          // apresentações que já estavam salvas neste navegador
 const LS='estudio-motion-decks';
 
 function starter(){
@@ -15,25 +21,60 @@ function starter(){
     slides:['capa','cartoes','fluxo','numeros','encerramento'].map(t=>({id:uid(),t,d:clone(T[t].sample)}))};
 }
 const deck=()=>decks[curId];
+/* garante id em cada slide e campos vazios onde faltar (não aparece texto de exemplo em slides antigos) */
+function normalize(dk){ if(!dk||!Array.isArray(dk.slides)) return dk; dk.slides.forEach(s=>{ s.id=s.id||uid(); D.fillDefaults(s); }); return dk; }
+
+/* ---------- armazenamento local (IndexedDB, com localStorage de reserva) ---------- */
+const IDB={
+  open(){ return this.p||(this.p=new Promise((res,rej)=>{ try{ const r=indexedDB.open('estudio-motion',1); r.onupgradeneeded=()=>r.result.createObjectStore('kv'); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }catch(e){ rej(e); } })); },
+  async get(k){ const db=await this.open(); return new Promise((res,rej)=>{ const q=db.transaction('kv').objectStore('kv').get(k); q.onsuccess=()=>res(q.result); q.onerror=()=>rej(q.error); }); },
+  async set(k,v){ const db=await this.open(); return new Promise((res,rej)=>{ const tx=db.transaction('kv','readwrite'); tx.objectStore('kv').put(v,k); tx.oncomplete=()=>res(true); tx.onerror=tx.onabort=()=>rej(tx.error); }); }
+};
+const lsGet=k=>{ try{ return localStorage.getItem(k); }catch(_){ return null; } };
+const lsSet=(k,v)=>{ try{ localStorage.setItem(k,v); return true; }catch(_){ return false; } };
+async function localLoad(){
+  try{ const v=await IDB.get('decks'); if(v&&typeof v==='object') return v; }catch(_){}
+  let old={}; try{ old=JSON.parse(lsGet(LS)||'{}')||{}; }catch(_){}
+  if(Object.keys(old).length){ try{ await IDB.set('decks',old); localStorage.removeItem(LS); }catch(_){} } // migra para o IndexedDB
+  return old;
+}
+async function localSave(){
+  try{ await IDB.set('decks',clone(decks)); return true; }
+  catch(_){ return lsSet(LS,JSON.stringify(decks)); }
+}
+async function loadThemes(){ try{ myThemes=(await IDB.get('themes'))||[]; }catch(_){ try{ myThemes=JSON.parse(lsGet(LS+'-themes')||'[]'); }catch(e){ myThemes=[]; } } }
+async function saveThemes(){ try{ await IDB.set('themes',clone(myThemes)); }catch(_){ lsSet(LS+'-themes',JSON.stringify(myThemes)); } }
 
 /* ---------- persistência ---------- */
-function setStatus(txt,ok){ const s=$('#status'); s.textContent=txt; s.classList.toggle('ok',!!ok); }
-function localLoad(){ try{ return JSON.parse(localStorage.getItem(LS)||'{}')||{}; }catch(e){ return {}; } }
-function localSave(){ try{ localStorage.setItem(LS,JSON.stringify(decks)); return true; }catch(e){ return false; } }
-function touch(){ const d=deck(); if(!d) return; d.updatedAt=Date.now(); dirty=true; setStatus('Alterado…'); clearTimeout(saveT); saveT=setTimeout(save,900); }
+function setStatus(txt,ok){ const s=$('#status'); if(!s) return; s.textContent=txt; s.classList.toggle('ok',!!ok); }
+function touch(){ const d=deck(); if(!d) return; d.updatedAt=Date.now(); dirty=true; setStatus('Alterado…'); clearTimeout(saveT); saveT=setTimeout(save,900); clearTimeout(histT); histT=setTimeout(snap,600); }
 async function save(){
   const d=deck(); if(!d) return;
   if(saving){ pendingSave=true; return; }
+  saving=true;
   if(mode==='db'){
-    saving=true; setStatus('Salvando…');
-    try{ await db.doc('decks/'+curId).set(clone(d)); dirty=false; setStatus('Salvo',true); }
+    setStatus('Salvando…');
+    try{ const c=clone(d); await db.doc('decks/'+curId).set(c); remoteBase[curId]=c; dirty=false; setStatus('Salvo',true); }
     catch(e){ setStatus(e&&e.code==='permission_denied'?'Sem permissão para salvar':'Não salvou, tentando de novo'); if(!(e&&e.code==='permission_denied')) setTimeout(save,4000); }
-    saving=false; if(pendingSave){ pendingSave=false; save(); }
-  } else { setStatus(localSave()?'Salvo neste navegador':'Não foi possível salvar',true); dirty=false; }
+  } else {
+    const ok=await localSave(); if(ok){ localIds=new Set(Object.keys(decks)); dirty=false; }
+    setStatus(ok?'Salvo neste navegador':'Não foi possível salvar',ok);
+  }
+  saving=false; if(pendingSave){ pendingSave=false; save(); }
 }
 
+/* ---------- desfazer / refazer ---------- */
+const hist={}; let histT=null;
+const ser=d=>JSON.stringify(Object.assign({},d,{updatedAt:0}));
+function H(){ return hist[curId]||(hist[curId]={u:[],r:[],last:ser(deck())}); }
+function snap(){ clearTimeout(histT); histT=null; if(!deck()) return; const h=H(), now=ser(deck()); if(now!==h.last){ h.u.push(h.last); if(h.u.length>100) h.u.shift(); h.r=[]; h.last=now; } updUndo(); }
+function restore(json){ const d=JSON.parse(json); d.updatedAt=Date.now(); decks[curId]=d; dirty=true; clearTimeout(saveT); saveT=setTimeout(save,600); sel=Math.min(sel,Math.max(0,d.slides.length-1)); renderAll(); updUndo(); setStatus('Alterado…'); }
+function undo(){ if(histT) snap(); const h=H(); if(!h.u.length) return; h.r.push(h.last); h.last=h.u.pop(); restore(h.last); }
+function redo(){ if(histT) snap(); const h=H(); if(!h.r.length) return; h.u.push(h.last); h.last=h.r.pop(); restore(h.last); }
+function updUndo(){ const h=deck()?H():{u:[],r:[]}; $('#undoBtn').disabled=!h.u.length&&!histT; $('#redoBtn').disabled=!h.r.length; }
+
 /* ---------- renderização ---------- */
-function renderAll(){ renderDeckPick(); renderRail(); renderPreview(true); renderPane(); }
+function renderAll(){ renderDeckPick(); renderRail(); renderPreview(true); renderPane(); updUndo(); }
 function renderDeckPick(){
   const ids=Object.keys(decks).sort((a,b)=>(decks[b].updatedAt||0)-(decks[a].updatedAt||0));
   $('#deckSel').innerHTML=ids.map(id=>`<option value="${esc(id)}"${id===curId?' selected':''}>${esc(decks[id].name||'Sem nome')}</option>`).join('');
@@ -42,7 +83,7 @@ function renderDeckPick(){
 const thumbCleanup=new Map();
 function renderRail(){
   const d=deck(), rail=$('#rail'); thumbCleanup.forEach(f=>f()); thumbCleanup.clear();
-  rail.innerHTML=d.slides.map((s,i)=>`<button class="thumb${i===sel?' sel':''}" data-i="${i}" aria-label="Slide ${i+1}: ${esc((T[s.t]||{}).name||s.t)}"><div class="tv"></div><div class="meta"><span>${String(i+1).padStart(2,'0')}</span><span>${esc((T[s.t]||{}).name||s.t)}</span></div></button>`).join('')+`<button class="addslide" id="addSlide">+ Adicionar slide</button>`;
+  rail.innerHTML=d.slides.map((s,i)=>`<button class="thumb${i===sel?' sel':''}" data-i="${i}" aria-label="Slide ${i+1}: ${esc((T[s.t]||{}).name||s.t)}"><div class="tv"></div><div class="meta"><span>${String(i+1).padStart(2,'0')}</span><span>${s.notes?'<i class="has-notes" title="Tem notas do apresentador"></i>':''}${esc((T[s.t]||{}).name||s.t)}</span></div></button>`).join('')+`<button class="addslide" id="addSlide">+ Adicionar slide</button>`;
   rail.querySelectorAll('.thumb').forEach(b=>{ const i=+b.dataset.i; thumbCleanup.set(i,D.renderStatic(b.querySelector('.tv'),d,i)); b.onclick=()=>select(i); });
   $('#addSlide').onclick=()=>gallery('add');
 }
@@ -59,7 +100,8 @@ function renderPreview(animate){
   $('#pvN').textContent=(sel+1)+' / '+d.slides.length;
 }
 let pvT=null;
-function liveEdit(){ touch(); clearTimeout(pvT); pvT=setTimeout(()=>{ renderPreview(false); refreshThumb(sel); },260); }
+/* edição ao vivo: troca só o slide editado na prévia */
+function liveEdit(){ touch(); clearTimeout(pvT); pvT=setTimeout(()=>{ if(player&&player.count===deck().slides.length) player.update(sel,deck()); else renderPreview(false); refreshThumb(sel); },200); }
 function select(i){
   const d=deck(); if(i<0||i>=d.slides.length) return;
   const dir=i>sel?1:-1; sel=i;
@@ -70,18 +112,36 @@ function select(i){
 }
 
 /* ---------- inspetor ---------- */
+const opt=(map,v)=>Object.entries(map).map(([k,l])=>`<option value="${k}"${k===v?' selected':''}>${esc(l)}</option>`).join('');
 function renderPane(){
   document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===tab));
   const pane=$('#pane'); pane.innerHTML='';
   if(tab==='theme') return themePane(pane);
   const d=deck(), s=d.slides[sel]; if(!s){ pane.innerHTML='<p class="tip">Nenhum slide ainda.</p>'; return; }
-  const tpl=T[s.t]; s.d=s.d||{};
+  const tpl=T[s.t]||T.destaque; s.d=s.d||{};
   const h=document.createElement('div'); h.className='tpl-head';
   h.innerHTML=`<div><div class="sec" style="padding:0">Modelo</div><b>${esc(tpl.name)}</b></div><button class="btn sm" id="swapBtn">Trocar modelo</button>`;
   pane.appendChild(h); $('#swapBtn').onclick=()=>gallery('swap');
   tpl.fields.forEach(f=>pane.appendChild(field(f,s.d,`${s.id}-${f.k}`,()=>liveEdit())));
+  if(s.t==='video'){ const hv=document.createElement('p'); hv.className='tip'; hv.textContent='O vídeo não vai embutido no arquivo exportado: use um endereço público (https://…) ou deixe o arquivo de vídeo na mesma pasta do HTML.'; pane.appendChild(hv); }
+  /* animação e notas */
+  const box=document.createElement('div'); box.className='slideopts';
+  box.innerHTML=`<div class="sec">Animação deste slide</div>
+  <div class="f2"><div class="f"><label for="o-anim">Entrada dos elementos</label><select id="o-anim">${opt(D.ANIMS,s.anim||'padrao')}</select></div>
+  <div class="f"><label for="o-speed">Velocidade</label><select id="o-speed">${opt({'0.5':'Bem lenta','0.75':'Lenta','1':'Normal','1.5':'Rápida','2':'Bem rápida'},String(s.speed||1))}</select></div></div>
+  <div class="f2"><div class="f"><label for="o-tr">Transição ao chegar</label><select id="o-tr">${opt(D.TRANSITIONS,s.tr||'deslizar')}</select></div>
+  <div class="f"><label for="o-dur">Tempo no avanço automático</label><input type="number" id="o-dur" min="0" step="0.5" placeholder="padrão" value="${s.dur||''}"><span class="hint">segundos (vazio = padrão do tema)</span></div></div>
+  <div class="sec">Notas do apresentador</div>
+  <div class="f"><textarea id="o-notes" rows="4" placeholder="O que falar neste slide. Aparece só na janela do apresentador.">${esc(s.notes||'')}</textarea></div>`;
+  pane.appendChild(box);
+  const animCh=()=>{ touch(); if(player){ player.update(sel,deck()); player.replay(); } };
+  $('#o-anim').onchange=e=>{ if(e.target.value==='padrao') delete s.anim; else s.anim=e.target.value; animCh(); };
+  $('#o-speed').onchange=e=>{ const v=+e.target.value; if(v===1) delete s.speed; else s.speed=v; animCh(); };
+  $('#o-tr').onchange=e=>{ if(e.target.value==='deslizar') delete s.tr; else s.tr=e.target.value; touch(); if(player) player.update(sel,deck()); };
+  $('#o-dur').oninput=e=>{ const v=parseFloat(e.target.value); if(v>0) s.dur=v; else delete s.dur; touch(); };
+  $('#o-notes').oninput=e=>{ s.notes=e.target.value; if(!s.notes) delete s.notes; touch(); };
   const tip=document.createElement('p'); tip.className='tip';
-  tip.innerHTML='Use <code>*palavra*</code> para destacar com a cor do tema e <code>`SQ01`</code> para um código. Quebra de linha no título vira quebra no slide.';
+  tip.innerHTML='Use <code>*palavra*</code> para destacar com a cor do tema e <code>`SQ01`</code> para um código. Quebra de linha no título vira quebra no slide. <code>Ctrl+Z</code> desfaz.';
   pane.appendChild(tip);
 }
 function field(f,obj,id,onCh){
@@ -104,21 +164,29 @@ function imageField(obj,k,id,onCh){
 }
 function itemsField(f,obj,id,onCh){
   const box=document.createElement('div'); box.className='items'; obj[f.k]=obj[f.k]||[];
+  const max=f.max||6;
   const paint=()=>{ box.innerHTML=''; const list=obj[f.k];
-    list.forEach((it,i)=>{ const card=document.createElement('div'); card.className='item';
-      card.innerHTML=`<div class="ih"><span>${i+1}</span><span><button class="btn sm ghost" data-m="-1" aria-label="Subir">↑</button><button class="btn sm ghost" data-m="1" aria-label="Descer">↓</button><button class="btn sm ghost danger" data-x aria-label="Remover">✕</button></span></div>`;
+    list.forEach((it,i)=>{ const card=document.createElement('div'); card.className='item'+(i>=max?' over':'');
+      card.innerHTML=`<div class="ih"><span>${i+1}${i>=max?' · não aparece':''}</span><span><button class="btn sm ghost" data-m="-1" aria-label="Subir">↑</button><button class="btn sm ghost" data-m="1" aria-label="Descer">↓</button><button class="btn sm ghost danger" data-x aria-label="Remover">✕</button></span></div>`;
       f.sub.forEach(sf=>card.appendChild(field(sf,it,`${id}-${i}-${sf.k}`,onCh)));
       card.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>{ const j=i+(+b.dataset.m); if(j<0||j>=list.length) return; [list[i],list[j]]=[list[j],list[i]]; paint(); onCh(); });
       card.querySelector('[data-x]').onclick=()=>{ list.splice(i,1); paint(); onCh(); };
       box.appendChild(card); });
-    if(list.length<(f.max||6)){ const add=document.createElement('button'); add.className='btn sm'; add.textContent='+ Adicionar'; add.onclick=()=>{ const n={}; f.sub.forEach(sf=>n[sf.k]=sf.t==='bool'?false:''); list.push(n); paint(); onCh(); }; box.appendChild(add); }
+    if(list.length<max){ const add=document.createElement('button'); add.className='btn sm'; add.textContent='+ Adicionar'; add.onclick=()=>{ const n={}; f.sub.forEach(sf=>n[sf.k]=sf.t==='bool'?false:''); list.push(n); paint(); onCh(); }; box.appendChild(add); }
+    const hh=document.createElement('span'); hh.className='hint'+(list.length>max?' warn':'');
+    hh.textContent=list.length>max?`Este modelo mostra só ${max}. Os itens marcados não aparecem no slide.`:list.length===max?`Máximo de ${max} neste modelo.`:`Até ${max} neste modelo.`;
+    box.appendChild(hh);
   };
   paint(); return box;
 }
 function themePane(pane){
-  const d=deck(); d.theme=d.theme||{preset:'eletrico'}; const th=d.theme, eff=D.themeOf(d);
+  const d=deck(); d.theme=d.theme||{preset:'eletrico'}; const th=d.theme, eff=D.themeOf(d); const auto=d.auto||{};
   const ch=()=>{ touch(); clearTimeout(pvT); pvT=setTimeout(()=>{ renderPreview(false); renderRail(); },300); };
-  pane.innerHTML=`<div class="sec">Paleta pronta</div><div class="swatches">${Object.entries(D.PRESETS).map(([k,p])=>`<button class="sw${th.preset===k?' on':''}" data-p="${k}"><span><i style="background:${p.bg}"></i><i style="background:${p.surface}"></i><i style="background:${p.accent}"></i><i style="background:${p.alert}"></i></span>${esc(p.name)}</button>`).join('')}</div>
+  const swatch=p=>`<span><i style="background:${p.bg}"></i><i style="background:${p.surface}"></i><i style="background:${p.accent}"></i><i style="background:${p.alert}"></i></span>`;
+  pane.innerHTML=`<div class="sec">Paleta pronta</div><div class="swatches">${Object.entries(D.PRESETS).map(([k,p])=>`<button class="sw${th.preset===k&&!th.custom?' on':''}" data-p="${k}">${swatch(p)}${esc(p.name)}</button>`).join('')}</div>
+  <div class="sec">Meus temas</div>
+  <div class="swatches">${myThemes.map((m,i)=>`<div class="sw mine${th.custom===m.name?' on':''}" data-m="${i}" role="button" tabindex="0">${swatch(Object.assign({},D.PRESETS[m.theme.preset]||D.PRESETS.eletrico,m.theme))}${esc(m.name)}<button class="x" data-del="${i}" aria-label="Apagar tema ${esc(m.name)}">✕</button></div>`).join('')||'<p class="hint" style="grid-column:1/-1;margin:0">Ajuste cores e fontes abaixo e salve para reutilizar em outras apresentações.</p>'}</div>
+  <button class="btn sm" id="saveTheme">Salvar tema atual</button>
   <div class="sec">Cores</div><div class="colors">${[['bg','Fundo'],['surface','Painéis'],['accent','Destaque'],['alert','Alerta'],['ok','Positivo'],['bad','Negativo'],['title','Títulos'],['text','Texto'],['muted','Texto suave']].map(([k,l])=>`<label class="col"><input type="color" id="c-${k}" value="${eff[k]||'#000000'}"> ${l}</label>`).join('')}</div>
   <label class="chk"><input type="checkbox" id="t-light"${eff.light?' checked':''}> Tema claro (ajusta brilho e sombras)</label>
   <div class="sec">Tipografia e fundo</div>
@@ -127,8 +195,20 @@ function themePane(pane){
   <div class="f"><label for="t-bg">Fundo animado</label><select id="t-bg">${Object.entries(D.BACKGROUNDS).map(([k,l])=>`<option value="${k}"${k===eff.background?' selected':''}>${l}</option>`).join('')}</select></div>
   <div class="sec">Marca</div><div class="f"><label>Logo (aparece na capa, rodapé e núcleo)</label><div id="logoBox"></div><span class="hint">PNG ou SVG transparente funciona melhor.</span></div>
   <div class="f"><label for="t-ft">Texto do rodapé</label><input type="text" id="t-ft" value="${esc(d.footerText||'')}" placeholder="${esc(d.name||'')}"></div>
-  <label class="chk"><input type="checkbox" id="t-fon"${d.footer===false?'':' checked'}> Mostrar rodapé</label>`;
-  pane.querySelectorAll('.sw').forEach(b=>b.onclick=()=>{ d.theme={preset:b.dataset.p,logo:th.logo}; ch(); themePane(pane); });
+  <label class="chk"><input type="checkbox" id="t-fon"${d.footer===false?'':' checked'}> Mostrar rodapé</label>
+  <div class="sec">Avanço automático (TV, quiosque, vídeo)</div>
+  <div class="f"><label for="t-auto">Tempo por slide ao apresentar</label><input type="number" id="t-auto" min="0" step="0.5" placeholder="desligado" value="${auto.secs||''}"><span class="hint">segundos. Vazio = só avança com clique ou teclado. Cada slide pode ter o próprio tempo.</span></div>
+  <label class="chk"><input type="checkbox" id="t-loop"${auto.loop?' checked':''}> Recomeçar do início ao terminar</label>`;
+  pane.querySelectorAll('.sw[data-p]').forEach(b=>b.onclick=()=>{ d.theme={preset:b.dataset.p,logo:th.logo}; ch(); themePane(pane); });
+  pane.querySelectorAll('.sw.mine').forEach(b=>{ const apply=e=>{ if(e.target.closest('[data-del]')) return; const m=myThemes[+b.dataset.m]; d.theme=Object.assign(clone(m.theme),{custom:m.name,logo:m.theme.logo||th.logo}); ch(); themePane(pane); }; b.onclick=apply; b.onkeydown=e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); apply(e); } }; });
+  pane.querySelectorAll('[data-del]').forEach(b=>b.onclick=e=>{ e.stopPropagation(); const m=myThemes[+b.dataset.del]; confirmBox('Apagar o tema “'+m.name+'”?','Apagar',()=>{ myThemes.splice(+b.dataset.del,1); saveThemes(); themePane(pane); }); });
+  $('#saveTheme').onclick=()=>{ const m=modal(`<h3>Salvar tema</h3><p class="sub">Fica disponível em todas as apresentações deste navegador.</p><div class="f"><label for="thName">Nome do tema</label><input type="text" id="thName" value="${esc(th.custom||'')}" placeholder="Ex.: Azul da empresa"></div><label class="chk" style="margin-top:10px"><input type="checkbox" id="thLogo"${th.logo?' checked':''}> Incluir a logo</label><div class="row"><button class="btn" data-c>Cancelar</button><button class="btn pri" data-ok>Salvar</button></div>`,'confirm');
+    const inp=m.el.querySelector('#thName'); inp.focus();
+    m.el.querySelector('[data-c]').onclick=m.close;
+    const ok=()=>{ const name=inp.value.trim()||'Meu tema'; const theme=Object.assign({},eff,clone(th)); delete theme.name; delete theme.custom; if(!m.el.querySelector('#thLogo').checked) delete theme.logo;
+      const ix=myThemes.findIndex(x=>x.name===name); if(ix>=0) myThemes[ix]={name,theme}; else myThemes.push({name,theme});
+      th.custom=name; saveThemes(); touch(); m.close(); themePane(pane); setStatus('Tema salvo',true); };
+    m.el.querySelector('[data-ok]').onclick=ok; inp.onkeydown=e=>{ if(e.key==='Enter') ok(); }; };
   pane.querySelectorAll('.colors input').forEach(i=>i.oninput=()=>{ th[i.id.slice(2)]=i.value; ch(); });
   $('#t-light').onchange=e=>{ th.light=e.target.checked; ch(); };
   $('#t-fd').onchange=e=>{ th.fontDisplay=e.target.value; ch(); };
@@ -136,6 +216,8 @@ function themePane(pane){
   $('#t-bg').onchange=e=>{ th.background=e.target.value; ch(); };
   $('#t-ft').oninput=e=>{ d.footerText=e.target.value; ch(); };
   $('#t-fon').onchange=e=>{ d.footer=e.target.checked?undefined:false; if(d.footer===undefined) delete d.footer; ch(); };
+  const autoCh=()=>{ const secs=parseFloat($('#t-auto').value), loop=$('#t-loop').checked; if(secs>0||loop) d.auto={secs:secs>0?secs:0,loop}; else delete d.auto; touch(); };
+  $('#t-auto').oninput=autoCh; $('#t-loop').onchange=autoCh;
   $('#logoBox').appendChild(imageField(th,'logo','t-logo',ch));
 }
 
@@ -163,86 +245,269 @@ function gallery(kind){
       touch(); renderRail(); renderPreview(true); tab='content'; renderPane(); }; });
 }
 $('#deckMenu').onclick=()=>{
-  const m=modal(`<h3>Apresentações</h3><p class="sub">${mode==='db'?'Salvas na sua conta, disponíveis em qualquer aparelho.':'Salvas só neste navegador.'}</p><div style="display:flex;flex-direction:column;gap:8px"><button class="btn" data-a="new">+ Nova apresentação</button><button class="btn" data-a="dup">Duplicar esta apresentação</button><button class="btn" data-a="bk">Baixar backup de todas (.json)</button><button class="btn" data-a="im">Importar backup (.json)</button><button class="btn danger" data-a="del">Excluir esta apresentação</button></div>`,'confirm');
-  m.el.querySelector('[data-a="bk"]').onclick=async()=>{ m.close(); try{ await saveFile('estudio-motion-backup.json',JSON.stringify(decks,null,1),'application/json'); setStatus('Backup baixado',true); }catch(e){ setStatus('Backup cancelado'); } };
-  m.el.querySelector('[data-a="im"]').onclick=()=>{ m.close(); const inp=document.createElement('input'); inp.type='file'; inp.accept='.json,application/json';
+  const m=modal(`<h3>Apresentações</h3><p class="sub">${mode==='db'?'Salvas na sua conta, disponíveis em qualquer aparelho.':'Salvas só neste navegador.'}</p><div class="menu">
+  <button class="btn" data-a="new">+ Nova apresentação</button><button class="btn" data-a="script">Criar a partir de um roteiro (texto)</button><button class="btn" data-a="dup">Duplicar esta apresentação</button>
+  <div class="sec">Exportar</div><button class="btn" data-a="pdf">Salvar em PDF (um slide por página)</button><button class="btn" data-a="rec">Gravar vídeo da apresentação</button>
+  <div class="sec">Backup</div><button class="btn" data-a="bk">Baixar backup de todas (.json)</button><button class="btn" data-a="im">Importar backup (.json)</button>
+  <button class="btn danger" data-a="del">Excluir esta apresentação</button></div>`,'confirm');
+  const on=(a,fn)=>{ m.el.querySelector(`[data-a="${a}"]`).onclick=()=>{ m.close(); fn(); }; };
+  on('bk',async()=>{ try{ await saveFile('estudio-motion-backup.json',JSON.stringify(decks,null,1),'application/json'); setStatus('Backup baixado',true); }catch(e){ setStatus('Backup cancelado'); } });
+  on('im',()=>{ const inp=document.createElement('input'); inp.type='file'; inp.accept='.json,application/json';
     inp.onchange=async()=>{ try{ const data=JSON.parse(await inp.files[0].text()); const add=data&&Array.isArray(data.slides)?{[uid()]:data}:data; let n=0;
-      for(const [id,dk] of Object.entries(add||{})){ if(dk&&Array.isArray(dk.slides)){ const nid=decks[id]?uid():id; decks[nid]=dk; curId=nid; n++; if(mode==='db') db.doc('decks/'+nid).set(clone(dk)).catch(()=>setStatus('Uma apresentação importada não coube na nuvem')); } }
+      for(const [id,dk] of Object.entries(add||{})){ if(dk&&Array.isArray(dk.slides)){ const nid=decks[id]?uid():id; decks[nid]=normalize(dk); curId=nid; n++; if(mode==='db') db.doc('decks/'+nid).set(clone(dk)).catch(()=>setStatus('Uma apresentação importada não coube na nuvem')); } }
       if(!n) throw new Error('vazio'); if(mode!=='db') localSave(); sel=0; renderAll(); setStatus(n===1?'1 apresentação importada':n+' apresentações importadas',true);
     }catch(e){ setStatus('Arquivo de backup inválido'); } };
-    inp.click(); };
-  m.el.querySelector('[data-a="new"]').onclick=()=>{ m.close(); const id=uid(); decks[id]=starter(); curId=id; sel=0; touch(); renderAll(); };
-  m.el.querySelector('[data-a="dup"]').onclick=()=>{ m.close(); const id=uid(); decks[id]=Object.assign(clone(deck()),{name:(deck().name||'Apresentação')+' (cópia)'}); curId=id; sel=0; touch(); renderAll(); };
-  m.el.querySelector('[data-a="del"]').onclick=()=>{ m.close(); confirmBox('Excluir “'+(deck().name||'Sem nome')+'”?','Excluir',async()=>{ const id=curId; delete decks[id]; if(mode==='db'){ try{ await db.doc('decks/'+id).delete(); }catch(e){ setStatus('Não consegui excluir'); } } else localSave(); if(!Object.keys(decks).length){ const n=uid(); decks[n]=starter(); } curId=Object.keys(decks)[0]; sel=0; renderAll(); }); };
+    inp.click(); });
+  on('new',()=>{ const id=uid(); decks[id]=starter(); curId=id; sel=0; touch(); renderAll(); });
+  on('script',scriptDialog);
+  on('pdf',exportPDF);
+  on('rec',recordVideo);
+  on('dup',()=>{ const id=uid(); decks[id]=Object.assign(clone(deck()),{name:(deck().name||'Apresentação')+' (cópia)'}); curId=id; sel=0; touch(); renderAll(); });
+  on('del',()=>{ confirmBox('Excluir “'+(deck().name||'Sem nome')+'”?','Excluir',async()=>{ const id=curId; delete decks[id]; delete hist[id]; if(mode==='db'){ try{ await db.doc('decks/'+id).delete(); }catch(e){ setStatus('Não consegui excluir'); } } else localSave(); if(!Object.keys(decks).length){ const n=uid(); decks[n]=starter(); } curId=Object.keys(decks)[0]; sel=0; renderAll(); }); });
 };
 
+/* ---------- roteiro em texto → slides ---------- */
+const SCRIPT_HELP=`# Título da apresentação
+Frase de abertura (vira o subtítulo da capa)
+
+# Três frentes {cartoes}
+[O desafio]
+- Custos: valores claros
+- Materiais: sem duplicidade
+- Acompanhamento: visão comum
+Nota: lembrar de citar o caso de março.
+
+# Resultados
+- R$ 1.250.000: economia no período
+- 832: reservas analisadas
+
+# Obrigado!
+- Mais visibilidade
+- Decisões justificadas`;
+function scriptDialog(){
+  const m=modal(`<h3>Criar a partir de um roteiro</h3><p class="sub">Cada <code>#</code> começa um slide. O modelo é escolhido sozinho, ou force com <code>{cartoes}</code>, <code>{fluxo}</code>, <code>{numeros}</code>… <code>[Rótulo]</code> vira o rótulo, <code>- item</code> vira tópico (use <code>Título: texto</code> para cartões e números) e <code>Nota:</code> vai para as notas do apresentador.</p>
+  <textarea id="scr" rows="16" style="width:100%;font-family:var(--ui-m);font-size:12px" placeholder="${esc(SCRIPT_HELP)}"></textarea>
+  <p class="hint">Modelos: ${Object.entries(T).map(([k,t])=>`<code>${k}</code> (${esc(t.name)})`).join(', ')}</p>
+  <div class="row"><button class="btn" data-c>Cancelar</button><button class="btn" data-add>Adicionar ao final desta</button><button class="btn pri" data-new>Criar nova apresentação</button></div>`);
+  const ta=m.el.querySelector('#scr'); ta.focus();
+  m.el.querySelector('[data-c]').onclick=m.close;
+  const run=asNew=>{ const slides=parseScript(ta.value||''); if(!slides.length){ ta.value=ta.value||SCRIPT_HELP; return; }
+    m.close();
+    if(asNew){ const id=uid(); const title=String(slides[0].d.title||'Nova apresentação').replace(/[*`\n]/g,' ').trim(); decks[id]={name:title,theme:clone(deck().theme||{preset:'eletrico'}),footerText:'',updatedAt:Date.now(),slides}; curId=id; sel=0; }
+    else { const d=deck(); d.slides.push(...slides.map(s=>s.t==='capa'?Object.assign(s,{t:'destaque',d:D.fillDefaults({t:'destaque',d:{kicker:s.d.kicker,title:s.d.title,lead:s.d.lead}}).d}):s)); sel=d.slides.length-slides.length; }
+    touch(); renderAll(); setStatus(slides.length+' slides criados',true); };
+  m.el.querySelector('[data-new]').onclick=()=>run(true);
+  m.el.querySelector('[data-add]').onclick=()=>run(false);
+}
+function parseScript(txt){
+  const out=[]; let cur=null; const blank=title=>({title,tpl:null,kicker:'',lead:[],bullets:[],notes:[]});
+  txt.replace(/\r/g,'').split('\n').forEach(raw=>{
+    const l=raw.trim(); let m; if(!l) return;
+    if((m=/^#{1,3}\s+(.+?)(?:\s*\{\s*(\w+)\s*\})?$/.exec(l))){ if(cur) out.push(cur); cur=blank(m[1]); if(m[2]&&T[m[2]]) cur.tpl=m[2]; return; }
+    if(!cur){ cur=blank(l); return; }
+    if((m=/^notas?\s*:\s*(.*)$/i.exec(l))){ cur.notes.push(m[1]); return; }
+    if((m=/^\[(.+)\]$/.exec(l))){ cur.kicker=m[1]; return; }
+    if((m=/^(?:[-*•]|\d+[.)])\s+(.+)$/.exec(l))){ cur.bullets.push(m[1]); return; }
+    cur.lead.push(l.replace(/^>\s*/,''));
+  });
+  if(cur) out.push(cur);
+  return out.map((s,i)=>toSlide(s,i,out.length));
+}
+function toSlide(s,i,n){
+  const pair=b=>{ const m=/^(.+?)\s*(?::|—|–|\s-\s)\s*(.+)$/.exec(b); return m?{a:m[1].trim(),b:m[2].trim()}:{a:b,b:''}; };
+  const P=s.bullets.map(pair), allPairs=s.bullets.length>0&&P.every(p=>p.b);
+  const numeric=allPairs&&P.every(p=>/^(R\$\s*)?[\d.,]+\s*(%|mil|mi|k|x)?$/i.test(p.a));
+  let t=s.tpl;
+  if(!t){
+    if(i===0) t='capa';
+    else if(i===n-1&&n>2&&s.bullets.length<=8) t='encerramento';
+    else if(!s.bullets.length) t='destaque';
+    else if(numeric&&P.length<=4) t='numeros';
+    else if(s.bullets.some(b=>/->|→/.test(b))) t='fluxo';
+    else if(allPairs&&P.length<=4) t='cartoes';
+    else if(allPairs&&P.length<=5) t='agenda';
+    else if(s.bullets.length>6) t='tabela';
+    else t='encerramento';
+  }
+  const lead=s.lead.join('\n'); const d={kicker:s.kicker,title:s.title};
+  const tpl=T[t]; const has=k=>tpl.fields.some(f=>f.k===k);
+  if(has('lead')) d.lead=lead; else if(has('closing')) d.closing=lead; else if(has('quote')){ d.quote=s.title; d.author=lead; }
+  const steps=s.bullets.length===1&&/->|→/.test(s.bullets[0])?s.bullets[0].split(/\s*(?:->|→)\s*/):s.bullets.map(b=>b.replace(/\s*(?:->|→)\s*$/,''));
+  switch(t){
+    case 'capa': d.chips=s.bullets.slice(0,3); d.showLogo=true; break;
+    case 'encerramento': d.bullets=s.bullets; d.showLogo=i===n-1; break;
+    case 'numeros': d.stats=P.map(p=>{ const m=/^(R\$)?\s*([\d.,]+)\s*(.*)$/i.exec(p.a)||[]; return {label:'',prefix:m[1]||'',value:m[2]||p.a,suffix:m[3]||'',text:p.b,badge:''}; }); break;
+    case 'fluxo': d.steps=steps.map(x=>{ const p=pair(x); return {tag:'',title:p.a,text:p.b,hot:false}; }); break;
+    case 'cartoes': d.cards=P.map(p=>({label:'',title:p.a,text:p.b})); break;
+    case 'agenda': d.events=P.map(p=>({when:p.a,title:p.b,text:''})); break;
+    case 'tabela': d.rows=s.bullets.map(b=>b.replace(/\s*[:—–]\s+/,' | ')); break;
+    case 'grafico': d.bars=P.map(p=>({label:p.a,value:p.b,hot:false})); break;
+    case 'comparacao': { const h=Math.ceil(s.bullets.length/2); d.left=s.bullets.slice(0,h); d.right=s.bullets.slice(h); break; }
+    default: { const li=tpl.fields.find(f=>f.t==='list'), it=tpl.fields.find(f=>f.t==='items');
+      if(it){ const subs=it.sub.filter(f=>f.t==='text'||f.t==='area'); d[it.k]=P.map(p=>{ const o={}; it.sub.forEach(f=>o[f.k]=f.t==='bool'?false:''); if(subs[0]) o[subs[0].k]=p.a; if(subs[1]) o[subs[1].k]=p.b; return o; }); }
+      else if(li) d[li.k]=s.bullets; }
+  }
+  const sl=D.fillDefaults({id:uid(),t,d}); if(s.notes.length) sl.notes=s.notes.join('\n'); return sl;
+}
+
 /* ---------- ações ---------- */
-$('#deckSel').onchange=e=>{ if(dirty) save(); curId=e.target.value; sel=0; renderAll(); try{ localStorage.setItem(LS+'-cur',curId); }catch(_){} };
+$('#deckSel').onchange=e=>{ if(dirty) save(); if(histT) snap(); curId=e.target.value; sel=0; renderAll(); lsSet(LS+'-cur',curId); };
 $('#deckName').oninput=e=>{ deck().name=e.target.value; touch(); const o=$('#deckSel').selectedOptions[0]; if(o) o.textContent=e.target.value||'Sem nome'; };
 document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{ tab=b.dataset.tab; renderPane(); });
 $('#prevBtn').onclick=()=>select(sel-1); $('#nextBtn').onclick=()=>select(sel+1);
 $('#replayBtn').onclick=()=>{ if(player) player.replay(); };
+$('#undoBtn').onclick=undo; $('#redoBtn').onclick=redo;
 $('#upBtn').onclick=()=>move(-1); $('#downBtn').onclick=()=>move(1);
 function move(dl){ const s=deck().slides, j=sel+dl; if(j<0||j>=s.length) return; [s[sel],s[j]]=[s[j],s[sel]]; sel=j; touch(); renderRail(); renderPreview(false); }
 $('#dupBtn').onclick=()=>{ const s=deck().slides; s.splice(sel+1,0,Object.assign(clone(s[sel]),{id:uid()})); sel++; touch(); renderRail(); renderPreview(true); renderPane(); };
 $('#delBtn').onclick=()=>{ const s=deck().slides; if(!s.length) return; confirmBox('Excluir o slide '+(sel+1)+'?','Excluir',()=>{ s.splice(sel,1); sel=Math.max(0,sel-1); touch(); renderRail(); renderPreview(true); renderPane(); }); };
-addEventListener('keydown',e=>{ if(document.querySelector('.modal,.show')) return; const tg=e.target.tagName; if(tg==='INPUT'||tg==='TEXTAREA'||tg==='SELECT') return; if(e.key==='ArrowRight') select(sel+1); if(e.key==='ArrowLeft') select(sel-1); });
+addEventListener('keydown',e=>{
+  if(document.querySelector('.modal,.show')) return;
+  const tg=e.target.tagName, typing=tg==='INPUT'||tg==='TEXTAREA'||tg==='SELECT';
+  const mod=e.ctrlKey||e.metaKey, k=e.key.toLowerCase();
+  if(mod&&!typing&&k==='z'){ e.preventDefault(); e.shiftKey?redo():undo(); return; }
+  if(mod&&!typing&&k==='y'){ e.preventDefault(); redo(); return; }
+  if(typing) return;
+  if(e.key==='ArrowRight') select(sel+1); if(e.key==='ArrowLeft') select(sel-1);
+});
+addEventListener('beforeunload',()=>{ if(dirty&&mode!=='db') localSave(); });
 
 /* ---------- modo apresentação ---------- */
-function present(start){
-  const d=deck(); if(!d.slides.length) return;
-  const w=document.createElement('div'); w.className='show'; w.innerHTML=`<div class="host"></div><div class="bar"><button data-x aria-label="Sair">✕</button><button data-p aria-label="Anterior">‹</button><div class="pg"><i></i></div><span class="n"></span><button data-n aria-label="Próximo">›</button><button data-f aria-label="Tela cheia">⤢</button></div>`;
+function present(start,o={}){
+  const d=o.deck||deck(); if(!d.slides.length) return;
+  const w=document.createElement('div'); w.className='show'+(o.recording?' rec':''); w.innerHTML=`<div class="host"></div><div class="bar"><button data-x aria-label="Sair">✕</button><button data-p aria-label="Anterior">‹</button><div class="pg"><i></i></div><span class="n"></span><button data-n aria-label="Próximo">›</button><button data-v aria-label="Janela do apresentador" title="Janela do apresentador (P)">🗒</button><button data-f aria-label="Tela cheia">⤢</button></div>`;
   document.body.appendChild(w);
-  const upd=n=>{ w.querySelector('.n').textContent=(n+1)+' / '+d.slides.length; w.querySelector('.pg i').style.width=((n+1)/d.slides.length*100)+'%'; };
-  const pl=D.createPlayer(w.querySelector('.host'),d,{start:start||0,onChange:upd}); upd(start||0);
+  let pop=null;
+  const tell=msg=>{ try{ if(pop&&!pop.closed) pop.postMessage(Object.assign({em:1},msg),'*'); }catch(_){} };
+  const upd=n=>{ w.querySelector('.n').textContent=(n+1)+' / '+d.slides.length; w.querySelector('.pg i').style.width=((n+1)/d.slides.length*100)+'%'; tell({type:'index',n}); };
+  const pl=D.createPlayer(w.querySelector('.host'),d,{start:start||0,onChange:upd,autoplay:true,onEnd:o.onEnd}); upd(start||0);
   const fs=()=>{ try{ document.fullscreenElement?document.exitFullscreen():w.requestFullscreen().catch(()=>{}); }catch(_){} };
-  const close=()=>{ pl.destroy(); w.remove(); removeEventListener('keydown',key); try{ if(document.fullscreenElement) document.exitFullscreen(); }catch(_){} if(location.hash.startsWith('#play-')) try{ history.replaceState(null,'',location.pathname+location.search); }catch(_){} };
-  const key=e=>{ if(['ArrowRight','PageDown',' ','Enter'].includes(e.key)){e.preventDefault();pl.next();} else if(['ArrowLeft','PageUp','Backspace'].includes(e.key)){e.preventDefault();pl.prev();} else if(e.key==='Escape') close(); else if(e.key==='f'||e.key==='F') fs(); };
+  const onMsg=e=>{ if(!pop||e.source!==pop||!e.data||!e.data.em) return; const m=e.data;
+    if(m.type==='ready') tell({type:'deck',deck:d,n:pl.index});
+    else if(m.type==='next') pl.next(); else if(m.type==='prev') pl.prev(); else if(m.type==='go') pl.go(+m.n); };
+  addEventListener('message',onMsg);
+  const openPresenter=()=>{ if(pop&&!pop.closed){ pop.focus(); return; } pop=open(location.pathname+location.search+'#presenter','estudio-motion-apresentador','width=1100,height=720'); if(!pop) setStatus('O navegador bloqueou a janela do apresentador'); };
+  let closed=false;
+  const close=()=>{ if(closed) return; closed=true; tell({type:'end'}); pl.destroy(); w.remove(); removeEventListener('keydown',key); removeEventListener('message',onMsg); try{ if(document.fullscreenElement) document.exitFullscreen(); }catch(_){} if(location.hash.startsWith('#play-')) try{ history.replaceState(null,'',location.pathname+location.search); }catch(_){} o.onClose&&o.onClose(); };
+  const key=e=>{ if(['ArrowRight','PageDown',' ','Enter'].includes(e.key)){e.preventDefault();pl.next();} else if(['ArrowLeft','PageUp','Backspace'].includes(e.key)){e.preventDefault();pl.prev();} else if(e.key==='Escape') close(); else if(e.key==='f'||e.key==='F') fs(); else if(e.key==='p'||e.key==='P') openPresenter(); };
   addEventListener('keydown',key);
-  w.querySelector('[data-x]').onclick=close; w.querySelector('[data-p]').onclick=()=>pl.prev(); w.querySelector('[data-n]').onclick=()=>pl.next(); w.querySelector('[data-f]').onclick=fs;
-  w.querySelector('.host').onclick=e=>{ e.clientX>innerWidth*.3?pl.next():pl.prev(); };
+  w.querySelector('[data-x]').onclick=close; w.querySelector('[data-p]').onclick=()=>pl.prev(); w.querySelector('[data-n]').onclick=()=>pl.next(); w.querySelector('[data-f]').onclick=fs; w.querySelector('[data-v]').onclick=openPresenter;
+  w.querySelector('.host').onclick=e=>{ if(o.recording) return; e.clientX>innerWidth*.3?pl.next():pl.prev(); };
   let sx=null; w.addEventListener('touchstart',e=>{sx=e.touches[0].clientX;},{passive:true}); w.addEventListener('touchend',e=>{ if(sx==null) return; const dx=e.changedTouches[0].clientX-sx; if(Math.abs(dx)>40) dx<0?pl.next():pl.prev(); sx=null; },{passive:true});
-  try{ history.replaceState(null,'','#play-'+curId); }catch(_){}
+  if(!o.recording) try{ history.replaceState(null,'','#play-'+curId); }catch(_){}
+  return {close,player:pl};
 }
 $('#playBtn').onclick=()=>present(sel);
+
+/* janela do apresentador: slide atual, próximo, notas e cronômetro */
+function presenterMode(){
+  document.title='Apresentador · Estúdio Motion';
+  document.body.innerHTML=`<div class="pres"><header><b>Apresentador</b><span class="clock" id="pc">00:00</span><button class="btn sm" id="pr">Zerar</button><span class="n" id="pn">–</span></header>
+  <div class="pres-main"><div class="cur"><div class="tv" id="pcur"></div></div><div class="side"><div class="lbl">Próximo</div><div class="tv" id="pnext"></div><div class="lbl">Notas</div><div class="notes" id="pnotes">Aguardando a apresentação…</div></div></div>
+  <footer><button class="btn" id="pp">‹ Anterior</button><button class="btn pri" id="px">Próximo ›</button></footer></div>`;
+  let dk=null, n=0, t0=Date.now(), c1=null, c2=null;
+  const send=m=>{ try{ opener&&opener.postMessage(Object.assign({em:1},m),'*'); }catch(_){} };
+  const paint=()=>{ if(!dk) return; c1&&c1(); c2&&c2();
+    c1=D.renderStatic($('#pcur'),dk,n);
+    if(n+1<dk.slides.length) c2=D.renderStatic($('#pnext'),dk,n+1); else { $('#pnext').innerHTML='<div class="end">Fim da apresentação</div>'; c2=null; }
+    const s=dk.slides[n]||{}; $('#pnotes').textContent=s.notes||'Sem notas para este slide.'; $('#pnotes').classList.toggle('empty',!s.notes);
+    $('#pn').textContent=(n+1)+' / '+dk.slides.length; };
+  addEventListener('message',e=>{ if(e.source!==opener||!e.data||!e.data.em) return; const m=e.data;
+    if(m.type==='deck'){ dk=m.deck; n=m.n||0; paint(); } else if(m.type==='index'){ n=m.n; paint(); } else if(m.type==='end'){ $('#pnotes').textContent='A apresentação foi encerrada.'; } });
+  $('#pp').onclick=()=>send({type:'prev'}); $('#px').onclick=()=>send({type:'next'});
+  $('#pr').onclick=()=>{ t0=Date.now(); };
+  addEventListener('keydown',e=>{ if(['ArrowRight','PageDown',' ','Enter'].includes(e.key)){e.preventDefault();send({type:'next'});} else if(['ArrowLeft','PageUp','Backspace'].includes(e.key)){e.preventDefault();send({type:'prev'});} });
+  setInterval(()=>{ const s=Math.floor((Date.now()-t0)/1000); $('#pc').textContent=String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0'); },500);
+  if(!opener) $('#pnotes').textContent='Abra esta janela pelo botão 🗒 (ou tecla P) durante a apresentação.'; else send({type:'ready'});
+}
 
 /* ---------- exportar ---------- */
 const blobToData=b=>new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsDataURL(b); });
 async function inline(v){ if(!v||String(v).startsWith('data:')) return v; try{ const r=await fetch(D.resolveImage(v)); if(!r.ok) return ''; return await blobToData(await r.blob()); }catch(e){ return ''; } }
 async function saveFile(filename,data,type){
   if(downloads) return downloads.save({filename,data});
-  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([data],{type})); a.download=filename;
+  const a=document.createElement('a'); a.href=URL.createObjectURL(data instanceof Blob?data:new Blob([data],{type})); a.download=filename;
   document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },2000);
 }
+const fileBase=d=>(d.name||'apresentacao').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^\w-]+/g,'-').replace(/^-|-$/g,'').toLowerCase()||'apresentacao';
+/* embute imagens de campos do slide e de itens (ex.: fotos da equipe) */
+async function inlineFields(fields,obj){ for(const f of fields){ if(f.t==='image'&&obj[f.k]) obj[f.k]=await inline(obj[f.k]); else if(f.t==='items') for(const it of (obj[f.k]||[])) await inlineFields(f.sub,it); } }
 const srcOf=(id,url)=>{ const el=document.getElementById(id); return el?Promise.resolve(el.textContent):fetch(url).then(r=>r.text()); };
 async function exportHTML(){
   setStatus('Preparando arquivo…');
   try{
-    const d=clone(deck());
+    const d=clone(deck()); d.slides.forEach(s=>delete s.notes);
     d.theme=d.theme||{}; if(d.theme.logo) d.theme.logo=await inline(d.theme.logo);
-    for(const s of d.slides){ const tp=T[s.t]; if(!tp) continue; for(const f of tp.fields){ if(f.t==='image'&&s.d[f.k]) s.d[f.k]=await inline(s.d[f.k]); } }
+    for(const s of d.slides){ const tp=T[s.t]; if(tp) await inlineFields(tp.fields,s.d||{}); }
     const [js,css]=await Promise.all([srcOf('dk-js','engine.js'),srcOf('dk-css','engine.css')]);
     const gs=document.getElementById('gsap-js');
     const gsapTag=gs?'<script>'+gs.textContent.replace(/<\/script/gi,'<\\/script')+'<\/script>':'<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"><\/script>';
     const html=`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(d.name||'Apresentação')}</title><style>html,body{height:100%;margin:0;background:#000}#app{position:fixed;inset:0}${css}</style>${gsapTag}</head><body><div id="app"></div><script>${js.replace(/<\/script/gi,'<\\/script')}<\/script><script>
 const DECK=${JSON.stringify(d).replace(/</g,'\\u003c')};
-const pl=Deck.createPlayer(document.getElementById('app'),DECK,{start:0});
+const pl=Deck.createPlayer(document.getElementById('app'),DECK,{start:0,autoplay:true});
 addEventListener('keydown',e=>{if(['ArrowRight','PageDown',' ','Enter'].includes(e.key)){e.preventDefault();pl.next();}else if(['ArrowLeft','PageUp','Backspace'].includes(e.key)){e.preventDefault();pl.prev();}else if(e.key==='f'||e.key==='F'){document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen();}});
 document.getElementById('app').addEventListener('click',e=>{e.clientX>innerWidth*.3?pl.next():pl.prev();});
 let sx=null;addEventListener('touchstart',e=>{sx=e.touches[0].clientX},{passive:true});addEventListener('touchend',e=>{if(sx==null)return;const dx=e.changedTouches[0].clientX-sx;if(Math.abs(dx)>40)dx<0?pl.next():pl.prev();sx=null},{passive:true});
 <\/script></body></html>`;
-    const name=(d.name||'apresentacao').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^\w-]+/g,'-').replace(/^-|-$/g,'').toLowerCase()||'apresentacao';
-    await saveFile(name+'.html',html,'text/html');
+    await saveFile(fileBase(d)+'.html',html,'text/html');
     setStatus('Arquivo exportado',true);
   }catch(e){ setStatus(e&&e.code==='declined'?'Exportação cancelada':'Não consegui exportar'); }
 }
 $('#exportBtn').onclick=exportHTML;
 
+/* PDF: monta um slide por página e abre a impressão (escolha "Salvar como PDF") */
+async function exportPDF(){
+  const d=deck(); if(!d.slides.length) return;
+  setStatus('Preparando PDF…');
+  const root=document.createElement('div'); root.className='print-root';
+  root.innerHTML=d.slides.map(()=>'<div class="pp"></div>').join(''); document.body.appendChild(root);
+  const cleaners=[...root.children].map((el,i)=>D.renderStatic(el,d,i));
+  try{ await document.fonts.ready; }catch(_){}
+  await Promise.all([...root.querySelectorAll('img')].map(im=>im.complete?0:new Promise(r=>{ im.onload=im.onerror=r; })));
+  await new Promise(r=>setTimeout(r,400));
+  const done=()=>{ cleaners.forEach(f=>f()); root.remove(); removeEventListener('afterprint',done); setStatus('Pronto',true); };
+  addEventListener('afterprint',done);
+  print();
+  setTimeout(()=>{ if(root.isConnected&&!matchMedia('print').matches) done(); },60000);
+}
+
+/* Vídeo: grava a própria aba enquanto a apresentação roda sozinha */
+async function recordVideo(){
+  const d=deck(); if(!d.slides.length) return;
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getDisplayMedia||!window.MediaRecorder){ setStatus('Este navegador não grava a tela. Use Chrome ou Edge.'); return; }
+  const secs=+((d.auto||{}).secs)||5;
+  const ok=await new Promise(res=>{ const m=modal(`<h3>Gravar vídeo</h3><p class="sub">A apresentação vai rodar sozinha do início ao fim (${secs}s por slide, ou o tempo de cada slide) e o vídeo é baixado no final.</p><p class="sub">Na próxima tela, escolha <b>esta aba</b> para compartilhar. Dica: deixe a janela grande ou em tela cheia para o vídeo sair em boa resolução. Esc interrompe.</p><div class="row"><button class="btn" data-c>Cancelar</button><button class="btn pri" data-ok>Começar</button></div>`,'confirm'); m.el.querySelector('[data-c]').onclick=()=>{ m.close(); res(false); }; m.el.querySelector('[data-ok]').onclick=()=>{ m.close(); res(true); }; });
+  if(!ok) return;
+  let stream; try{ stream=await navigator.mediaDevices.getDisplayMedia({video:{frameRate:30,displaySurface:'browser'},audio:false,preferCurrentTab:true,selfBrowserSurface:'include'}); }catch(e){ setStatus('Gravação cancelada'); return; }
+  const type=['video/mp4;codecs=avc1','video/mp4','video/webm;codecs=vp9','video/webm'].find(t=>MediaRecorder.isTypeSupported(t))||'';
+  const rec=new MediaRecorder(stream,type?{mimeType:type,videoBitsPerSecond:12e6}:undefined); const chunks=[];
+  rec.ondataavailable=e=>{ if(e.data&&e.data.size) chunks.push(e.data); };
+  rec.onstop=async()=>{ stream.getTracks().forEach(t=>t.stop()); if(!chunks.length){ setStatus('Nada foi gravado'); return; } const blob=new Blob(chunks,{type:rec.mimeType||'video/webm'}); const ext=/mp4/.test(blob.type)?'mp4':'webm'; try{ await saveFile(fileBase(d)+'.'+ext,blob,blob.type); setStatus('Vídeo salvo (.'+ext+')',true); }catch(_){ setStatus('Não consegui salvar o vídeo'); } };
+  const rd=Object.assign(clone(d),{auto:{secs,loop:false}});
+  let sess=null;
+  sess=present(0,{deck:rd,recording:true,onEnd:()=>setTimeout(()=>sess&&sess.close(),2500),onClose:()=>{ if(rec.state!=='inactive') rec.stop(); }});
+  stream.getVideoTracks()[0].onended=()=>sess&&sess.close();
+  await new Promise(r=>setTimeout(r,500)); // deixa o aviso de compartilhamento sumir
+  rec.start(1000); sess.player.replay(); setStatus('Gravando…');
+}
+
+/* ---------- nuvem: mescla edições de outro aparelho com as locais ---------- */
+function mergeDeck(base,local,remote){
+  if(!base) return local; const S=JSON.stringify, out=clone(remote);
+  ['name','theme','footerText','footer','auto'].forEach(k=>{ if(S(local[k])!==S(base[k])){ if(local[k]===undefined) delete out[k]; else out[k]=clone(local[k]); } });
+  const bs=new Map((base.slides||[]).map(s=>[s.id,S(s)])), ls=new Map((local.slides||[]).map(s=>[s.id,s]));
+  out.slides=(remote.slides||[]).filter(s=>!(bs.has(s.id)&&!ls.has(s.id))).map(s=>{ const L=ls.get(s.id); return L&&S(L)!==bs.get(s.id)?clone(L):s; });
+  (local.slides||[]).forEach((s,i)=>{ if(!bs.has(s.id)&&!out.slides.some(x=>x.id===s.id)){ const pid=i?local.slides[i-1].id:null; const j=pid?out.slides.findIndex(x=>x.id===pid):-1; out.slides.splice(j+1,0,clone(s)); } });
+  return out;
+}
+
 /* ---------- inicialização ---------- */
-(function boot(){
-  decks=localLoad();
+(async function boot(){
+  decks=await localLoad(); localIds=new Set(Object.keys(decks));
+  await loadThemes();
   if(!Object.keys(decks).length){ if(window.SEED_DECKS) Object.assign(decks,clone(window.SEED_DECKS)); else { const id=uid(); decks[id]=starter(); } }
-  let last=null; try{ last=localStorage.getItem(LS+'-cur'); }catch(_){}
+  Object.values(decks).forEach(normalize);
+  const last=lsGet(LS+'-cur');
   curId=decks[last]?last:Object.keys(decks).sort((a,b)=>(decks[b].updatedAt||0)-(decks[a].updatedAt||0))[0];
   renderAll(); setStatus('Salvo neste navegador');
   const wantPlay=/^#play-([\w-]+)/.exec(location.hash);
@@ -254,27 +519,39 @@ $('#exportBtn').onclick=exportHTML;
     db=x; let first=true; const to=setTimeout(()=>{ if(first) setStatus('Nuvem demorando, editando localmente'); },10000);
     db.collection('decks').onSnapshot(qs=>{
       clearTimeout(to);
-      const remote={}; qs.docs.forEach(s=>{ if(s.exists){ remote[s.id]=clone(s.data()); } });
+      const remote={}; qs.docs.forEach(s=>{ if(s.exists){ remote[s.id]=normalize(clone(s.data())); } });
       if(first){
+        Object.entries(remote).forEach(([id,dk])=>{ remoteBase[id]=clone(dk); });
         first=false; mode='db';
         const localOnly=decks; decks=remote;
         // leva para a nuvem o que só existia neste navegador e foi editado
-        Object.entries(localOnly).forEach(([id,dk])=>{ if(!remote[id] && (dk.slides||[]).length && (localStorage.getItem(LS)||'').includes(id)) { decks[id]=dk; db.doc('decks/'+id).set(clone(dk)).catch(()=>{}); } });
+        Object.entries(localOnly).forEach(([id,dk])=>{ if(!remote[id] && (dk.slides||[]).length && localIds.has(id)) { decks[id]=dk; db.doc('decks/'+id).set(clone(dk)).catch(()=>{}); } });
         if(!Object.keys(decks).length){ const id=uid(); decks[id]=starter(); }
         if(!decks[curId]) curId=Object.keys(decks).sort((a,b)=>(decks[b].updatedAt||0)-(decks[a].updatedAt||0))[0];
         if(wantPlay&&decks[wantPlay[1]]) curId=wantPlay[1];
-        sel=0; renderAll(); setStatus('Salvo na nuvem',true);
+        sel=0; Object.keys(hist).forEach(k=>delete hist[k]); renderAll(); setStatus('Salvo na nuvem',true);
         if(wantPlay&&decks[wantPlay[1]]) present(0);
         return;
       }
       // atualizações vindas de outro aparelho ou do Claude
-      let changed=false;
+      let changed=false, merged=false;
       qs.docChanges().forEach(c=>{ const id=c.doc.id;
         if(c.type==='removed'){ if(id!==curId){ delete decks[id]; changed=true; } return; }
-        if(id===curId && (dirty||saving||c.doc.metadata.hasPendingWrites)) return;
-        const nd=clone(c.doc.data()); if(id===curId && JSON.stringify(nd)===JSON.stringify(decks[id])) return;
-        decks[id]=nd; changed=true; });
-      if(changed){ if(!decks[curId]) curId=Object.keys(decks)[0]; renderAll(); }
+        if(c.doc.metadata.hasPendingWrites) return;
+        const nd=normalize(clone(c.doc.data())); const base=remoteBase[id]; remoteBase[id]=clone(nd);
+        if(JSON.stringify(nd)===JSON.stringify(decks[id])) return;
+        if(id===curId && (dirty||saving)){
+          // há edição local pendente: mescla por slide em vez de descartar um dos lados
+          decks[id]=mergeDeck(base,decks[id],nd); merged=true; dirty=true; clearTimeout(saveT); saveT=setTimeout(save,600);
+        } else decks[id]=nd;
+        changed=true; });
+      if(changed){
+        if(!decks[curId]) curId=Object.keys(decks)[0];
+        if(hist[curId]) hist[curId].last=ser(deck());
+        const typing=$('#pane').contains(document.activeElement);
+        renderDeckPick(); renderRail(); renderPreview(false); if(!typing) renderPane();
+        if(merged) setStatus('Mesclado com alterações de outro aparelho',true);
+      }
     },err=>{ setStatus('Nuvem indisponível, editando localmente'); mode='local'; });
   });
 })();
