@@ -432,9 +432,10 @@ const SHOWCASES=[
  {name:'Resultados do trimestre',preset:'editorial',desc:'Números, gráfico, comparação e tabela num visual editorial claro.',header:{on:true,text:'Resultados · 3º trimestre de 2026'},script:`# Resultados do 3º trimestre\nO que entregamos, o que aprendemos e o que vem a seguir.\n- Jul a Set 2026\n- Diretoria de Operações\n\n# Os números do trimestre {numeros}\n[Visão geral]\n- R$ 1.250.000: economia acumulada\n- 832: decisões analisadas\n- 94%: dentro do prazo\n\n# Evolução mês a mês {grafico}\n[Economia em R$ mil]\n- Abr: 120\n- Mai: 180\n- Jun: 210\n- Jul: 260\n- Ago: 330\n- Set: 410\n\n# Antes e depois {comparacao}\n[O que mudou]\n- Planilhas soltas\n- Decisão sem histórico\n- Retrabalho mensal\n- Uma base única\n- Cada decisão justificada\n- Alertas automáticos\n\n# Desempenho por área {tabela}\n[Comparativo]\n- Funilaria: 312 | R$ 410 mil\n- Pintura: 208 | R$ 260 mil\n- Montagem: 145 | R$ 180 mil\n\n# Próximo trimestre {agenda}\n[Plano]\n- Outubro: levar para mais duas áreas\n- Novembro: painel para a diretoria\n- Dezembro: revisão anual\n\n# Obrigado\n- Mais visibilidade\n- Decisões justificadas\n- Rastreabilidade`},
  {name:'Lançamento de produto',preset:'grafite',desc:'Efeitos cinematográficos: revelar, mergulho 3D, galeria 3D e paralaxe. Troque as imagens de exemplo pelas suas.',script:`# Apresentamos o novo produto\nUma nova forma de trabalhar com os seus dados.\n- Lançamento 2026\n\n# A nova fase {revelar}\n[Lançamento]\nMais simples, mais rápido e feito para equipes.\n\n# Do rascunho ao produto {mergulho}\n[A jornada]\n- O primeiro protótipo\n- Os primeiros clientes\n- O produto final\n\n# Feito para cada equipe {galeria3d}\n[Casos de uso]\n- Operações\n- Finanças\n- Compras\n- Manutenção\n- Diretoria\n- Qualidade\n\n# FUTURO {paralaxe}\n[Edição 2026]\n\n# Pela primeira vez, a gente *decide olhando o mesmo número* {citacao}\nNome da pessoa\n\n# Disponível hoje\n- Teste grátis por 30 dias\n- Migração assistida\n- Suporte em português`}
 ];
+const buildShowcase=x=>{ if(x.deck){ const dk=clone(x.deck); dk.slides.forEach(s=>{ s.id=uid(); D.fillDefaults(s); }); return Object.assign(dk,{updatedAt:Date.now()}); } const slides=parseScript(x.script); if(x.magic) slides.forEach((s,i)=>{ if(i) s.tr='magico'; }); return {name:x.name,theme:{preset:x.preset},footerText:'',updatedAt:Date.now(),slides,...(x.header?{header:clone(x.header)}:{})}; };
 function showcaseDialog(){
   const m=modal(`<h3>Começar de uma apresentação pronta</h3><p class="sub">Cria uma apresentação nova, com textos de exemplo para você trocar. Nada do que você já tem é alterado.</p><div class="gal">${SHOWCASES.map((x,i)=>`<button class="gcard" data-v="${i}"><div class="tv"></div><b>${esc(x.name)}</b><small>${esc(x.desc)}</small></button>`).join('')}</div>`);
-  const build=x=>{ if(x.deck){ const dk=clone(x.deck); dk.slides.forEach(s=>{ s.id=uid(); D.fillDefaults(s); }); return Object.assign(dk,{updatedAt:Date.now()}); } const slides=parseScript(x.script); if(x.magic) slides.forEach((s,i)=>{ if(i) s.tr='magico'; }); return {name:x.name,theme:{preset:x.preset},footerText:'',updatedAt:Date.now(),slides,...(x.header?{header:clone(x.header)}:{})}; };
+  const build=buildShowcase;
   m.el.querySelectorAll('.gcard').forEach(c=>{ const x=SHOWCASES[+c.dataset.v], dk=build(x); D.renderStatic(c.querySelector('.tv'),dk,dk.slides.findIndex(s=>s.t==='onepage')>0?1:0);
     c.onclick=()=>{ m.close(); const id=uid(); decks[id]=build(x); curId=id; sel=0; touch(); renderAll(); setStatus('“'+x.name+'” criada',true); }; });
 }
@@ -846,7 +847,9 @@ function mergeDeck(base,local,remote){
   Object.values(decks).forEach(normalize);
   const last=lsGet(LS+'-cur');
   curId=decks[last]?last:Object.keys(decks).sort((a,b)=>(decks[b].updatedAt||0)-(decks[a].updatedAt||0))[0];
-  renderAll(); setStatus('Salvo neste navegador');
+  let novaVitrine=false;
+  if(!lsGet(LS+'-vitrine-cidades')){ lsSet(LS+'-vitrine-cidades','1'); if(!Object.values(decks).some(d=>d.name==='Cidades que pensam')){ const id=uid(); decks[id]=normalize(buildShowcase(SHOWCASES[0])); curId=id; novaVitrine=true; } }
+  renderAll(); if(novaVitrine) touch(); setStatus('Salvo neste navegador');
   const wantPlay=/^#play-([\w-]+)/.exec(location.hash);
   if(!window.claude||!window.claude.use){ if(wantPlay&&decks[wantPlay[1]]){ curId=wantPlay[1]; renderAll(); present(0); } return; }
   claude.use('downloads').then(x=>{ downloads=x; if(!x) $('#exportBtn').hidden=true; });
