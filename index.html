@@ -2097,6 +2097,7 @@ $('#dupBtn').onclick=()=>{ const s=deck().slides; s.splice(sel+1,0,Object.assign
 $('#delBtn').onclick=()=>{ const s=deck().slides; if(!s.length) return; confirmBox('Excluir o slide '+(sel+1)+'?','Excluir',()=>{ s.splice(sel,1); sel=Math.max(0,sel-1); touch(); renderRail(); renderPreview(true); renderPane(); }); };
 addEventListener('keydown',e=>{
   if(document.querySelector('.modal,.show')) return;
+  if(e.key==='F5'){ e.preventDefault(); present(e.shiftKey?sel:0); const sw=document.querySelector('.show'); if(sw) try{ sw.requestFullscreen().catch(()=>{}); }catch(_){} return; } // F5 do início, Shift+F5 do slide atual
   const tg=e.target.tagName, typing=tg==='INPUT'||tg==='TEXTAREA'||tg==='SELECT';
   const mod=e.ctrlKey||e.metaKey, k=e.key.toLowerCase();
   if(mod&&!typing&&k==='z'){ e.preventDefault(); e.shiftKey?redo():undo(); return; }
@@ -2257,7 +2258,7 @@ function present(start,o={}){
   const setA11y=()=>{ const on=w.classList.toggle('a11y'); toolBtn('a11y').classList.toggle('on',on); say(on?'Alto contraste ligado':'Alto contraste desligado',1500); };
   function toggleHelp(){ if(help){ help.remove(); help=null; return; }
     help=document.createElement('div'); help.className='kbd-help'; help.innerHTML=`<div class="kh-in"><h3>Atalhos da apresentação</h3><dl>
-      <dt>→ · Espaço · Enter</dt><dd>Próximo</dd><dt>← · Backspace</dt><dd>Anterior</dd><dt>F</dt><dd>Tela cheia</dd><dt>P</dt><dd>Janela do apresentador (notas e cronômetro)</dd>
+      <dt>→ · Espaço · Enter</dt><dd>Próximo</dd><dt>← · Backspace</dt><dd>Anterior</dd><dt>F · F5</dt><dd>Tela cheia</dd><dt>P</dt><dd>Janela do apresentador (notas e cronômetro)</dd>
       <dt>L</dt><dd>Ponteiro laser</dd><dt>Z</dt><dd>Zoom: clique para aproximar, clique de novo para voltar</dd><dt>V</dt><dd>Comando por voz: “próximo”, “voltar”, “início”, “tela cheia”</dd><dt>C</dt><dd>Legendas ao vivo do que você fala</dd><dt>A</dt><dd>Alto contraste (texto mais legível)</dd><dt>B</dt><dd>Tela preta (pausa)</dd><dt>Esc</dt><dd>Sair</dd></dl><p>Pressione ? ou Esc para fechar</p></div>`;
     help.onclick=toggleHelp; w.appendChild(help); }
   const black=()=>w.classList.toggle('blackout');
@@ -2271,6 +2272,7 @@ function present(start,o={}){
   const close=()=>{ if(closed) return; closed=true; clearInterval(stageT); voiceOn=false; ccOn=false; syncRec(); clearTimeout(ccT); setLaser(false); removeEventListener('resize',sizeL); tell({type:'end'}); pl.destroy(); w.remove(); removeEventListener('keydown',key); removeEventListener('message',onMsg); try{ if(document.fullscreenElement) document.exitFullscreen(); }catch(_){} if(location.hash.startsWith('#play-')) try{ history.replaceState(null,'',location.pathname+location.search); }catch(_){} o.onClose&&o.onClose(); };
   const key=e=>{ const k=e.key.toLowerCase();
     if(e.key==='Escape'){ if(help) return toggleHelp(); if(w.classList.contains('blackout')) return black(); if(zoomed||zoomMode) return setZoom(false); return close(); }
+    if(e.key==='F5'){ e.preventDefault(); return fs(); }
     if(e.ctrlKey||e.metaKey||e.altKey) return;
     if(stageEl&&['ArrowRight','PageDown',' ','Enter'].includes(e.key)){ e.preventDefault(); return endStage(); }
     if(['ArrowRight','PageDown',' ','Enter'].includes(e.key)){e.preventDefault();pl.next();} else if(['ArrowLeft','PageUp','Backspace'].includes(e.key)){e.preventDefault();pl.prev();}
