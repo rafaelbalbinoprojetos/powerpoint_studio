@@ -349,6 +349,7 @@ function themePane(pane){
   <div class="f"><label for="t-bg">Fundo animado</label><select id="t-bg">${Object.entries(D.BACKGROUNDS).map(([k,l])=>`<option value="${k}"${k===eff.background?' selected':''}>${l}</option>`).join('')}</select></div>
   <div class="sec">Movimento e acessibilidade</div>
   <div class="f"><label for="t-tr">Transição padrão entre slides</label><select id="t-tr">${opt(D.TRANSITIONS,d.tr||'deslizar')}</select><span class="hint">“Voo pela tela infinita” espalha os slides num mapa e a câmera voa de um para o outro.</span></div>
+  <label class="chk"><input type="checkbox" id="t-mouse"${d.mouse===false?'':' checked'}> Fundo reage ao mouse e ao laser</label>
   <label class="chk"><input type="checkbox" id="t-calm"${d.calm?' checked':''}> Movimento reduzido ao apresentar (para quem é sensível a animações)</label>
   <div class="sec">Marca</div><div class="f"><label>Logo (aparece na capa, rodapé e núcleo)</label><div id="logoBox"></div><span class="hint">PNG ou SVG transparente funciona melhor.</span></div>
   <button class="btn sm" id="brandKit"${th.logo?'':' disabled'}>✨ Criar tema com as cores da logo</button>
@@ -385,6 +386,7 @@ function themePane(pane){
   $('#t-bg').onchange=e=>{ th.background=e.target.value; ch(); };
   $('#t-ft').oninput=e=>{ d.footerText=e.target.value; ch(); };
   $('#t-tr').onchange=e=>{ if(e.target.value==='deslizar') delete d.tr; else d.tr=e.target.value; touch(); renderPreview(false); };
+  $('#t-mouse').onchange=e=>{ if(e.target.checked) delete d.mouse; else d.mouse=false; touch(); renderPreview&&renderPreview(true); };
   $('#t-calm').onchange=e=>{ if(e.target.checked) d.calm=true; else delete d.calm; touch(); };
   $('#brandKit').onclick=async()=>{ setStatus('Lendo as cores da logo…'); try{ const k=await brandKit(D.resolveImage(th.logo),eff.light); if(!k) return setStatus('Não achei cores marcantes na logo (ela é só preto e branco?)'); Object.assign(th,k,{custom:'Kit da marca'}); ch(); themePane(pane); setStatus('Tema criado com as cores da marca',true); }catch(e){ setStatus('Não consegui ler a imagem da logo'); } };
   $('#t-fon').onchange=e=>{ d.footer=e.target.checked?undefined:false; if(d.footer===undefined) delete d.footer; ch(); };

@@ -689,7 +689,7 @@ function hubLoops(sl,G){
 /* ---------- fundo vivo ---------- */
 function background(cv,t,reduce){
   const cx=cv.getContext('2d'); const a=hex2rgb(t.accent); const light=!!t.light; const kind=t.background||'fibras';
-  let W=0,H=0,dpr=1,raf=0,alive=true; const cam={x:0,amp:1}; const t0=performance.now();
+  let W=0,H=0,dpr=1,raf=0,alive=true; const cam={x:0,amp:1}; const ms={x:.5,y:.5,t:-1e9,on:0}; const t0=performance.now();
   const parts=[...Array(70)].map(()=>({x:Math.random(),y:Math.random(),r:Math.random()*1.8+.4,s:Math.random()*.02+.005,p:Math.random()*6,vx:(Math.random()-.5)*.02,vy:(Math.random()-.5)*.02}));
   const rgba=al=>`rgba(${a[0]},${a[1]},${a[2]},${al})`;
   /* fundos premium: usam destaque, alerta e positivo do tema */
@@ -709,6 +709,8 @@ function background(cv,t,reduce){
   const ro=new ResizeObserver(size); ro.observe(cv); size();
   function draw(now){
     if(!alive) return; const tt=(now-t0)/1000;
+    ms.on+=((now-ms.t<2500?1:0)-ms.on)*.06; const on=ms.on, mx=ms.x*W, my=ms.y*H, px=(ms.x-.5)*on, py=(ms.y-.5)*on, MR=220*dpr;
+    const push=(x,y,k)=>{ if(on<.01) return [x,y]; const dx=x-mx, dy=y-my, d=Math.hypot(dx,dy); if(d>MR||d<1) return [x,y]; const f=(1-d/MR); return [x+dx/d*f*f*MR*.35*k*on, y+dy/d*f*f*MR*.35*k*on]; };
     cx.clearRect(0,0,W,H);
     const g=cx.createRadialGradient(W*.62,H*.45,0,W*.62,H*.45,W*.7);
     g.addColorStop(0,rgba(light?.10:.30));g.addColorStop(1,rgba(0));cx.fillStyle=g;cx.fillRect(0,0,W,H);
@@ -723,7 +725,8 @@ function background(cv,t,reduce){
       for(let i=-24;i<=24;i++){cx.beginPath();cx.moveTo(W/2+i*W*.02,hz);cx.lineTo(W/2+i*W*.16*cam.amp,H);cx.stroke();}
       for(let j=0;j<16;j++){const z=(j+sp)/16, y=hz+(H-hz)*z*z; cx.strokeStyle=rgba((light?.14:.2)*z); cx.beginPath();cx.moveTo(0,y);cx.lineTo(W,y);cx.stroke();}
     } else if(kind==='particulas'){
-      const P=parts.map(p=>({x:((p.x+Math.sin(tt*p.s*3+p.p)*.03+cam.x*.01)%1+1)%1*W,y:(p.y+Math.cos(tt*p.s*2+p.p)*.03)*H}));
+      const P=parts.map(p=>{ const q=push(((p.x+Math.sin(tt*p.s*3+p.p)*.03+cam.x*.01)%1+1)%1*W,(p.y+Math.cos(tt*p.s*2+p.p)*.03)*H,1); return {x:q[0],y:q[1]}; });
+      if(on>.05) P.forEach(q=>{ const d=Math.hypot(q.x-mx,q.y-my)/dpr; if(d<240){ cx.strokeStyle=rgba((1-d/240)*.5*on); cx.lineWidth=dpr; cx.beginPath(); cx.moveTo(mx,my); cx.lineTo(q.x,q.y); cx.stroke(); } });
       for(let i=0;i<P.length;i++)for(let j=i+1;j<P.length;j++){const dx=P[i].x-P[j].x,dy=P[i].y-P[j].y,d=Math.hypot(dx,dy)/dpr; if(d<160){cx.strokeStyle=rgba((1-d/160)*(light?.18:.22));cx.lineWidth=dpr;cx.beginPath();cx.moveTo(P[i].x,P[i].y);cx.lineTo(P[j].x,P[j].y);cx.stroke();}}
     } else if(kind==='malha'){ // manchas de cor se misturando
       const w=lo.width,h=lo.height; lx.clearRect(0,0,w,h); lx.globalCompositeOperation=light?'source-over':'lighter';
@@ -737,34 +740,35 @@ function background(cv,t,reduce){
           const gg=lx.createLinearGradient(0,y-hg,0,y+hg*.15); gg.addColorStop(0,col(c,0)); gg.addColorStop(.78,col(c,light?.16:.25)); gg.addColorStop(1,col(c,0)); lx.fillStyle=gg; lx.fillRect(x,y-hg,1.6,hg*1.15); } }
       cx.imageSmoothingEnabled=true; cx.drawImage(lo,0,0,W,H);
     } else if(kind==='topografia'){ // curvas de nível respirando
-      const ox=W*(.64+cam.x*.012), oy=H*.5, R=Math.max(W,H); cx.lineWidth=dpr;
+      const ox=W*(.64+cam.x*.012+px*.05), oy=H*(.5+py*.05), R=Math.max(W,H); cx.lineWidth=dpr;
       for(let k=1;k<=22;k++){ const r0=k*R*.045; cx.beginPath();
         for(let s=0;s<=96;s++){ const an=s/96*6.2832; const rr=r0*(1+.08*Math.sin(an*3+tt*.3+k*.4)+.05*Math.sin(an*5-tt*.22+k*.7)); const x=ox+Math.cos(an)*rr, y=oy+Math.sin(an)*rr*.72; s?cx.lineTo(x,y):cx.moveTo(x,y); }
         cx.closePath(); cx.strokeStyle=rgba((light?.15:.17)*(1-k/26)+(k%5===0?.07:0)); cx.stroke(); }
     } else if(kind==='pontos'){ // grade de pontos com onda passando
-      const sp=30*dpr, ox=((cam.x*40*dpr)%sp+sp)%sp, wx=W*(.5+.3*Math.sin(tt*.15)), wy=H*(.5+.3*Math.cos(tt*.12));
+      const sp=30*dpr, ox=((cam.x*40*dpr)%sp+sp)%sp, wx=on>.05?mx*on+W*(.5+.3*Math.sin(tt*.15))*(1-on):W*(.5+.3*Math.sin(tt*.15)), wy=on>.05?my*on+H*(.5+.3*Math.cos(tt*.12))*(1-on):H*(.5+.3*Math.cos(tt*.12));
       cx.fillStyle=rgba(light?.32:.5); cx.beginPath();
       for(let y=sp/2;y<H;y+=sp) for(let x=sp/2-ox;x<W+sp;x+=sp){ const d=Math.hypot(x-wx,y-wy)/dpr; const v=.5+.5*Math.sin(d*.018-tt*1.6); const r=(.5+v*v*2.3)*dpr*cam.amp; cx.moveTo(x+r,y); cx.arc(x,y,r,0,6.2832); }
       cx.fill();
     } else if(kind==='luz'){ // feixes de luz volumétrica
-      const ox=W*(-.04+cam.x*.012), oy=-H*.18, len=Math.hypot(W,H)*1.25;
+      const ox=W*(-.04+cam.x*.012+px*.08), oy=-H*.18, len=Math.hypot(W,H)*1.25;
       for(let k=0;k<6;k++){ const ang=.5+k*.14+Math.sin(tt*.15+k*1.7)*.05, wd=.03+.018*Math.sin(tt*.3+k*2);
         const gg=cx.createLinearGradient(ox,oy,ox+Math.cos(ang)*len*.8,oy+Math.sin(ang)*len*.8); gg.addColorStop(0,rgba(light?.13:.2)); gg.addColorStop(1,rgba(0));
         cx.fillStyle=gg; cx.beginPath(); cx.moveTo(ox,oy); cx.lineTo(ox+Math.cos(ang-wd)*len,oy+Math.sin(ang-wd)*len); cx.lineTo(ox+Math.cos(ang+wd)*len,oy+Math.sin(ang+wd)*len); cx.closePath(); cx.fill(); }
     } else if(kind==='poeira'){ // estrelas em profundidade vindo na direção da câmera
-      const fx=W*(.5-cam.x*.01), fy=H*.5, F=Math.max(W,H)*.55, v=reduce?0:.011*cam.amp;
+      const fx=W*(.5-cam.x*.01-px*.3), fy=H*(.5-py*.3), F=Math.max(W,H)*.55, v=reduce?0:.011*cam.amp;
       stars.forEach(st=>{ st.z-=v/60; if(st.z<=.02){ st.z=1; st.x=R()*2-1; st.y=R()*2-1; }
         const k=1/st.z, x=fx+st.x*F*k*.5, y=fy+st.y*F*k*.5; if(x<-20||x>W+20||y<-20||y>H+20){ st.z=1; return; }
         const near=1-st.z, r=(.3+near*near*2.6)*dpr, o=Math.min(1,near*1.6)*(.55+.45*Math.sin(tt*2+st.tw));
         const k2=1/(st.z+v*.9), x2=fx+st.x*F*k2*.5, y2=fy+st.y*F*k2*.5;
         cx.strokeStyle=col(st.c,o*(light?.5:.8)); cx.lineWidth=r; cx.lineCap='round'; cx.beginPath(); cx.moveTo(x,y); cx.lineTo(x2+(x2-x)*.4,y2+(y2-y)*.4); cx.stroke(); });
     } else if(kind==='galaxia'){ // espiral girando, inclinada, à direita
-      const gx=W*(.68+cam.x*.01), gy=H*.5, S=Math.min(W,H)*.62, rot=tt*.05, tilt=.42;
+      const gx=W*(.68+cam.x*.01+px*.06), gy=H*(.5+py*.06), S=Math.min(W,H)*.62, rot=tt*.05, tilt=.42;
       const core=cx.createRadialGradient(gx,gy,0,gx,gy,S*.32); core.addColorStop(0,col(b2,light?.18:.32)); core.addColorStop(1,col(b2,0)); cx.fillStyle=core; cx.fillRect(0,0,W,H);
       gal.forEach(q=>{ const an=q.a+rot*(1.4-q.d), rr=q.d*S, x=gx+Math.cos(an)*rr, y=gy+Math.sin(an)*rr*tilt+q.h*S;
         const o=(1-q.d*.6)*(.5+.5*Math.sin(tt*1.5+q.tw))*(light?.55:.85); cx.fillStyle=col(q.c,o); cx.fillRect(x,y,q.r*dpr,q.r*dpr); });
     } else if(kind==='vagalumes'){ // luzes que sobem, piscam e brilham
-      fly.forEach(f=>{ const x=((f.x+Math.sin(tt*f.s*9+f.p)*.035+cam.x*.02)%1+1)%1*W, y=((f.y-tt*f.s*.5)%1+1)%1*H;
+      fly.forEach(f=>{ let x=((f.x+Math.sin(tt*f.s*9+f.p)*.035+cam.x*.02)%1+1)%1*W, y=((f.y-tt*f.s*.5)%1+1)%1*H;
+        if(on>.01){ const dx=mx-x, dy=my-y, d=Math.hypot(dx,dy), R2=380*dpr; if(d<R2){ const f2=(1-d/R2)*.45*on; x+=dx*f2; y+=dy*f2; } }
         const pulse=Math.max(0,Math.sin(tt*(.8+f.s*20)+f.p)); const o=pulse*pulse*(light?.5:.9), r=f.r*dpr*(1+pulse*.4);
         const gg=cx.createRadialGradient(x,y,0,x,y,r*7); gg.addColorStop(0,col(f.c,o*.55)); gg.addColorStop(1,col(f.c,0)); cx.fillStyle=gg; cx.beginPath(); cx.arc(x,y,r*7,0,6.2832); cx.fill();
         cx.fillStyle=light?col(f.c,o):`rgba(255,255,240,${o})`; cx.beginPath(); cx.arc(x,y,r*.7,0,6.2832); cx.fill(); });
@@ -772,23 +776,24 @@ function background(cv,t,reduce){
       tx.globalCompositeOperation='destination-out'; tx.fillStyle='rgba(0,0,0,.075)'; tx.fillRect(0,0,W,H);
       tx.globalCompositeOperation=light?'source-over':'lighter'; tx.lineWidth=1.1*dpr;
       const sp=(reduce?0:1.4)*dpr*cam.amp;
-      flow.forEach(f=>{ const px=f.x*W, py=f.y*H, an=noise(f.x*2.2,f.y*2.2,tt)*2.4+cam.x*.2;
+      flow.forEach(f=>{ const qx=f.x*W, qy=f.y*H; let an=noise(f.x*2.2,f.y*2.2,tt)*2.4+cam.x*.2;
+        if(on>.01){ const dx=qx-mx, dy=qy-my, d=Math.hypot(dx,dy), R2=260*dpr; if(d<R2){ const sw=Math.atan2(dy,dx)+1.9, k=(1-d/R2)*on; an=an*(1-k)+sw*k; } }
         f.x+=Math.cos(an)*sp/W; f.y+=Math.sin(an)*sp/H; f.l-=1;
         if(f.l<0||f.x<0||f.x>1||f.y<0||f.y>1){ f.x=R(); f.y=R(); f.l=120+R()*160; return; }
-        tx.strokeStyle=col(f.c,light?.14:.2); tx.beginPath(); tx.moveTo(px,py); tx.lineTo(f.x*W,f.y*H); tx.stroke(); });
+        tx.strokeStyle=col(f.c,light?.14:.2); tx.beginPath(); tx.moveTo(qx,qy); tx.lineTo(f.x*W,f.y*H); tx.stroke(); });
       cx.drawImage(tr,0,0);
     } else if(kind==='bokeh'){ // luzes desfocadas flutuando
-      bok.forEach(b=>{ const x=((b.x+Math.sin(tt*b.s*4+b.p)*.04+cam.x*.03)%1+1)%1*W, y=((b.y-tt*b.s*.6)%1+1)%1*H, r=b.r*Math.max(W,H)*(1+.1*Math.sin(tt+b.p));
+      bok.forEach((b,bi)=>{ const dep=.02+b.r*.6, x=((b.x+Math.sin(tt*b.s*4+b.p)*.04+cam.x*.03-px*dep)%1+1)%1*W, y=((b.y-tt*b.s*.6-py*dep)%1+1)%1*H, r=b.r*Math.max(W,H)*(1+.1*Math.sin(tt+b.p));
         const o=b.o*(light?.3:.45)*(.7+.3*Math.sin(tt*.7+b.p)); const gg=cx.createRadialGradient(x,y,r*.5,x,y,r);
         gg.addColorStop(0,col(b.c,o*.5)); gg.addColorStop(.86,col(b.c,o*.75)); gg.addColorStop(1,col(b.c,0)); cx.fillStyle=gg; cx.beginPath(); cx.arc(x,y,r,0,6.2832); cx.fill(); });
     }
-    if(['fibras','grade','particulas','luz'].includes(kind)) parts.forEach(p=>{ const x=((p.x+tt*p.s*.3+cam.x*.02)%1)*W, y=(p.y*H)+Math.sin(tt+p.p)*10*dpr;
+    if(['fibras','grade','particulas','luz'].includes(kind)) parts.forEach(p=>{ const q=push(((p.x+tt*p.s*.3+cam.x*.02)%1)*W,(p.y*H)+Math.sin(tt+p.p)*10*dpr,.8), x=q[0], y=q[1];
       cx.beginPath();cx.arc(x,y,p.r*dpr,0,7);cx.fillStyle=light?rgba(.25+.2*Math.sin(tt*2+p.p)):`rgba(${Math.min(255,a[0]+90)},${Math.min(255,a[1]+70)},${Math.min(255,a[2]+40)},${.35+.35*Math.sin(tt*2+p.p)})`;cx.fill(); });
     cx.globalCompositeOperation='source-over';
     if(!reduce) raf=requestAnimationFrame(draw);
   }
   raf=requestAnimationFrame(draw);
-  return {cam,stop(){alive=false;cancelAnimationFrame(raf);ro.disconnect();}};
+  return {cam,ms,stop(){alive=false;cancelAnimationFrame(raf);ro.disconnect();}};
 }
 
 /* ---------- player ---------- */
@@ -799,6 +804,7 @@ function createPlayer(root,deck,opts={}){
   const player=root.firstElementChild, stage=player.querySelector('.dk-stage'), slides=[...stage.querySelectorAll('.dk-slide')];
   splitWords(stage);
   const bg=background(player.querySelector('.dk-bg'),t,reduce);
+  if(!reduce&&deck.mouse!==false){ player.addEventListener('pointermove',e=>{ const r=player.getBoundingClientRect(); if(!r.width) return; bg.ms.x=(e.clientX-r.left)/r.width; bg.ms.y=(e.clientY-r.top)/r.height; bg.ms.t=performance.now(); },{passive:true}); player.addEventListener('pointerleave',()=>{ bg.ms.t=-1e9; }); }
   function fit(){const r=player.getBoundingClientRect(); if(!r.width) return; const s=Math.min(r.width/1920,r.height/1080);stage.style.transform=`translate(-50%,-50%) scale(${s})`;}
   const ro=new ResizeObserver(fit); ro.observe(player); fit();
   let cur=-1,busy=false,tl=null,loops=[],autoT=null;
