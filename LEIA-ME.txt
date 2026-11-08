@@ -147,3 +147,34 @@ conteúdo é perdido.
 FUNDOS DE PARTÍCULAS
 Aba Tema > Fundo animado ganhou: Poeira estelar 3D, Galáxia de partículas,
 Vaga-lumes e Fluxo de partículas. Usam as cores do tema.
+
+TEXTO CORRIDO VIRA APRESENTAÇÃO
+Mais > Criar a partir de um texto corrido. Cole um relatório, e-mail ou ata.
+Para escolher o tipo de slide, escreva o título numa linha sozinha e o modelo
+entre chaves no final; embaixo, um item por linha começando com "- ":
+
+  Vendas por região {grafico}
+  - Norte: 120
+  - Sul: 340
+
+  Onde já estamos {globo}
+  - São Paulo
+  - Lisboa
+
+Tags aceitas (com ou sem acento): {capa} {destaque} {cartoes}/{cards}
+{numeros} {fluxo} {agenda} {comparacao} {tabela} {grafico} {barrash} {pizza}
+{linha} {medidores} {funil} {matriz}/{swot} {onepage} {painel} {citacao}
+{equipe} {globo} {barras3d} {particulas} {tunel} {logo} {encerramento}.
+O guia completo, com o formato de cada item, fica na própria janela
+("Como marcar gráfico, globo, cartões, onepage…") com botão "Copiar guia".
+
+OUTRAS NOVIDADES
+Biblioteca           botão "☆ Guardar" salva o slide; ele aparece em
+                     "+ Adicionar slide" de qualquer apresentação
+Histórico            Mais > Histórico de versões: automáticas a cada 10 min,
+                     versões com nome, restaurar ou abrir como cópia
+Comentários          aba Conteúdo > Comentários; selo laranja na miniatura
+Morph                transição em que as caixas viram as do próximo slide
+Fundo reage ao mouse aba Tema (pode desligar)
+Trilha sonora        aba Tema > Trilha sonora; M liga/desliga ao apresentar;
+                     o fundo pulsa na batida e a troca de slide cai no tempo

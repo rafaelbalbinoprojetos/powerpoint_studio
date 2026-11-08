@@ -818,6 +818,11 @@ textarea{resize:vertical;min-height:62px;line-height:1.45}
 .lnk{background:none;border:0;padding:0;color:var(--ui-acc);font:600 12px var(--ui-f);cursor:pointer}
 .cm-tg{align-self:flex-start}
 .cm-new{display:flex;flex-direction:column;gap:6px}.cm-new .btn{align-self:flex-end}
+
+/* guia de tags */
+.tag-guide{margin:4px 0 10px;border:1px solid var(--ui-line);border-radius:10px;padding:8px 12px}
+.tag-guide summary{cursor:pointer;font-weight:600;font-size:13px;color:var(--ui-acc)}
+.tag-guide pre{max-height:34vh;overflow:auto;white-space:pre-wrap;font:12px/1.5 var(--ui-m);background:var(--ui-sunk,rgba(127,127,127,.08));padding:12px;border-radius:8px;margin:10px 0 8px;user-select:text}
 </style>
 
 </head>
@@ -2359,9 +2364,9 @@ Nota: lembrar de citar o caso de março.
 function scriptDialog(init){
   const m=modal(`<h3>Criar a partir de um roteiro</h3><p class="sub">Cada <code>#</code> começa um slide. O modelo é escolhido sozinho, ou force com <code>{cartoes}</code>, <code>{fluxo}</code>, <code>{numeros}</code>… <code>[Rótulo]</code> vira o rótulo, <code>- item</code> vira tópico (use <code>Título: texto</code> para cartões e números) e <code>Nota:</code> vai para as notas do apresentador.</p>
   <textarea id="scr" rows="16" style="width:100%;font-family:var(--ui-m);font-size:12px" placeholder="${esc(SCRIPT_HELP)}"></textarea>
-  <p class="hint">Modelos: ${Object.entries(T).map(([k,t])=>`<code>${k}</code> (${esc(t.name)})`).join(', ')}</p>
+  ${guideHTML()}
   <div class="row"><button class="btn" data-c>Cancelar</button><button class="btn" data-add>Adicionar ao final desta</button><button class="btn pri" data-new>Criar nova apresentação</button></div>`);
-  const ta=m.el.querySelector('#scr'); if(init) ta.value=init; ta.focus();
+  const ta=m.el.querySelector('#scr'); if(init) ta.value=init; ta.focus(); wireGuide(m.el);
   m.el.querySelector('[data-c]').onclick=m.close;
   const run=asNew=>{ const slides=varyLayouts(parseScript(ta.value||'')); if(!slides.length){ ta.value=ta.value||SCRIPT_HELP; return; }
     m.close();
@@ -2386,6 +2391,86 @@ function showcaseDialog(){
   m.el.querySelectorAll('.gcard').forEach(c=>{ const x=SHOWCASES[+c.dataset.v], dk=build(x); D.renderStatic(c.querySelector('.tv'),dk,dk.slides.findIndex(s=>s.t==='onepage')>0?1:0);
     c.onclick=()=>{ m.close(); const id=uid(); decks[id]=build(x); curId=id; sel=0; touch(); renderAll(); setStatus('“'+x.name+'” criada',true); }; });
 }
+/* ---------- tags de modelo: {grafico}, {globo}, {cartoes}… (com ou sem acento) ---------- */
+const TAG_ALIAS={grafico:'grafico',graficos:'grafico',barras:'grafico',colunas:'grafico',barrash:'barrash',ranking:'barrash',barrashorizontais:'barrash',pizza:'pizza',rosca:'pizza',donut:'pizza',linha:'linha',area:'linha',evolucao:'linha',medidores:'medidores',metas:'medidores',medidor:'medidores',funil:'funil',matriz:'matriz',swot:'matriz',
+  globo:'globo3d',globo3d:'globo3d',mapa:'globo3d',mundo:'globo3d',barras3d:'barras3d',grafico3d:'barras3d',particulas:'particulas3d',particulas3d:'particulas3d',tunel:'tunel3d',tunel3d:'tunel3d',logo:'logo3d',logo3d:'logo3d',
+  cartoes:'cartoes',cartao:'cartoes',cards:'cartoes',card:'cartoes',numeros:'numeros',indicadores:'numeros',kpi:'numeros',kpis:'numeros',fluxo:'fluxo',etapas:'fluxo',processo:'fluxo',passos:'fluxo',
+  linhadotempo:'agenda',agenda:'agenda',cronograma:'agenda',timeline:'agenda',comparacao:'comparacao',antesedepois:'comparacao',versus:'comparacao',tabela:'tabela',citacao:'citacao',frase:'citacao',depoimento:'citacao',
+  equipe:'equipe',time:'equipe',onepage:'onepage',resumo:'onepage',painel:'painel',dashboard:'painel',capa:'capa',abertura:'capa',destaque:'destaque',secao:'destaque',encerramento:'encerramento',fim:'encerramento',conclusao:'encerramento',
+  imagem:'imagem',foto:'imagem',video:'video',convergencia:'convergencia',tela:'tela',sistema:'tela',galeria:'galeria3d',galeria3d:'galeria3d',mergulho:'mergulho',revelar:'revelar',paralaxe:'paralaxe'};
+const tagOf=v=>{ if(!v) return null; const k=String(v).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,''); const t=TAG_ALIAS[k]||k; return T[t]?t:null; };
+const TAG_RE=/\s*\{\s*([\wÀ-ÿ -]+?)\s*\}\s*$/;
+/* cidades conhecidas para o globo (ou informe "Cidade: lat, lon") */
+const GEO={'sao paulo':[-23.55,-46.63],'rio de janeiro':[-22.91,-43.17],'brasilia':[-15.79,-47.88],'belo horizonte':[-19.92,-43.94],'curitiba':[-25.43,-49.27],'porto alegre':[-30.03,-51.23],'salvador':[-12.97,-38.5],'recife':[-8.05,-34.9],'fortaleza':[-3.73,-38.52],'manaus':[-3.12,-60.02],'belem':[-1.46,-48.5],'goiania':[-16.69,-49.26],'florianopolis':[-27.6,-48.55],'vitoria':[-20.32,-40.34],'campinas':[-22.91,-47.06],'betim':[-19.97,-44.2],'contagem':[-19.93,-44.05],
+  'buenos aires':[-34.6,-58.38],'santiago':[-33.45,-70.67],'lima':[-12.05,-77.04],'bogota':[4.71,-74.07],'cidade do mexico':[19.43,-99.13],'mexico':[19.43,-99.13],'nova york':[40.71,-74.01],'new york':[40.71,-74.01],'miami':[25.76,-80.19],'chicago':[41.88,-87.63],'los angeles':[34.05,-118.24],'sao francisco':[37.77,-122.42],'toronto':[43.65,-79.38],'montreal':[45.5,-73.57],
+  'lisboa':[38.72,-9.14],'porto':[41.15,-8.61],'madri':[40.42,-3.7],'madrid':[40.42,-3.7],'barcelona':[41.39,2.17],'paris':[48.86,2.35],'londres':[51.51,-0.13],'london':[51.51,-0.13],'berlim':[52.52,13.4],'munique':[48.14,11.58],'amsterda':[52.37,4.9],'amsterdam':[52.37,4.9],'roma':[41.9,12.5],'milao':[45.46,9.19],'turim':[45.07,7.69],'zurique':[47.38,8.54],'copenhague':[55.68,12.57],'estocolmo':[59.33,18.07],'varsovia':[52.23,21.01],'moscou':[55.76,37.62],'istambul':[41.01,28.98],
+  'dubai':[25.2,55.27],'cairo':[30.04,31.24],'joanesburgo':[-26.2,28.05],'cidade do cabo':[-33.92,18.42],'lagos':[6.52,3.38],'luanda':[-8.84,13.23],'maputo':[-25.97,32.57],'mumbai':[19.08,72.88],'nova delhi':[28.61,77.21],'delhi':[28.61,77.21],'bangalore':[12.97,77.59],'singapura':[1.35,103.82],'hong kong':[22.32,114.17],'xangai':[31.23,121.47],'shanghai':[31.23,121.47],'pequim':[39.9,116.4],'shenzhen':[22.54,114.06],'toquio':[35.68,139.69],'tokyo':[35.68,139.69],'seul':[37.57,126.98],'sydney':[-33.87,151.21],'melbourne':[-37.81,144.96],
+  'brasil':[-14.2,-51.9],'portugal':[39.4,-8.2],'estados unidos':[39.8,-98.6],'eua':[39.8,-98.6],'china':[35.9,104.2],'japao':[36.2,138.3],'alemanha':[51.2,10.4],'italia':[41.9,12.6],'franca':[46.2,2.2],'espanha':[40.5,-3.7],'india':[20.6,78.9],'argentina':[-38.4,-63.6],'chile':[-35.7,-71.5],'mexico pais':[23.6,-102.6],'canada':[56.1,-106.3],'australia':[-25.3,133.8],'africa do sul':[-30.6,22.9],'polonia':[51.9,19.1],'reino unido':[55.4,-3.4],'inglaterra':[52.4,-1.2]};
+const geoOf=name=>{ const k=String(name||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim(); return GEO[k]||null; };
+const TAG_GUIDE=`COMO MARCAR O TIPO DE CADA SLIDE
+Escreva o título do slide numa linha sozinha e coloque o modelo entre chaves no final.
+Embaixo, um item por linha começando com "- ". Use "Nome: valor" quando o modelo pedir dois dados.
+Sem chaves, o sistema escolhe o modelo sozinho. Acentos são opcionais: {grafico} = {gráfico}.
+
+Vendas por região {grafico}
+- Norte: 120
+- Sul: 340
+- Sudeste: 510
+
+Onde já estamos {globo}
+- São Paulo
+- Lisboa
+- Tóquio
+- Minha Cidade: -19.9, -44.0      (cidades fora da lista: latitude, longitude)
+
+Nossos pilares {cartoes}
+- Velocidade: entregas em dias, não meses
+- Qualidade: cada item revisado duas vezes
+
+Resultados do ano {numeros}
+- 94%: disponibilidade dos equipamentos
+- R$ 1,2 mi: economia no período
+
+Como funciona {fluxo}
+- Diagnóstico: mapear as dores
+- Piloto: um bairro, metas claras
+- Escala: expandir o que deu certo
+
+Resumo do projeto {onepage}
+- Custos: R$ 1,2 mi economizados
+- Prazos: 30% mais rápido
+Detalhe de custos {destaque} (oculto)
+
+MODELOS E O QUE ESCREVER EM CADA ITEM
+{capa}           primeiro slide; itens viram etiquetas
+{destaque}       uma frase grande; texto de apoio embaixo, sem itens
+{cartoes}        - Título: texto              (até 4)      também {cards}
+{numeros}        - 37%: descrição             (até 4)      também {indicadores}
+{fluxo}          - Etapa: texto               (até 5)      também {etapas}
+{agenda}         - Quando: o que acontece     (até 5)      também {cronograma}
+{comparacao}     - itens: metade vira "Antes", metade "Depois"
+{tabela}         - Coluna A | Coluna B | Coluna C   (primeira linha = cabeçalho)
+{grafico}        - Rótulo: valor              (até 8)      também {barras}
+{barrash}        - Rótulo: valor              ranking em barras horizontais
+{pizza}          - Fatia: valor               (até 8)      também {rosca}
+{linha}          - Jan: valor                 (até 12)     evolução no tempo
+{medidores}      - Meta: 0 a 100              (até 4)
+{funil}          - Etapa: valor               (até 6)
+{matriz}         - Quadrante: item, item      (4 linhas)   também {swot}
+{onepage}        - Bloco: valor e texto       (até 6). Um slide "(oculto)" com o mesmo título vira o detalhe do bloco
+{painel}         - Indicador: valor           tabela com linhas "A | B | C"
+{citacao}        o título é a frase; a linha de baixo é o autor
+{equipe}         - Nome: papel                (até 6)
+{globo}          - Cidade (ou Cidade: lat, lon)   (até 10; a primeira é o centro)
+{barras3d}       - Rótulo: valor              (até 8)      gráfico 3D com câmera
+{particulas}     o título vira o texto; a primeira linha de texto vira a palavra formada
+{tunel}          abre um capítulo; só título e texto
+{logo}           sua logo em partículas 3D; só título e texto
+{encerramento}   último slide; itens viram próximos passos
+
+Outros recursos: [Rótulo] numa linha vira o rótulo acima do título; "Nota: ..." vai para as notas do apresentador; (oculto) no fim do título esconde o slide.`;
+function guideHTML(){ return `<details class="tag-guide"><summary>Como marcar gráfico, globo, cartões, onepage… (guia para copiar)</summary><pre id="tagGuide">${esc(TAG_GUIDE)}</pre><button class="btn sm" data-copyguide>Copiar guia</button></details>`; }
+function wireGuide(root){ const b=root.querySelector('[data-copyguide]'); if(b) b.onclick=async()=>{ try{ await navigator.clipboard.writeText(TAG_GUIDE); b.textContent='Copiado ✓'; }catch(_){ const r=document.createRange(); r.selectNodeContents(root.querySelector('#tagGuide')); const sl=getSelection(); sl.removeAllRanges(); sl.addRange(r); b.textContent='Selecionado: Ctrl+C'; } }; }
 /* ---------- texto corrido vira apresentação (sem IA: regras locais) ---------- */
 const NUM_RE=/(R\$\s*)?\d[\d.,]*\s*(%|mil\b|milhões|milhão|mi\b|bi\b|bilhões|x\b|vezes)?/i;
 function varyLayouts(slides){
@@ -2409,17 +2494,19 @@ function textToScript(txt){
   const flush=()=>{ if(para.length){ (cur||(cur={head:'',items:[],paras:[]},blocks.push(cur),cur)).paras.push(para.join(' ')); para=[]; } };
   lines.forEach(l=>{ if(!l){ flush(); return; }
     if(/^([-*•]|\d+[.)])\s+/.test(l)){ flush(); if(!cur){ cur={head:'',items:[],paras:[]}; blocks.push(cur); } cur.items.push(l.replace(/^([-*•]|\d+[.)])\s+/,'')); return; }
-    if(isHead(l)){ flush(); cur={head:l.replace(/^#+\s*/,'').replace(/:$/,''),items:[],paras:[]}; blocks.push(cur); return; }
+    const tg=TAG_RE.exec(l), hid=/\((?:oculto|oculta)\)\s*$/i.test(l.replace(TAG_RE,''));
+    if(tg&&tagOf(tg[1])||isHead(l)){ flush(); let h=l.replace(/^#+\s*/,''); let tag=null; if(tg&&tagOf(tg[1])){ tag=tagOf(tg[1]); h=h.replace(TAG_RE,''); } h=h.replace(/\s*\((?:oculto|oculta)\)\s*$/i,'').replace(/:$/,'').trim(); const m2=TAG_RE.exec(h); if(!tag&&m2&&tagOf(m2[1])){ tag=tagOf(m2[1]); h=h.replace(TAG_RE,''); } cur={head:h,tag,hidden:hid||/\((?:oculto|oculta)\)/i.test(l),items:[],paras:[]}; blocks.push(cur); return; }
     para.push(l); });
   flush();
   /* sem títulos: cada parágrafo vira um bloco */
   const out=[]; let docTitle='';
   if(blocks.length===1&&!blocks[0].head&&blocks[0].paras.length>1){ const b=blocks[0]; blocks.length=0; b.paras.forEach(pp=>blocks.push({head:'',items:b.items.splice(0),paras:[pp]})); }
-  if(blocks[0]&&blocks[0].head&&!blocks[0].items.length&&blocks[0].paras.length<=1){ docTitle=blocks[0].head; const sub=blocks[0].paras[0]||''; blocks.shift(); out.push('# '+accent(docTitle)); if(sub) out.push(shorten(sentences(sub)[0]||sub,22)); if(sub) out.push('Nota: '+sub); }
-  else { const first=blocks[0]&&(blocks[0].head||sentences(blocks[0].paras[0]||'')[0]||''); docTitle=shorten(first||'Apresentação',8); out.push('# '+accent(docTitle)); }
+  if(blocks[0]&&blocks[0].head&&!blocks[0].tag&&!blocks[0].items.length&&blocks[0].paras.length<=1){ docTitle=blocks[0].head; const sub=blocks[0].paras[0]||''; blocks.shift(); out.push('# '+accent(docTitle)); if(sub) out.push(shorten(sentences(sub)[0]||sub,22)); if(sub) out.push('Nota: '+sub); }
+  else if(!(blocks[0]&&blocks[0].tag)){ const first=blocks[0]&&(blocks[0].head||sentences(blocks[0].paras[0]||'')[0]||''); docTitle=shorten(first||'Apresentação',8); out.push('# '+accent(docTitle)); }
   const seq=/\b(primeir[oa]|segund[oa]|terceir[oa]|depois|em seguida|por fim|finalmente|etapa|fase|passo)\b/i;
   blocks.forEach((b,bi)=>{
     const text=b.paras.join(' '), ss=sentences(text);
+    if(b.tag){ out.push(''); out.push('# '+(/\*/.test(b.head)||['citacao','particulas3d'].includes(b.tag)?b.head:accent(b.head))+' {'+b.tag+'}'+(b.hidden?' (oculto)':'')); b.paras.forEach(pp=>out.push(pp)); b.items.forEach(it=>out.push('- '+it)); return; }
     let title=b.head||shorten(ss[0]||'',9); if(!b.head) ss.shift();
     const items=b.items.slice();
     /* frases com números viram indicadores "37%: texto" */
@@ -2446,9 +2533,9 @@ function textToScript(txt){
 function textDialog(){
   const m=modal(`<h3>Criar a partir de um texto corrido</h3><p class="sub">Cole um relatório, e-mail, ata ou artigo. O sistema separa em slides, escolhe o modelo de cada um (números, fluxo, cartões…), varia os layouts e coloca o texto completo nas notas do apresentador. Funciona sem internet e sem IA.</p>
   <textarea id="tx" rows="14" style="width:100%" placeholder="Cole aqui o seu texto. Títulos curtos em linhas separadas viram slides; frases com números viram indicadores; frases com primeiro, depois, por fim viram fluxo."></textarea>
-  <p class="hint" id="txInfo">&nbsp;</p>
+  <p class="hint" id="txInfo">&nbsp;</p>${guideHTML()}
   <div class="row"><button class="btn" data-c>Cancelar</button><button class="btn" data-edit>Ver e ajustar o roteiro</button><button class="btn pri" data-ok>Criar apresentação</button></div>`);
-  const ta=m.el.querySelector('#tx'), info=m.el.querySelector('#txInfo'); ta.focus();
+  const ta=m.el.querySelector('#tx'), info=m.el.querySelector('#txInfo'); ta.focus(); wireGuide(m.el);
   ta.oninput=()=>{ const sc=textToScript(ta.value); const n=sc?parseScript(sc).length:0; info.textContent=n?n+' slides serão criados':' '; };
   m.el.querySelector('[data-c]').onclick=m.close;
   m.el.querySelector('[data-edit]').onclick=()=>{ const sc=textToScript(ta.value); if(!sc) return ta.focus(); m.close(); scriptDialog(sc); };
@@ -2459,7 +2546,7 @@ function parseScript(txt){
   const out=[]; let cur=null; const blank=title=>({title,tpl:null,kicker:'',lead:[],bullets:[],notes:[]});
   txt.replace(/\r/g,'').split('\n').forEach(raw=>{
     const l=raw.trim(); let m; if(!l) return;
-    if((m=/^#{1,3}\s+(.+?)(?:\s*\{\s*(\w+)\s*\})?(\s*\((?:oculto|oculta)\))?(?:\s*\{\s*(\w+)\s*\})?$/i.exec(l))){ if(cur) out.push(cur); let ti=m[1]; let hidden=!!m[3]; const hm=/\s*\((?:oculto|oculta)\)\s*$/i.exec(ti); if(hm){ hidden=true; ti=ti.slice(0,hm.index); } cur=blank(ti); cur.hidden=hidden; const tp=m[2]||m[4]; if(tp&&T[tp]) cur.tpl=tp; return; }
+    if((m=/^#{1,3}\s+(.+?)(?:\s*\{\s*([\wÀ-ÿ -]+?)\s*\})?(\s*\((?:oculto|oculta)\))?(?:\s*\{\s*([\wÀ-ÿ -]+?)\s*\})?$/i.exec(l))){ if(cur) out.push(cur); let ti=m[1]; let hidden=!!m[3]; const hm=/\s*\((?:oculto|oculta)\)\s*$/i.exec(ti); if(hm){ hidden=true; ti=ti.slice(0,hm.index); } cur=blank(ti); cur.hidden=hidden; const tp=tagOf(m[2]||m[4]); if(tp) cur.tpl=tp; return; }
     if(!cur){ cur=blank(l); return; }
     if((m=/^notas?\s*:\s*(.*)$/i.exec(l))){ cur.notes.push(m[1]); return; }
     if((m=/^\[(.+)\]$/.exec(l))){ cur.kicker=m[1]; return; }
@@ -2506,7 +2593,11 @@ function toSlide(s,i,n){
     case 'cartoes': d.cards=P.map(p=>({label:'',title:p.a,text:p.b})); break;
     case 'agenda': d.events=P.map(p=>({when:p.a,title:p.b,text:''})); break;
     case 'tabela': d.rows=s.bullets.map(b=>b.replace(/\s*[:—–]\s+/,' | ')); break;
-    case 'grafico': d.bars=P.map(p=>({label:p.a,value:p.b,hot:false})); break;
+    case 'grafico': case 'barras3d': case 'barrash': d.bars=P.map(p=>({label:p.a,value:p.b,hot:false})); break;
+    case 'globo3d': d.points=s.bullets.map(b=>{ const m=/^(.+?)\s*[:–—]\s*(-?[\d.]+)\s*[,;]\s*(-?[\d.]+)/.exec(b); const nm=m?m[1].trim():b.replace(/[:–—(].*$/,'').trim(); const g=m?[+m[2],+m[3]]:geoOf(nm); return g?{label:nm,lat:String(g[0]),lon:String(g[1])}:null; }).filter(Boolean).slice(0,10); d.stats=[]; d.camera='tour'; break;
+    case 'matriz': ['a','b','c','d'].forEach((q,qi)=>{ const p=P[qi]; if(p){ d[q+'Title']=p.a; d[q]=p.b.split(/\s*[,;]\s*/).filter(Boolean); } }); break;
+    case 'particulas3d': d.word=(lead.split('\n')[0]||plain(s.title).split(' ')[0]||'').slice(0,12); d.lead=lead.split('\n').slice(1).join('\n'); break;
+    case 'equipe': d.people=P.map(p=>({name:p.a,role:p.b,photo:''})).slice(0,6); break;
     case 'comparacao': { const h=Math.ceil(s.bullets.length/2); d.leftTitle='Antes'; d.rightTitle='Depois'; d.left=s.bullets.slice(0,h); d.right=s.bullets.slice(h); break; }
     default: { const li=tpl.fields.find(f=>f.t==='list'), it=tpl.fields.find(f=>f.t==='items');
       if(it){ const subs=it.sub.filter(f=>f.t==='text'||f.t==='area'); d[it.k]=P.map(p=>{ const o={}; it.sub.forEach(f=>o[f.k]=f.t==='bool'?false:''); if(subs[0]) o[subs[0].k]=p.a; if(subs[1]) o[subs[1].k]=p.b; return o; }); }
