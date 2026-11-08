@@ -49,11 +49,37 @@ async function saveLib(){ try{ await IDB.set('library',clone(myLib)); }catch(_){
 async function loadThemes(){ try{ myThemes=(await IDB.get('themes'))||[]; }catch(_){ try{ myThemes=JSON.parse(lsGet(LS+'-themes')||'[]'); }catch(e){ myThemes=[]; } } }
 async function saveThemes(){ try{ await IDB.set('themes',clone(myThemes)); }catch(_){ lsSet(LS+'-themes',JSON.stringify(myThemes)); } }
 
+/* ---------- histórico de versões: automático a cada 10 min de edição + versões com nome ---------- */
+const VKEY=id=>'ver-'+id;
+async function getVersions(id){ try{ return (await IDB.get(VKEY(id)))||[]; }catch(_){ try{ return JSON.parse(lsGet(LS+'-'+VKEY(id))||'[]'); }catch(e){ return []; } } }
+async function putVersions(id,list){ const autos=list.filter(v=>!v.name); const keep=list.filter(v=>v.name||autos.indexOf(v)<30).slice(0,60);
+  try{ await IDB.set(VKEY(id),keep); }catch(_){ lsSet(LS+'-'+VKEY(id),JSON.stringify(keep.slice(0,8))); } }
+let verBusy=false;
+async function addVersion(id,d,name){ const list=await getVersions(id); list.unshift({at:Date.now(),name:name||'',deck:clone(d)}); await putVersions(id,list); }
+async function autoVersion(id,d){ if(verBusy||!id||!d) return; verBusy=true; try{ const list=await getVersions(id); const last=list.find(v=>!v.name)||list[0];
+  if(!last||Date.now()-last.at>10*60000){ list.unshift({at:Date.now(),name:'',deck:clone(d)}); await putVersions(id,list); } }catch(_){} verBusy=false; }
+const whenTxt=t=>{ const d=new Date(t), now=new Date(), h=d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); const day=Math.round((new Date(now.toDateString())-new Date(d.toDateString()))/864e5); return day===0?'Hoje, '+h:day===1?'Ontem, '+h:d.toLocaleDateString('pt-BR')+', '+h; };
+async function versionsDialog(){
+  const id=curId, list=await getVersions(id);
+  const m=modal(`<h3>Histórico de versões</h3><p class="sub">Uma versão é guardada sozinha a cada 10 minutos de edição. Você também pode guardar uma versão com nome antes de uma mudança grande. Restaurar não apaga nada: a versão atual também é guardada.</p>
+    <div class="ver-new"><input type="text" id="verName" placeholder="Nome da versão (ex.: enviada para a diretoria)"><button class="btn pri" data-save>Guardar versão agora</button></div>
+    <div class="ver-list">${list.map((v,i)=>`<div class="ver-i"><div class="tv"></div><div class="ver-t"><b>${v.name?esc(v.name):'Versão automática'}</b><small>${whenTxt(v.at)} · ${(v.deck.slides||[]).length} slides</small></div><div class="ver-a"><button class="btn sm" data-copy="${i}">Abrir como cópia</button><button class="btn sm" data-res="${i}">Restaurar</button></div></div>`).join('')||'<p class="sub">Ainda não há versões guardadas. Elas aparecem conforme você edita.</p>'}</div>
+    <div class="row"><button class="btn pri" data-c>Fechar</button></div>`,'confirm review');
+  m.el.querySelector('[data-c]').onclick=m.close;
+  m.el.querySelectorAll('.ver-i').forEach((row,i)=>{ try{ D.renderStatic(row.querySelector('.tv'),list[i].deck,0); }catch(_){} });
+  const nm=m.el.querySelector('#verName');
+  const saveNow=async()=>{ await addVersion(id,deck(),nm.value.trim()||'Versão de '+whenTxt(Date.now())); m.close(); versionsDialog(); setStatus('Versão guardada',true); };
+  m.el.querySelector('[data-save]').onclick=saveNow; nm.onkeydown=e=>{ if(e.key==='Enter') saveNow(); };
+  m.el.querySelectorAll('[data-res]').forEach(b=>b.onclick=async()=>{ const v=list[+b.dataset.res]; await addVersion(id,deck(),'Antes de restaurar ('+whenTxt(Date.now())+')');
+    if(histT) snap(); decks[id]=Object.assign(clone(v.deck),{updatedAt:Date.now()}); normalize(decks[id]); sel=0; m.close(); touch(); renderAll(); setStatus('Versão restaurada',true); });
+  m.el.querySelectorAll('[data-copy]').forEach(b=>b.onclick=()=>{ const v=list[+b.dataset.copy]; const nid=uid(); decks[nid]=Object.assign(clone(v.deck),{name:(v.deck.name||'Apresentação')+' (versão de '+whenTxt(v.at)+')',updatedAt:Date.now()}); normalize(decks[nid]); curId=nid; sel=0; m.close(); touch(); renderAll(); setStatus('Cópia criada',true); });
+}
+
 /* ---------- persistência ---------- */
 function setStatus(txt,ok){ const s=$('#status'); if(!s) return; s.textContent=txt; s.classList.toggle('ok',!!ok); }
 function touch(){ const d=deck(); if(!d) return; d.updatedAt=Date.now(); dirty=true; setStatus('Alterado…'); clearTimeout(saveT); saveT=setTimeout(save,900); clearTimeout(histT); histT=setTimeout(snap,600); }
 async function save(){
-  const d=deck(); if(!d) return;
+  const d=deck(); if(!d) return; autoVersion(curId,d);
   if(saving){ pendingSave=true; return; }
   saving=true;
   if(mode==='db'){
@@ -385,7 +411,7 @@ $('#deckMenu').onclick=()=>{
   <div class="sec">Qualidade</div><button class="btn" data-a="review">Revisar apresentação (nota de qualidade)</button>
   <div class="sec">Apresentar</div><button class="btn" data-a="ensaio">Ensaiar com cronômetro (tempo por slide e relatório)</button><button class="btn" data-a="stage">Modo palco (tela de espera com contagem regressiva)</button>
   <div class="sec">Exportar</div><button class="btn" data-a="pdf">Salvar em PDF (um slide por página)</button><button class="btn" data-a="rec">Gravar vídeo (narração, trilha, horizontal ou vertical)</button>
-  <div class="sec">Backup</div><button class="btn" data-a="bk">Baixar backup de todas (.json)</button><button class="btn" data-a="im">Importar backup (.json)</button>
+  <div class="sec">Backup</div><button class="btn" data-a="versoes">Histórico de versões (voltar no tempo)</button><button class="btn" data-a="bk">Baixar backup de todas (.json)</button><button class="btn" data-a="im">Importar backup (.json)</button>
   <button class="btn danger" data-a="del">Excluir esta apresentação</button></div>`,'confirm');
   const on=(a,fn)=>{ m.el.querySelector(`[data-a="${a}"]`).onclick=()=>{ m.close(); fn(); }; };
   on('bk',async()=>{ try{ await saveFile('estudio-motion-backup.json',JSON.stringify(decks,null,1),'application/json'); setStatus('Backup baixado',true); }catch(e){ setStatus('Backup cancelado'); } });
@@ -396,7 +422,7 @@ $('#deckMenu').onclick=()=>{
     }catch(e){ setStatus('Arquivo de backup inválido'); } };
     inp.click(); });
   on('new',()=>{ const id=uid(); decks[id]=starter(); curId=id; sel=0; touch(); renderAll(); });
-  on('script',()=>scriptDialog()); on('texto',textDialog);
+  on('versoes',versionsDialog); on('script',()=>scriptDialog()); on('texto',textDialog);
   on('vitrine',showcaseDialog);
   on('pdf',exportPDF);
   on('rec',recordVideo);

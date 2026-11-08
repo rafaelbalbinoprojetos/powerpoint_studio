@@ -290,3 +290,12 @@ textarea{resize:vertical;min-height:62px;line-height:1.45}
 .lib-del{position:absolute;top:8px;right:8px;width:26px;height:26px;border-radius:50%;border:0;background:rgba(0,0,0,.6);color:#fff;font-size:16px;line-height:1;cursor:pointer;opacity:0;transition:opacity .2s}
 .libc:hover .lib-del,.libc:focus-within .lib-del{opacity:1}
 @media (hover:none){.lib-del{opacity:1}}
+
+/* versões */
+.ver-new{display:flex;gap:8px;margin:4px 0 14px}.ver-new input{flex:1;min-width:0}
+.ver-list{display:grid;gap:8px;max-height:52vh;overflow:auto;padding-right:4px}
+.ver-i{display:grid;grid-template-columns:128px minmax(0,1fr) auto;gap:14px;align-items:center;padding:8px;border:1px solid var(--ui-line);border-radius:12px}
+.ver-i .tv{position:relative;aspect-ratio:16/9;border-radius:6px;overflow:hidden}
+.ver-t b{display:block;font-size:14px}.ver-t small{color:var(--ui-dim);font-size:12px}
+.ver-a{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+@media (max-width:600px){.ver-i{grid-template-columns:90px minmax(0,1fr)}.ver-a{grid-column:1/-1}.ver-new{flex-direction:column}}
