@@ -89,6 +89,13 @@ Para uma marca própria, mantenha o preset mais próximo e sobrescreva no `theme
 | `galeria3d` | Carrossel de imagens girando em perspectiva | `kicker`, `title`, `lead`, `images`: [{`image`, `caption`}] (3 a 8) |
 | `revelar` | Imagem em tela cheia surgindo por máscara, com título | `image`, `kicker`, `title`, `lead`, `curtain` (bool: cortina em vez de círculo), `dim` (bool) |
 | `paralaxe` | Capa de impacto: fundo, título gigante e figura recortada na frente | `bg` (imagem de fundo), `subject` (PNG transparente), `kicker`, `title` (1 a 2 palavras), `lead` |
+| `pizza` | Distribuição, participação (até 8 fatias) | `kicker`, `title`, `lead`, `slices`: [{`label`, `value`}], `centerValue` (vazio = total), `centerLabel`, `full` (bool: pizza sem furo), `showPct` (bool) |
+| `barrash` | Ranking, comparação entre itens com nomes longos | `kicker`, `title`, `lead`, `unit`, `bars`: [{`label`, `value`, `hot`}] (até 8), `sort` (bool) |
+| `linha` | Evolução no tempo (até 12 pontos) | `kicker`, `title`, `lead`, `points`: [{`label`, `value`}], `target` (meta, opcional), `targetLabel`, `showValues` (bool) |
+| `medidores` | Percentual de metas (1 a 4 anéis) | `kicker`, `title`, `lead`, `gauges`: [{`label`, `value` (0 a 100), `text`}] |
+| `funil` | Conversão entre etapas (até 6) | `kicker`, `title`, `lead`, `stages`: [{`label`, `value`, `text`}], `showRate` (bool) |
+| `matriz` | SWOT, prioridades, riscos (4 quadrantes) | `kicker`, `title`, `aTitle`, `a` (lista), `bTitle`, `b`, `cTitle`, `c`, `dTitle`, `d`, `xLabel`, `yLabel` |
+| `painel` | OnePage de dashboard: indicadores, tabela, rosca e destaques numa tela | `kicker`, `title`, `kpis`: [{`label`, `value`, `delta` ("+12%"; negativo fica vermelho), `link` (id de slide oculto)}] (até 4), `tableTitle`, `header`, `rows`, `chartTitle`, `mix`: [{`label`, `value`}] (até 6), `highlights` (lista) |
 
 **OnePage com slides ocultos:** crie o `onepage` e, para cada bloco que precisa de detalhe, um slide com `hidden: true`; ponha o `id` desse slide no `link` do bloco. Na apresentação, clicar no bloco abre o slide oculto, que mostra "Voltar ao resumo".
 

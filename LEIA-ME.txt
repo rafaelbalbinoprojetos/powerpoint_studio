@@ -47,7 +47,9 @@ se aparecer "Não foi possível salvar", baixe um backup e remova imagens.
 NOVIDADES (versão 2)
 Ctrl+Z / Ctrl+Shift+Z    desfaz e refaz (botões ↶ ↷ ao lado de "Ver animação")
 Novos modelos            Comparação, Gráfico, Citação, Equipe, Tabela, Vídeo,
-                         Mergulho 3D, Galeria 3D, Revelar e Paralaxe
+                         Mergulho 3D, Galeria 3D, Revelar, Paralaxe, Pizza/rosca,
+                         Barras horizontais, Linha/área, Medidores, Funil,
+                         Matriz 2x2 e Painel (OnePage de dashboard)
 Animação por slide       em "Conteúdo": entrada (padrão, suave, dinâmica, sem
                          animação), velocidade, transição e tempo no avanço automático
 Notas do apresentador    campo no fim de "Conteúdo"; durante a apresentação aperte
