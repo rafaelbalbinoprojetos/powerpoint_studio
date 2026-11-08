@@ -177,3 +177,5 @@ textarea{resize:vertical;min-height:62px;line-height:1.45}
 .thumb.dragging{opacity:.4}
 .thumb.before{box-shadow:0 -4px 0 var(--ui-acc)}
 .thumb.after{box-shadow:0 4px 0 var(--ui-acc)}
+.thumb.hid .tv{opacity:.55;outline:2px dashed var(--ui-line);outline-offset:-2px}
+.hid-tag{font-size:9px;letter-spacing:.08em;text-transform:uppercase;padding:1px 5px;border-radius:4px;background:var(--ui-sunk);color:var(--ui-dim);margin-right:6px;font-weight:700}

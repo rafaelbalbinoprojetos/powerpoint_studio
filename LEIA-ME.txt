@@ -57,6 +57,11 @@ Avanço automático        aba "Tema": segundos por slide e opção de recomeça
                          (vale no modo Apresentar e no HTML exportado)
 Meus temas               aba "Tema" > "Salvar tema atual"
 Mais > Roteiro           cola um texto com "# Título" por slide e gera os slides
+                         ("# Título (oculto) {modelo}" cria slide oculto)
+Mais > Apresentação pronta  Pitch (OnePage), Resultados do trimestre e Lançamento
+OnePage                  resumo em uma tela; cada bloco pode abrir um slide oculto.
+                         Na apresentação, o slide oculto mostra "Voltar ao resumo"
+Faixa de cabeçalho       aba Tema: faixa de ponta a ponta com imagem e nome do tema
 Mais > PDF               abre a impressão com um slide por página
 Mais > Gravar vídeo      grava a aba enquanto a apresentação roda sozinha
                          (Chrome/Edge; sai .mp4 ou .webm)

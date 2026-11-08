@@ -83,7 +83,7 @@ function renderDeckPick(){
 const thumbCleanup=new Map();
 function renderRail(){
   const d=deck(), rail=$('#rail'); thumbCleanup.forEach(f=>f()); thumbCleanup.clear();
-  rail.innerHTML=d.slides.map((s,i)=>`<button class="thumb${i===sel?' sel':''}" data-i="${i}" aria-label="Slide ${i+1}: ${esc((T[s.t]||{}).name||s.t)}"><div class="tv"></div><div class="meta"><span>${String(i+1).padStart(2,'0')}</span><span>${s.notes?'<i class="has-notes" title="Tem notas do apresentador"></i>':''}${esc((T[s.t]||{}).name||s.t)}</span></div></button>`).join('')+`<button class="addslide" id="addSlide">+ Adicionar slide</button>`;
+  rail.innerHTML=d.slides.map((s,i)=>`<button class="thumb${i===sel?' sel':''}${s.hidden?' hid':''}" data-i="${i}" aria-label="Slide ${i+1}: ${esc((T[s.t]||{}).name||s.t)}"><div class="tv"></div><div class="meta"><span>${String(i+1).padStart(2,'0')}</span><span>${s.hidden?'<b class="hid-tag">oculto</b>':''}${s.notes?'<i class="has-notes" title="Tem notas do apresentador"></i>':''}${esc((T[s.t]||{}).name||s.t)}</span></div></button>`).join('')+`<button class="addslide" id="addSlide">+ Adicionar slide</button>`;
   rail.querySelectorAll('.thumb').forEach(b=>{ const i=+b.dataset.i; thumbCleanup.set(i,D.renderStatic(b.querySelector('.tv'),d,i)); b.onclick=()=>select(i); });
   $('#addSlide').onclick=()=>gallery('add');
   railDrag();
@@ -183,6 +183,8 @@ function railDrag(){
 }
 
 /* ---------- inspetor ---------- */
+const plain=v=>String(v||'').replace(/[*`]/g,'').replace(/\s+/g,' ').trim();
+const slideLabel=(s,j)=>`${String(j+1).padStart(2,'0')} · ${plain((s.d&&(s.d.title||s.d.quote))||(T[s.t]||{}).name||s.t).slice(0,48)}${s.hidden?' (oculto)':''}`;
 const opt=(map,v)=>Object.entries(map).map(([k,l])=>`<option value="${k}"${k===v?' selected':''}>${esc(l)}</option>`).join('');
 function renderPane(){
   document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===tab));
@@ -202,6 +204,9 @@ function renderPane(){
   <div class="f"><label for="o-speed">Velocidade</label><select id="o-speed">${opt({'0.5':'Bem lenta','0.75':'Lenta','1':'Normal','1.5':'Rápida','2':'Bem rápida'},String(s.speed||1))}</select></div></div>
   <div class="f2"><div class="f"><label for="o-tr">Transição ao chegar</label><select id="o-tr">${opt(D.TRANSITIONS,s.tr||'deslizar')}</select></div>
   <div class="f"><label for="o-dur">Tempo no avanço automático</label><input type="number" id="o-dur" min="0" step="0.5" placeholder="padrão" value="${s.dur||''}"><span class="hint">segundos (vazio = padrão do tema)</span></div></div>
+  <div class="sec">Exibição</div>
+  <label class="chk"><input type="checkbox" id="o-hid"${s.hidden?' checked':''}> Slide oculto (só abre por um link do OnePage)</label>
+  ${d.header&&d.header.on?`<div class="f"><label for="o-head">Faixa de cabeçalho neste slide</label><select id="o-head">${opt({'':'Automático','show':'Mostrar','hide':'Esconder'},s.head||'')}</select></div>`:''}
   <div class="sec">Notas do apresentador</div>
   <div class="f"><textarea id="o-notes" rows="4" placeholder="O que falar neste slide. Aparece só na janela do apresentador.">${esc(s.notes||'')}</textarea></div>`;
   pane.appendChild(box);
@@ -210,6 +215,8 @@ function renderPane(){
   $('#o-speed').onchange=e=>{ const v=+e.target.value; if(v===1) delete s.speed; else s.speed=v; animCh(); };
   $('#o-tr').onchange=e=>{ if(e.target.value==='deslizar') delete s.tr; else s.tr=e.target.value; touch(); if(player) player.update(sel,deck()); };
   $('#o-dur').oninput=e=>{ const v=parseFloat(e.target.value); if(v>0) s.dur=v; else delete s.dur; touch(); };
+  $('#o-hid').onchange=e=>{ if(e.target.checked) s.hidden=true; else delete s.hidden; touch(); renderRail(); };
+  if($('#o-head')) $('#o-head').onchange=e=>{ if(e.target.value) s.head=e.target.value; else delete s.head; touch(); renderPreview(false); refreshThumb(sel); };
   $('#o-notes').oninput=e=>{ s.notes=e.target.value; if(!s.notes) delete s.notes; touch(); };
   const tip=document.createElement('p'); tip.className='tip';
   tip.innerHTML='Use <code>*palavra*</code> para destacar com a cor do tema e <code>`SQ01`</code> para um código. Clique num texto do slide para editar ali mesmo (Enter confirma, Esc cancela). Arraste imagens do computador para o slide e as miniaturas para reordenar. <code>Ctrl+Z</code> desfaz.';
@@ -222,6 +229,10 @@ function field(f,obj,id,onCh){
   if(f.t==='text'){ const i=document.createElement('input'); i.type='text'; i.id=id; i.value=obj[f.k]??''; i.oninput=()=>{obj[f.k]=i.value;onCh();}; w.appendChild(i); }
   else if(f.t==='area'){ const i=document.createElement('textarea'); i.id=id; i.rows=f.k==='title'?2:3; i.value=obj[f.k]??''; i.oninput=()=>{obj[f.k]=i.value;onCh();}; w.appendChild(i); }
   else if(f.t==='list'){ const i=document.createElement('textarea'); i.id=id; i.rows=4; i.value=(obj[f.k]||[]).join('\n'); i.oninput=()=>{obj[f.k]=i.value.split('\n').map(x=>x.trim()).filter(Boolean);onCh();}; w.appendChild(i); const hh=document.createElement('span'); hh.className='hint'; hh.textContent='Um item por linha'; w.appendChild(hh); }
+  else if(f.t==='slide'){ const i=document.createElement('select'); i.id=id; const cur=deck().slides[sel];
+    i.innerHTML='<option value="">— sem link —</option>'+deck().slides.map((s,j)=>s===cur?'':`<option value="${esc(s.id)}"${s.id===obj[f.k]?' selected':''}>${esc(slideLabel(s,j))}</option>`).join('');
+    i.onchange=()=>{ obj[f.k]=i.value; onCh(); }; w.appendChild(i);
+    if(obj[f.k]&&!deck().slides.some(s=>s.id===obj[f.k])){ const hh=document.createElement('span'); hh.className='hint warn'; hh.textContent='O slide ligado foi excluído.'; w.appendChild(hh); } }
   else if(f.t==='image') w.appendChild(imageField(obj,f.k,id,onCh));
   else if(f.t==='items') w.appendChild(itemsField(f,obj,id,onCh));
   return w;
@@ -251,7 +262,7 @@ function itemsField(f,obj,id,onCh){
   paint(); return box;
 }
 function themePane(pane){
-  const d=deck(); d.theme=d.theme||{preset:'eletrico'}; const th=d.theme, eff=D.themeOf(d); const auto=d.auto||{};
+  const d=deck(); d.theme=d.theme||{preset:'eletrico'}; const th=d.theme, eff=D.themeOf(d); const auto=d.auto||{}; const hd=d.header||{};
   const ch=()=>{ touch(); clearTimeout(pvT); pvT=setTimeout(()=>{ renderPreview(false); renderRail(); },300); };
   const swatch=p=>`<span><i style="background:${p.bg}"></i><i style="background:${p.surface}"></i><i style="background:${p.accent}"></i><i style="background:${p.alert}"></i></span>`;
   pane.innerHTML=`<div class="sec">Paleta pronta</div><div class="swatches">${Object.entries(D.PRESETS).map(([k,p])=>`<button class="sw${th.preset===k&&!th.custom?' on':''}" data-p="${k}">${swatch(p)}${esc(p.name)}</button>`).join('')}</div>
@@ -273,6 +284,12 @@ function themePane(pane){
   <div class="sec">Marca</div><div class="f"><label>Logo (aparece na capa, rodapé e núcleo)</label><div id="logoBox"></div><span class="hint">PNG ou SVG transparente funciona melhor.</span></div>
   <div class="f"><label for="t-ft">Texto do rodapé</label><input type="text" id="t-ft" value="${esc(d.footerText||'')}" placeholder="${esc(d.name||'')}"></div>
   <label class="chk"><input type="checkbox" id="t-fon"${d.footer===false?'':' checked'}> Mostrar rodapé</label>
+  <div class="sec">Faixa de cabeçalho</div>
+  <label class="chk"><input type="checkbox" id="h-on"${hd.on?' checked':''}> Mostrar faixa de ponta a ponta no topo</label>
+  <div id="h-box"${hd.on?'':' hidden'}>
+  <div class="f"><label for="h-tx">Texto da faixa</label><input type="text" id="h-tx" value="${esc(hd.text||'')}" placeholder="${esc(d.name||'Nome do tema')}"></div>
+  <div class="f"><label>Imagem da faixa (larga, ex.: 1920×120)</label><div id="h-img"></div><span class="hint">Sem imagem, a faixa usa as cores do tema. Capa e slides de tela cheia ficam sem faixa (dá para mudar em cada slide).</span></div>
+  <label class="chk"><input type="checkbox" id="h-logo"${hd.logo!==false?' checked':''}> Mostrar a logo na faixa</label></div>
   <div class="sec">Avanço automático (TV, quiosque, vídeo)</div>
   <div class="f"><label for="t-auto">Tempo por slide ao apresentar</label><input type="number" id="t-auto" min="0" step="0.5" placeholder="desligado" value="${auto.secs||''}"><span class="hint">segundos. Vazio = só avança com clique ou teclado. Cada slide pode ter o próprio tempo.</span></div>
   <label class="chk"><input type="checkbox" id="t-loop"${auto.loop?' checked':''}> Recomeçar do início ao terminar</label>`;
@@ -301,6 +318,11 @@ function themePane(pane){
   const autoCh=()=>{ const secs=parseFloat($('#t-auto').value), loop=$('#t-loop').checked; if(secs>0||loop) d.auto={secs:secs>0?secs:0,loop}; else delete d.auto; touch(); };
   $('#t-auto').oninput=autoCh; $('#t-loop').onchange=autoCh;
   $('#logoBox').appendChild(imageField(th,'logo','t-logo',ch));
+  const H=()=>d.header||(d.header={on:false});
+  $('#h-on').onchange=e=>{ H().on=e.target.checked; $('#h-box').hidden=!e.target.checked; ch(); };
+  $('#h-tx').oninput=e=>{ H().text=e.target.value; ch(); };
+  $('#h-logo').onchange=e=>{ if(e.target.checked) delete H().logo; else H().logo=false; ch(); };
+  $('#h-img').appendChild(imageField(H(),'image','h-image',ch));
 }
 
 /* ---------- imagens ---------- */
@@ -328,7 +350,7 @@ function gallery(kind){
 }
 $('#deckMenu').onclick=()=>{
   const m=modal(`<h3>Apresentações</h3><p class="sub">${mode==='db'?'Salvas na sua conta, disponíveis em qualquer aparelho.':'Salvas só neste navegador.'}</p><div class="menu">
-  <button class="btn" data-a="new">+ Nova apresentação</button><button class="btn" data-a="script">Criar a partir de um roteiro (texto)</button><button class="btn" data-a="dup">Duplicar esta apresentação</button>
+  <button class="btn" data-a="new">+ Nova apresentação</button><button class="btn" data-a="vitrine">Começar de uma apresentação pronta</button><button class="btn" data-a="script">Criar a partir de um roteiro (texto)</button><button class="btn" data-a="dup">Duplicar esta apresentação</button>
   <div class="sec">Exportar</div><button class="btn" data-a="pdf">Salvar em PDF (um slide por página)</button><button class="btn" data-a="rec">Gravar vídeo da apresentação</button>
   <div class="sec">Backup</div><button class="btn" data-a="bk">Baixar backup de todas (.json)</button><button class="btn" data-a="im">Importar backup (.json)</button>
   <button class="btn danger" data-a="del">Excluir esta apresentação</button></div>`,'confirm');
@@ -342,6 +364,7 @@ $('#deckMenu').onclick=()=>{
     inp.click(); });
   on('new',()=>{ const id=uid(); decks[id]=starter(); curId=id; sel=0; touch(); renderAll(); });
   on('script',scriptDialog);
+  on('vitrine',showcaseDialog);
   on('pdf',exportPDF);
   on('rec',recordVideo);
   on('dup',()=>{ const id=uid(); decks[id]=Object.assign(clone(deck()),{name:(deck().name||'Apresentação')+' (cópia)'}); curId=id; sel=0; touch(); renderAll(); });
@@ -381,11 +404,23 @@ function scriptDialog(){
   m.el.querySelector('[data-new]').onclick=()=>run(true);
   m.el.querySelector('[data-add]').onclick=()=>run(false);
 }
+/* ---------- apresentações prontas (vitrine) ---------- */
+const SHOWCASES=[
+ {name:'Pitch de negócio',preset:'aurora',desc:'OnePage com 6 blocos que abrem slides ocultos de detalhe. Ideal para apresentar só uma tela e aprofundar quando perguntarem.',header:{on:true,text:'Pitch · Rodada Seed 2026'},script:`# Nome da empresa\nUma frase que explica o que vocês fazem, em poucas palavras.\n- Rodada Seed 2026\n- 12 clientes piloto\n- Fundada em 2025\n\n# O negócio em uma tela {onepage}\n[Resumo]\n- Problema: 30% do tempo perdido procurando informação\n- Solução: uma base única com busca inteligente\n- Mercado: R$ 4 bi no Brasil\n- Tração: 12 clientes piloto\n- Modelo: assinatura por usuário\n- Equipe: 4 fundadores técnicos\nNota: apresente só esta tela e abra os blocos conforme as perguntas.\n\n# Problema (oculto) {destaque}\n[O problema]\nEquipes perdem horas por semana procurando dados espalhados em planilhas, e-mails e sistemas.\n\n# Solução (oculto) {tela}\n[A solução]\n- Integra: conecta planilhas e sistemas em minutos\n- Encontra: busca em linguagem natural\n- Alerta: avisa quando algo sai do padrão\n\n# Mercado (oculto) {numeros}\n[Tamanho do mercado]\n- R$ 4 bi: mercado total no Brasil\n- 38 mil: empresas médias no perfil\n- 18%: crescimento ao ano\n\n# Tração (oculto) {grafico}\n[Tração]\n- Jan: 2\n- Fev: 4\n- Mar: 7\n- Abr: 12\n\n# Modelo (oculto) {cartoes}\n[Como ganhamos dinheiro]\n- Essencial: R$ 49 por usuário ao mês\n- Profissional: R$ 89 com integrações\n- Empresa: contrato anual sob medida\n\n# Equipe (oculto) {equipe}\n[Quem faz]\n- Pessoa 1: Produto\n- Pessoa 2: Engenharia\n- Pessoa 3: Dados\n- Pessoa 4: Vendas\n\n# Vamos conversar?\n- Investimento de R$ 2 mi\n- 18 meses de pista\n- Meta: 100 clientes pagantes`},
+ {name:'Resultados do trimestre',preset:'editorial',desc:'Números, gráfico, comparação e tabela num visual editorial claro.',header:{on:true,text:'Resultados · 3º trimestre de 2026'},script:`# Resultados do 3º trimestre\nO que entregamos, o que aprendemos e o que vem a seguir.\n- Jul a Set 2026\n- Diretoria de Operações\n\n# Os números do trimestre {numeros}\n[Visão geral]\n- R$ 1.250.000: economia acumulada\n- 832: decisões analisadas\n- 94%: dentro do prazo\n\n# Evolução mês a mês {grafico}\n[Economia em R$ mil]\n- Abr: 120\n- Mai: 180\n- Jun: 210\n- Jul: 260\n- Ago: 330\n- Set: 410\n\n# Antes e depois {comparacao}\n[O que mudou]\n- Planilhas soltas\n- Decisão sem histórico\n- Retrabalho mensal\n- Uma base única\n- Cada decisão justificada\n- Alertas automáticos\n\n# Desempenho por área {tabela}\n[Comparativo]\n- Funilaria: 312 | R$ 410 mil\n- Pintura: 208 | R$ 260 mil\n- Montagem: 145 | R$ 180 mil\n\n# Próximo trimestre {agenda}\n[Plano]\n- Outubro: levar para mais duas áreas\n- Novembro: painel para a diretoria\n- Dezembro: revisão anual\n\n# Obrigado\n- Mais visibilidade\n- Decisões justificadas\n- Rastreabilidade`},
+ {name:'Lançamento de produto',preset:'grafite',desc:'Efeitos cinematográficos: revelar, mergulho 3D, galeria 3D e paralaxe. Troque as imagens de exemplo pelas suas.',script:`# Apresentamos o novo produto\nUma nova forma de trabalhar com os seus dados.\n- Lançamento 2026\n\n# A nova fase {revelar}\n[Lançamento]\nMais simples, mais rápido e feito para equipes.\n\n# Do rascunho ao produto {mergulho}\n[A jornada]\n- O primeiro protótipo\n- Os primeiros clientes\n- O produto final\n\n# Feito para cada equipe {galeria3d}\n[Casos de uso]\n- Operações\n- Finanças\n- Compras\n- Manutenção\n- Diretoria\n- Qualidade\n\n# FUTURO {paralaxe}\n[Edição 2026]\n\n# Pela primeira vez, a gente *decide olhando o mesmo número* {citacao}\nNome da pessoa\n\n# Disponível hoje\n- Teste grátis por 30 dias\n- Migração assistida\n- Suporte em português`}
+];
+function showcaseDialog(){
+  const m=modal(`<h3>Começar de uma apresentação pronta</h3><p class="sub">Cria uma apresentação nova, com textos de exemplo para você trocar. Nada do que você já tem é alterado.</p><div class="gal">${SHOWCASES.map((x,i)=>`<button class="gcard" data-v="${i}"><div class="tv"></div><b>${esc(x.name)}</b><small>${esc(x.desc)}</small></button>`).join('')}</div>`);
+  const build=x=>{ const slides=parseScript(x.script); return {name:x.name,theme:{preset:x.preset},footerText:'',updatedAt:Date.now(),slides,...(x.header?{header:clone(x.header)}:{})}; };
+  m.el.querySelectorAll('.gcard').forEach(c=>{ const x=SHOWCASES[+c.dataset.v], dk=build(x); D.renderStatic(c.querySelector('.tv'),dk,dk.slides.findIndex(s=>s.t==='onepage')>0?1:0);
+    c.onclick=()=>{ m.close(); const id=uid(); decks[id]=build(x); curId=id; sel=0; touch(); renderAll(); setStatus('“'+x.name+'” criada',true); }; });
+}
 function parseScript(txt){
   const out=[]; let cur=null; const blank=title=>({title,tpl:null,kicker:'',lead:[],bullets:[],notes:[]});
   txt.replace(/\r/g,'').split('\n').forEach(raw=>{
     const l=raw.trim(); let m; if(!l) return;
-    if((m=/^#{1,3}\s+(.+?)(?:\s*\{\s*(\w+)\s*\})?$/.exec(l))){ if(cur) out.push(cur); cur=blank(m[1]); if(m[2]&&T[m[2]]) cur.tpl=m[2]; return; }
+    if((m=/^#{1,3}\s+(.+?)(?:\s*\{\s*(\w+)\s*\})?(\s*\((?:oculto|oculta)\))?(?:\s*\{\s*(\w+)\s*\})?$/i.exec(l))){ if(cur) out.push(cur); let ti=m[1]; let hidden=!!m[3]; const hm=/\s*\((?:oculto|oculta)\)\s*$/i.exec(ti); if(hm){ hidden=true; ti=ti.slice(0,hm.index); } cur=blank(ti); cur.hidden=hidden; const tp=m[2]||m[4]; if(tp&&T[tp]) cur.tpl=tp; return; }
     if(!cur){ cur=blank(l); return; }
     if((m=/^notas?\s*:\s*(.*)$/i.exec(l))){ cur.notes.push(m[1]); return; }
     if((m=/^\[(.+)\]$/.exec(l))){ cur.kicker=m[1]; return; }
@@ -393,12 +428,16 @@ function parseScript(txt){
     cur.lead.push(l.replace(/^>\s*/,''));
   });
   if(cur) out.push(cur);
-  return out.map((s,i)=>toSlide(s,i,out.length));
+  const slides=out.map((s,i)=>toSlide(s,i,out.length));
+  // OnePage: bloco cujo título (ou rótulo) bate com o título de um slide oculto vira link para ele
+  const key=v=>plain(v).toLowerCase();
+  slides.forEach(s=>{ if(s.t!=='onepage') return; (s.d.blocks||[]).forEach(b=>{ if(b.link) return; const hit=slides.find(x=>x.hidden&&x!==s&&(key(x.d.title)===key(b.title)||key(x.d.title)===key(b.label))); if(hit) b.link=hit.id; }); });
+  return slides;
 }
 function toSlide(s,i,n){
   const pair=b=>{ const m=/^(.+?)\s*(?::|—|–|\s-\s)\s*(.+)$/.exec(b); return m?{a:m[1].trim(),b:m[2].trim()}:{a:b,b:''}; };
   const P=s.bullets.map(pair), allPairs=s.bullets.length>0&&P.every(p=>p.b);
-  const numeric=allPairs&&P.every(p=>/^(R\$\s*)?[\d.,]+\s*(%|mil|mi|k|x)?$/i.test(p.a));
+  const numeric=allPairs&&P.every(p=>/^(R\$\s*)?[\d.,]+\s*(%|mil|mi|bi|k|x)?$/i.test(p.a));
   let t=s.tpl;
   if(!t){
     if(i===0) t='capa';
@@ -417,6 +456,9 @@ function toSlide(s,i,n){
   const steps=s.bullets.length===1&&/->|→/.test(s.bullets[0])?s.bullets[0].split(/\s*(?:->|→)\s*/):s.bullets.map(b=>b.replace(/\s*(?:->|→)\s*$/,''));
   switch(t){
     case 'capa': d.chips=s.bullets.slice(0,3); d.showLogo=true; break;
+    case 'onepage': d.blocks=P.map(p=>{ const v=/^(R\$\s*)?([\d.,]+)(\s*(?:%|mil|mi|bi|k|x)(?=\s|$))?\s+(.+)$/i.exec(p.b); return {label:p.a,value:v?(v[1]||"")+v[2]+(v[3]||""):"",title:v?v[4]:p.b,text:"",link:""}; }).slice(0,6); break;
+    case 'mergulho': d.layers=s.bullets.map(b=>({image:"",caption:b})).slice(0,5); break;
+    case 'galeria3d': d.images=s.bullets.map(b=>({image:"",caption:b})).slice(0,8); break;
     case 'encerramento': d.bullets=s.bullets; d.showLogo=i===n-1; break;
     case 'numeros': d.stats=P.map(p=>{ const m=/^(R\$)?\s*([\d.,]+)\s*(.*)$/i.exec(p.a)||[]; return {label:'',prefix:m[1]||'',value:m[2]||p.a,suffix:m[3]||'',text:p.b,badge:''}; }); break;
     case 'fluxo': d.steps=steps.map(x=>{ const p=pair(x); return {tag:'',title:p.a,text:p.b,hot:false}; }); break;
@@ -424,12 +466,12 @@ function toSlide(s,i,n){
     case 'agenda': d.events=P.map(p=>({when:p.a,title:p.b,text:''})); break;
     case 'tabela': d.rows=s.bullets.map(b=>b.replace(/\s*[:—–]\s+/,' | ')); break;
     case 'grafico': d.bars=P.map(p=>({label:p.a,value:p.b,hot:false})); break;
-    case 'comparacao': { const h=Math.ceil(s.bullets.length/2); d.left=s.bullets.slice(0,h); d.right=s.bullets.slice(h); break; }
+    case 'comparacao': { const h=Math.ceil(s.bullets.length/2); d.leftTitle='Antes'; d.rightTitle='Depois'; d.left=s.bullets.slice(0,h); d.right=s.bullets.slice(h); break; }
     default: { const li=tpl.fields.find(f=>f.t==='list'), it=tpl.fields.find(f=>f.t==='items');
       if(it){ const subs=it.sub.filter(f=>f.t==='text'||f.t==='area'); d[it.k]=P.map(p=>{ const o={}; it.sub.forEach(f=>o[f.k]=f.t==='bool'?false:''); if(subs[0]) o[subs[0].k]=p.a; if(subs[1]) o[subs[1].k]=p.b; return o; }); }
       else if(li) d[li.k]=s.bullets; }
   }
-  const sl=D.fillDefaults({id:uid(),t,d}); if(s.notes.length) sl.notes=s.notes.join('\n'); return sl;
+  const sl=D.fillDefaults({id:uid(),t,d}); if(s.notes.length) sl.notes=s.notes.join('\n'); if(s.hidden) sl.hidden=true; return sl;
 }
 
 /* ---------- ações ---------- */
@@ -462,7 +504,7 @@ function present(start,o={}){
   let pop=null;
   const tell=msg=>{ try{ if(pop&&!pop.closed) pop.postMessage(Object.assign({em:1},msg),'*'); }catch(_){} };
   const upd=n=>{ w.querySelector('.n').textContent=(n+1)+' / '+d.slides.length; w.querySelector('.pg i').style.width=((n+1)/d.slides.length*100)+'%'; tell({type:'index',n}); };
-  const pl=D.createPlayer(w.querySelector('.host'),d,{start:start||0,onChange:upd,autoplay:true,onEnd:o.onEnd}); upd(start||0);
+  const pl=D.createPlayer(w.querySelector('.host'),d,{start:start||0,onChange:upd,autoplay:true,links:true,onEnd:o.onEnd}); upd(start||0);
   const fs=()=>{ try{ document.fullscreenElement?document.exitFullscreen():w.requestFullscreen().catch(()=>{}); }catch(_){} };
   const onMsg=e=>{ if(!pop||e.source!==pop||!e.data||!e.data.em) return; const m=e.data;
     if(m.type==='ready') tell({type:'deck',deck:d,n:pl.index});
@@ -519,14 +561,14 @@ async function exportHTML(){
   setStatus('Preparando arquivo…');
   try{
     const d=clone(deck()); d.slides.forEach(s=>delete s.notes);
-    d.theme=d.theme||{}; if(d.theme.logo) d.theme.logo=await inline(d.theme.logo);
+    d.theme=d.theme||{}; if(d.theme.logo) d.theme.logo=await inline(d.theme.logo); if(d.header&&d.header.image) d.header.image=await inline(d.header.image);
     for(const s of d.slides){ const tp=T[s.t]; if(tp) await inlineFields(tp.fields,s.d||{}); }
     const [js,css]=await Promise.all([srcOf('dk-js','engine.js'),srcOf('dk-css','engine.css')]);
     const gs=document.getElementById('gsap-js');
     const gsapTag=gs?'<script>'+gs.textContent.replace(/<\/script/gi,'<\\/script')+'<\/script>':'<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"><\/script>';
     const html=`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(d.name||'Apresentação')}</title><style>html,body{height:100%;margin:0;background:#000}#app{position:fixed;inset:0}${css}</style>${gsapTag}</head><body><div id="app"></div><script>${js.replace(/<\/script/gi,'<\\/script')}<\/script><script>
 const DECK=${JSON.stringify(d).replace(/</g,'\\u003c')};
-const pl=Deck.createPlayer(document.getElementById('app'),DECK,{start:0,autoplay:true});
+const pl=Deck.createPlayer(document.getElementById('app'),DECK,{start:0,autoplay:true,links:true});
 addEventListener('keydown',e=>{if(['ArrowRight','PageDown',' ','Enter'].includes(e.key)){e.preventDefault();pl.next();}else if(['ArrowLeft','PageUp','Backspace'].includes(e.key)){e.preventDefault();pl.prev();}else if(e.key==='f'||e.key==='F'){document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen();}});
 document.getElementById('app').addEventListener('click',e=>{e.clientX>innerWidth*.3?pl.next():pl.prev();});
 let sx=null;addEventListener('touchstart',e=>{sx=e.touches[0].clientX},{passive:true});addEventListener('touchend',e=>{if(sx==null)return;const dx=e.changedTouches[0].clientX-sx;if(Math.abs(dx)>40)dx<0?pl.next():pl.prev();sx=null},{passive:true});
@@ -576,7 +618,7 @@ async function recordVideo(){
 /* ---------- nuvem: mescla edições de outro aparelho com as locais ---------- */
 function mergeDeck(base,local,remote){
   if(!base) return local; const S=JSON.stringify, out=clone(remote);
-  ['name','theme','footerText','footer','auto'].forEach(k=>{ if(S(local[k])!==S(base[k])){ if(local[k]===undefined) delete out[k]; else out[k]=clone(local[k]); } });
+  ['name','theme','footerText','footer','auto','header'].forEach(k=>{ if(S(local[k])!==S(base[k])){ if(local[k]===undefined) delete out[k]; else out[k]=clone(local[k]); } });
   const bs=new Map((base.slides||[]).map(s=>[s.id,S(s)])), ls=new Map((local.slides||[]).map(s=>[s.id,s]));
   out.slides=(remote.slides||[]).filter(s=>!(bs.has(s.id)&&!ls.has(s.id))).map(s=>{ const L=ls.get(s.id); return L&&S(L)!==bs.get(s.id)?clone(L):s; });
   (local.slides||[]).forEach((s,i)=>{ if(!bs.has(s.id)&&!out.slides.some(x=>x.id===s.id)){ const pid=i?local.slides[i-1].id:null; const j=pid?out.slides.findIndex(x=>x.id===pid):-1; out.slides.splice(j+1,0,clone(s)); } });

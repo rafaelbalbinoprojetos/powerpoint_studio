@@ -221,10 +221,29 @@ const FX={
 function emptyOf(f){ return f.t==='bool'?false:(f.t==='list'||f.t==='items')?[]:''; }
 function fillDefaults(s){ const T=TEMPLATES[s&&s.t]; if(!T) return s; s.d=s.d||{}; T.fields.forEach(f=>{ if(s.d[f.k]===undefined) s.d[f.k]=emptyOf(f); }); return s; }
 
+/* ---------- OnePage: resumo condensado com links para slides ocultos ---------- */
+TEMPLATES.onepage={name:'OnePage',desc:'Resumo condensado em uma tela, com blocos que abrem slides ocultos de detalhe',
+  fields:[{k:'kicker',t:'text',l:'Rótulo'},{k:'title',t:'area',l:'Título'},{k:'lead',t:'area',l:'Subtítulo'},{k:'blocks',t:'items',l:'Blocos',max:6,sub:[{k:'label',t:'text',l:'Rótulo'},{k:'value',t:'text',l:'Número de destaque (opcional)'},{k:'title',t:'text',l:'Título'},{k:'text',t:'area',l:'Texto'},{k:'link',t:'slide',l:'Abre o slide'}]},{k:'footnote',t:'text',l:'Nota de rodapé'}],
+  sample:{kicker:'Visão geral',title:'Tudo o que importa *em uma tela*',lead:'',footnote:'Clique num bloco para ver o detalhe.',blocks:[
+    {label:'Contexto',value:'',title:'Por que agora',text:'O cenário que torna o projeto urgente.',link:''},
+    {label:'Problema',value:'30%',title:'Tempo perdido',text:'Informação espalhada em planilhas e sistemas.',link:''},
+    {label:'Solução',value:'',title:'Uma base única',text:'Dados integrados, com histórico e alertas.',link:''},
+    {label:'Resultados',value:'1.250.000',title:'Economia em reais',text:'Valor evitado nos primeiros meses.',link:''},
+    {label:'Próximos passos',value:'',title:'Expandir',text:'Levar para as demais áreas até dezembro.',link:''},
+    {label:'Equipe',value:'6',title:'Pessoas envolvidas',text:'Dados, desenvolvimento e operação.',link:''}]},
+  render(d){ const b=arr(d.blocks).slice(0,6), n=Math.max(1,b.length);
+    return `${head(d)}<div class="dk-op" style="${cols(n<=3?n:n===4?2:3)}" data-a="cards">${b.map((x,i)=>`<div class="dk-card dk-opb${x.link?' go':''}"${x.link?` data-go="${esc(x.link)}" role="button" tabindex="0"`:''}>${x.label?`<span class="dk-ix" data-f="blocks.${i}.label">${esc(x.label)}</span>`:''}${x.value?`<div class="dk-op-v"><b${countAttr(x.value)}>${esc(x.value)}</b></div>`:''}<h3 data-f="blocks.${i}.title">${rich(x.title)}</h3><p data-f="blocks.${i}.text">${rich(x.text)}</p>${x.link?'<span class="dk-op-go">Ver detalhes <i>→</i></span>':''}</div>`).join('')}</div>${d.footnote?`<p class="dk-op-note" data-a="up" data-f="footnote">${rich(d.footnote)}</p>`:''}`; }};
+
+/* ---------- faixa de cabeçalho (deck.header = {on, image, text, logo}) ---------- */
+const NOHEAD=['capa','mergulho','revelar','paralaxe','video'];
+function headShown(deck,s){ const h=deck.header; if(!h||!h.on||!s) return false; if(s.head==='show') return true; if(s.head==='hide') return false; return !NOHEAD.includes(s.t); }
+function bandHTML(deck,t){ const h=deck.header; if(!h||!h.on) return '';
+  return `<div class="dk-band" aria-hidden="true">${h.image?`<img class="dk-band-bg" src="${im(h.image)}" alt="">`:''}<div class="dk-band-in"><span>${esc(h.text||deck.name||'')}</span>${h.logo!==false&&t.logo?`<img src="${im(t.logo)}" alt="">`:''}</div></div>`; }
+
 function slideHTML(deck,i,t){
   const s=deck.slides[i]; const T=TEMPLATES[s&&s.t]||TEMPLATES.destaque;
   let inner=''; try{ inner=T.render(Object.assign({},s.d||{}),t); }catch(e){ inner=`<p class="dk-lead">Erro neste slide: ${esc(e.message)}</p>`; }
-  return `<section class="dk-slide dk-t-${esc(s.t)}" data-i="${i}" aria-label="Slide ${i+1}">${inner}</section>`;
+  return `<section class="dk-slide dk-t-${esc(s.t)}${headShown(deck,s)?' with-head':''}" data-i="${i}" aria-label="Slide ${i+1}">${inner}</section>`;
 }
 function footHTML(deck,t,i){
   if(deck.footer===false) return '';
@@ -357,7 +376,7 @@ function background(cv,t,reduce){
 function createPlayer(root,deck,opts={}){
   const G=window.gsap, reduce=matchMedia('(prefers-reduced-motion: reduce)').matches||opts.noMotion;
   const t=themeOf(deck); ensureFonts([t.fontDisplay,t.fontBody], root.ownerDocument);
-  root.innerHTML=`<div class="dk-player" style='${themeVars(t)}'><canvas class="dk-bg" aria-hidden="true"></canvas><div class="dk-vig"></div><div class="dk-vp"><div class="dk-stage">${deck.slides.map((_,i)=>slideHTML(deck,i,t)).join('')}${footHTML(deck,t,0)}</div></div></div>`;
+  root.innerHTML=`<div class="dk-player" style='${themeVars(t)}'><canvas class="dk-bg" aria-hidden="true"></canvas><div class="dk-vig"></div><div class="dk-vp"><div class="dk-stage">${deck.slides.map((_,i)=>slideHTML(deck,i,t)).join('')}${bandHTML(deck,t)}${footHTML(deck,t,0)}</div></div></div>`;
   const player=root.firstElementChild, stage=player.querySelector('.dk-stage'), slides=[...stage.querySelectorAll('.dk-slide')];
   splitWords(stage);
   const bg=background(player.querySelector('.dk-bg'),t,reduce);
@@ -375,12 +394,25 @@ function createPlayer(root,deck,opts={}){
     clearTimeout(autoT); if(!opts.autoplay) return;
     const a=deck.auto||{}; let secs=+S(n).dur||+a.secs||0; if(secs<=0) return;
     if(!S(n).dur && tl) secs=Math.max(secs,Math.min(tl.duration(),60)+1); // espera animações longas (ex.: Mergulho 3D)
-    autoT=setTimeout(()=>{ if(n<slides.length-1) go(n+1,1); else if(a.loop) go(0,1); else opts.onEnd&&opts.onEnd(); },secs*1000);
+    autoT=setTimeout(()=>{ if(next()===false){ if(a.loop){ const f=visNext(-1,1); go(f<0?0:f,1); } else opts.onEnd&&opts.onEnd(); } },secs*1000);
   }
   /* recria o slide do zero a cada entrada: animação interrompida nunca deixa elemento torto */
   function fresh(n){ const tmp=document.createElement('div'); tmp.innerHTML=slideHTML(deck,n,t); const ns=tmp.firstElementChild; splitWords(ns); tame(ns); slides[n].replaceWith(ns); slides[n]=ns; return ns; }
+  /* slides ocultos: só abrem por link (OnePage) e voltam para quem chamou */
+  let backTo=null; const hid=n=>!!S(n).hidden;
+  const visNext=(n,d)=>{ let j=n+d; while(j>=0&&j<slides.length&&hid(j)) j+=d; return j>=0&&j<slides.length?j:-1; };
+  const band=stage.querySelector('.dk-band');
+  const backBtn=document.createElement('button'); backBtn.className='dk-back'; backBtn.type='button'; backBtn.textContent='← Voltar ao resumo'; backBtn.hidden=true;
+  if(opts.links) stage.appendChild(backBtn);
+  backBtn.addEventListener('click',e=>{ e.stopPropagation(); if(backTo!=null){ const b=backTo; backTo=null; go(b,-1); } });
+  if(opts.links) stage.addEventListener('click',e=>{ const el=e.target.closest('[data-go]'); if(!el) return; e.stopPropagation(); e.preventDefault(); link(el.dataset.go); });
+  function link(id){ const j=deck.slides.findIndex(s=>s.id===id); if(j<0||j===cur) return; if(!hid(cur)) backTo=cur; go(j,1); }
+  function next(){ if(hid(cur)&&backTo!=null){ const b=backTo; backTo=null; return go(b,1); } const j=visNext(cur,1); if(j>=0) go(j,1); else return false; }
+  function prev(){ if(hid(cur)&&backTo!=null){ const b=backTo; backTo=null; return go(b,-1); } const j=visNext(cur,-1); if(j>=0) go(j,-1); }
   function enter(n){
     const sl=fresh(n); sl.classList.add('on'); videos(sl,true);
+    if(band) band.classList.toggle('on',headShown(deck,S(n)));
+    backBtn.hidden=!(hid(n)&&backTo!=null);
     if(G && !reduce && S(n).anim!=='nenhuma'){ G.set(sl,{clearProps:'all'}); tl=build(sl,G,loops,{anim:S(n).anim,speed:+S(n).speed||0}); }
     else if(G) loops=hubLoops(sl,G);
     pgTxt(n); arm(n);
@@ -397,7 +429,7 @@ function createPlayer(root,deck,opts={}){
     else done();
   }
   function still(n){ // mostra o slide sem animar
-    n=Math.max(0,Math.min(slides.length-1,n)); slides.forEach(s=>{ s.classList.remove('on'); videos(s,false); }); kill(); fresh(n).classList.add('on'); cur=n;
+    n=Math.max(0,Math.min(slides.length-1,n)); slides.forEach(s=>{ s.classList.remove('on'); videos(s,false); }); kill(); fresh(n).classList.add('on'); cur=n; if(band) band.classList.toggle('on',headShown(deck,S(n)));
     pgTxt(n); videos(slides[n],true);
     if(G){ loops=hubLoops(slides[n],G); slides[n].querySelectorAll('.feed').forEach(p=>{p.style.strokeDashoffset=0;}); }
   }
@@ -409,14 +441,14 @@ function createPlayer(root,deck,opts={}){
     if(n===cur) still(n);
   }
   go(opts.start||0,1,true);
-  return {go,still,replay,update,next:()=>go(cur+1,1),prev:()=>go(cur-1,-1),get index(){return cur;},get count(){return slides.length;},el:player,
+  return {go,still,replay,update,link,next,prev,get index(){return cur;},get count(){return slides.length;},el:player,
     destroy(){kill();clearTimeout(autoT);slides.forEach(s=>videos(s,false));bg.stop();ro.disconnect();root.innerHTML='';}};
 }
 
 /* ---------- miniatura estática ---------- */
 function renderStatic(root,deck,i){
   const t=themeOf(deck); ensureFonts([t.fontDisplay,t.fontBody], root.ownerDocument);
-  root.innerHTML=`<div class="dk-player dk-static" style='${themeVars(t)};background:radial-gradient(ellipse at 62% 45%,${t.light?'color-mix(in srgb,'+t.accent+' 7%,'+t.bg+')':'color-mix(in srgb,'+t.accent+' 25%,'+t.bg+')'},${t.bg} 70%)'><div class="dk-vp"><div class="dk-stage">${slideHTML(deck,i,t)}${footHTML(deck,t,i)}</div></div></div>`;
+  root.innerHTML=`<div class="dk-player dk-static" style='${themeVars(t)};background:radial-gradient(ellipse at 62% 45%,${t.light?'color-mix(in srgb,'+t.accent+' 7%,'+t.bg+')':'color-mix(in srgb,'+t.accent+' 25%,'+t.bg+')'},${t.bg} 70%)'><div class="dk-vp"><div class="dk-stage">${slideHTML(deck,i,t)}${headShown(deck,deck.slides[i])?bandHTML(deck,t).replace('class="dk-band"','class="dk-band on"'):''}${footHTML(deck,t,i)}</div></div></div>`;
   const p=root.firstElementChild, st=p.querySelector('.dk-stage');
   const fit=()=>{const r=p.getBoundingClientRect(); if(!r.width) return; st.style.transform=`translate(-50%,-50%) scale(${Math.min(r.width/1920,r.height/1080)})`;};
   fit(); const ro=new ResizeObserver(fit); ro.observe(p); return ()=>ro.disconnect();

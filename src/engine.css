@@ -252,3 +252,37 @@
 .px-title{font-size:250px;line-height:.9;max-width:1760px;margin-top:20px;text-wrap:balance}
 .px-fg{position:absolute;left:0;right:0;margin:0 auto;bottom:0;height:880px;max-width:1300px;object-fit:contain;filter:drop-shadow(0 30px 60px rgba(0,0,0,.5))}
 .px-lead{position:absolute;left:128px;bottom:110px;max-width:620px;z-index:2;margin:0}
+
+/* ---------- faixa de cabeçalho ---------- */
+.dk-band{position:absolute;left:0;right:0;top:0;height:112px;z-index:4;overflow:hidden;visibility:hidden;opacity:0;transition:opacity .5s,visibility .5s;border-bottom:var(--bw) solid var(--edge);background:linear-gradient(90deg,color-mix(in srgb,var(--surface) 92%,transparent),color-mix(in srgb,var(--accent) 22%,var(--surface)))}
+.dk-band.on{visibility:visible;opacity:1}
+.dk-band-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.dk-band::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,color-mix(in srgb,var(--bg) 82%,transparent) 0%,color-mix(in srgb,var(--bg) 45%,transparent) 55%,color-mix(in srgb,var(--bg) 15%,transparent) 100%)}
+.dk-band::before{content:"";position:absolute;left:0;bottom:0;height:3px;width:100%;z-index:2;background:linear-gradient(90deg,var(--accent),transparent 70%)}
+.dk-band-in{position:relative;z-index:1;height:100%;display:flex;align-items:center;justify-content:space-between;gap:30px;padding:0 128px}
+.dk-band-in span{font-family:var(--f-display);font-size:32px;font-weight:var(--w-title,600);letter-spacing:var(--trk,-.02em);color:var(--title)}
+.dk-band-in img{height:46px;max-width:260px;object-fit:contain}
+.dk-slide.with-head{padding-top:168px}
+
+/* ---------- voltar ao resumo (slides ocultos) ---------- */
+.dk-back{position:absolute;right:128px;top:44px;z-index:8;font:600 22px/1 var(--f-body);padding:16px 26px;border-radius:var(--r-pill);border:1px solid var(--edge);background:color-mix(in srgb,var(--surface) 88%,transparent);color:var(--title);cursor:pointer;backdrop-filter:blur(8px)}
+.dk-back:hover{border-color:var(--accent)}
+.dk-stage:has(.dk-band.on) .dk-back{top:140px}
+
+/* ---------- onepage ---------- */
+.dk-t-onepage{padding-top:76px;padding-bottom:104px}
+.dk-t-onepage.with-head{padding-top:146px}
+.dk-t-onepage .dk-h2{font-size:56px;margin-top:14px}
+.dk-t-onepage .dk-lead{font-size:24px;margin-top:12px}
+.dk-op{display:grid;gap:22px;margin-top:40px;flex:1;grid-auto-rows:1fr;min-height:0}
+.dk-opb{padding:24px 28px;display:flex;flex-direction:column;min-height:0}
+.dk-opb .dk-ix{margin-bottom:10px}
+.dk-opb h3{font-size:28px;margin-bottom:6px}
+.dk-opb p{font-size:19px;line-height:1.4}
+.dk-op-v{font-family:var(--f-display);font-weight:600;font-size:52px;line-height:1;color:var(--title);margin-bottom:10px;font-variant-numeric:tabular-nums}
+.dk-op-go{margin-top:auto;padding-top:14px;font-family:var(--f-mono);font-size:14px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.dk-op-go i{font-style:normal;display:inline-block;transition:transform .25s}
+.dk-opb.go{cursor:pointer;transition:border-color .25s,transform .25s}
+.dk-opb.go:hover{border-color:var(--accent)}
+.dk-opb.go:hover .dk-op-go i{transform:translateX(6px)}
+.dk-op-note{margin:18px 0 0;font-family:var(--f-mono);font-size:15px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
