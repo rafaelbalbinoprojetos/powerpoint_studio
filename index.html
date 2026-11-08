@@ -1158,12 +1158,25 @@ function run3dBars(cv,cfg,o){
   const FOC=i=>({yaw:-.42+(i%2?.14:-.14),pitch:.24,dist:-560,tx:XI(i),ty:HT(i)*.55,cy:.56});
   /* quando cada barra cresce e roteiro de quadros-chave da câmera */
   let grow=i=>({s:.3+i*.18,d:1.4}), keys=[];
-  if(mode==='foco'){ grow=i=>({s:1.1+i*1.9,d:1.1}); keys.push({t:0,c:Object.assign({},OV,{dist:1350,pitch:.6})}); for(let i=0;i<n;i++){ const g=grow(i); keys.push({t:g.s-.5,c:FOC(i)},{t:g.s+g.d+.25,c:FOC(i)}); } keys.push({t:grow(n-1).s+grow(n-1).d+1.8,c:OV}); }
+  /* foco: a câmera flutua de barra em barra (sobe um pouco, recua e pousa), sem parar de se mover */
+  let focoCam=null, tFoco=0;
+  if(mode==='foco'){ const ST=3.4, TR=1.7, A0=1.8, HOLD=ST-TR, OUT=2.4; grow=i=>({s:A0+i*ST-.2,d:1.3});
+    const e5=q=>q*q*q*(q*(q*6-15)+10), mix=(a,b,t)=>{ const c={}; for(const k in OV) c[k]=lerp(a[k],b[k],t); return c; };
+    const drift=(f,t)=>Object.assign({},f,{yaw:f.yaw+t*.035,dist:f.dist-t*28,ty:f.ty+t*6});
+    const START=Object.assign({},OV,{dist:1350,pitch:.6});
+    tFoco=A0+(n-1)*ST+HOLD+OUT;
+    focoCam=tt=>{
+      if(tt<A0){ const q=tt/A0, c=mix(START,FOC(0),e5(q)); c.pitch+=Math.sin(Math.PI*q)*.08; return c; }
+      const k=Math.min(n-1,Math.floor((tt-A0)/ST)), loc=tt-(A0+k*ST);
+      if(k>=n-1||loc<HOLD){ if(k>=n-1&&loc>=HOLD){ const q=e5(Math.min(1,(loc-HOLD)/OUT)); return mix(drift(FOC(n-1),HOLD),OV,q); } return drift(FOC(k),loc); }
+      const q=(loc-HOLD)/TR, c=mix(drift(FOC(k),HOLD),FOC(k+1),e5(q)), b=Math.sin(Math.PI*q);
+      c.dist+=b*300; c.pitch+=b*.12; c.ty+=b*70; c.cy+=b*.04; return c; }; }
   else if(mode==='voo'){ const T=Math.max(4,n*1.2); grow=i=>({s:.5+(n>1?i/(n-1):0)*T*.92,d:.9}); keys.push({t:0,c:{yaw:-.28,pitch:.5,dist:-380,tx:XI(0)-sp*1.2,ty:150,cy:.62}},{t:T+.6,c:{yaw:-.28,pitch:.5,dist:-380,tx:XI(n-1)+sp*.6,ty:150,cy:.62},lin:true},{t:T+2.6,c:OV}); }
   else if(mode==='topo'){ grow=i=>({s:.6+i*.15,d:1.8}); keys.push({t:0,c:{yaw:0,pitch:1.42,dist:1500,tx:0,ty:0,cy:.5}},{t:3.4,c:OV}); }
   else if(mode==='cinema'){ grow=i=>({s:.8+i*.22,d:1.5}); const g=grow(hot); keys.push({t:0,c:{yaw:.3,pitch:1.3,dist:1600,tx:0,ty:0,cy:.5}},{t:2.6,c:{yaw:-.9,pitch:.36,dist:900,tx:0,ty:60,cy:.7}},{t:Math.max(4.4,g.s+g.d+.6),c:FOC(hot)},{t:Math.max(6.4,g.s+g.d+2.6),c:FOC(hot)},{t:Math.max(8.6,g.s+g.d+4.8),c:OV}); }
   const tEnd=keys.length?keys[keys.length-1].t:0;
   function camAt(tt){
+    if(focoCam&&!o.still){ if(tt<tFoco) return focoCam(tt); const k=tt-tFoco; return Object.assign({},OV,{yaw:OV.yaw+Math.sin(k*.2)*.22}); }
     if(o.still||!keys.length||tt>=tEnd){ const k=Math.max(0,tt-tEnd); return Object.assign({},OV,{yaw:OV.yaw+(o.still?0:Math.sin(k*.2)*.22)}); }
     let j=0; while(j<keys.length-1&&keys[j+1].t<=tt) j++;
     const A=keys[j], Bk=keys[Math.min(j+1,keys.length-1)]; const q=Bk.t>A.t?Math.min(1,(tt-A.t)/(Bk.t-A.t)):1, e=Bk.lin?q:V3.ease(q);
