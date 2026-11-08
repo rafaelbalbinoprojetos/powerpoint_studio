@@ -2276,7 +2276,7 @@ function present(start,o={}){
     if(['ArrowRight','PageDown',' ','Enter'].includes(e.key)){e.preventDefault();pl.next();} else if(['ArrowLeft','PageUp','Backspace'].includes(e.key)){e.preventDefault();pl.prev();}
     else if(k==='f') fs(); else if(k==='p') openPresenter(); else if(k==='l') setLaser(!laser); else if(k==='z') setZoom(!zoomMode); else if(k==='v') setVoice(!voiceOn); else if(k==='c') setCC(!ccOn); else if(k==='a') setA11y(); else if(k==='b'||k==='.') black(); else if(e.key==='?'||k==='h') toggleHelp(); };
   addEventListener('keydown',key);
-  w.querySelector('[data-x]').onclick=close; w.querySelector('[data-p]').onclick=()=>pl.prev(); w.querySelector('[data-n]').onclick=()=>pl.next(); w.querySelector('[data-f]').onclick=fs; w.querySelector('[data-v]').onclick=openPresenter;
+  w.querySelector('.bar [data-x]').onclick=close; w.querySelector('.bar [data-p]').onclick=()=>pl.prev(); w.querySelector('.bar [data-n]').onclick=()=>pl.next(); w.querySelector('.bar [data-f]').onclick=fs; w.querySelector('.bar [data-v]').onclick=openPresenter;
   host.onclick=e=>{ if(stageEl) return endStage(); if(o.recording) return;
     if(zoomMode){ if(zoomed) unzoom(); else { zoomed=true; host.style.transformOrigin=`${e.clientX}px ${e.clientY}px`; host.style.transform='scale(2.2)'; w.classList.add('zoomed'); } return; }
     e.clientX>innerWidth*.3?pl.next():pl.prev(); };
