@@ -229,6 +229,7 @@ function field(f,obj,id,onCh){
   if(f.t==='text'){ const i=document.createElement('input'); i.type='text'; i.id=id; i.value=obj[f.k]??''; i.oninput=()=>{obj[f.k]=i.value;onCh();}; w.appendChild(i); }
   else if(f.t==='area'){ const i=document.createElement('textarea'); i.id=id; i.rows=f.k==='title'?2:3; i.value=obj[f.k]??''; i.oninput=()=>{obj[f.k]=i.value;onCh();}; w.appendChild(i); }
   else if(f.t==='list'){ const i=document.createElement('textarea'); i.id=id; i.rows=4; i.value=(obj[f.k]||[]).join('\n'); i.oninput=()=>{obj[f.k]=i.value.split('\n').map(x=>x.trim()).filter(Boolean);onCh();}; w.appendChild(i); const hh=document.createElement('span'); hh.className='hint'; hh.textContent='Um item por linha'; w.appendChild(hh); }
+  else if(f.t==='select'){ const i=document.createElement('select'); i.id=id; i.innerHTML=opt(f.opts||{},obj[f.k]||Object.keys(f.opts||{})[0]); i.onchange=()=>{ obj[f.k]=i.value; onCh(); }; w.appendChild(i); }
   else if(f.t==='slide'){ const i=document.createElement('select'); i.id=id; const cur=deck().slides[sel];
     i.innerHTML='<option value="">— sem link —</option>'+deck().slides.map((s,j)=>s===cur?'':`<option value="${esc(s.id)}"${s.id===obj[f.k]?' selected':''}>${esc(slideLabel(s,j))}</option>`).join('');
     i.onchange=()=>{ obj[f.k]=i.value; onCh(); }; w.appendChild(i);

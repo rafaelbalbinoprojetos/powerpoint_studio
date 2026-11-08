@@ -49,7 +49,8 @@ Ctrl+Z / Ctrl+Shift+Z    desfaz e refaz (botões ↶ ↷ ao lado de "Ver animaç
 Novos modelos            Comparação, Gráfico, Citação, Equipe, Tabela, Vídeo,
                          Mergulho 3D, Galeria 3D, Revelar, Paralaxe, Pizza/rosca,
                          Barras horizontais, Linha/área, Medidores, Funil,
-                         Matriz 2x2 e Painel (OnePage de dashboard)
+                         Matriz 2x2, Painel (OnePage de dashboard),
+                         Partículas 3D e Barras 3D
 Animação por slide       em "Conteúdo": entrada (padrão, suave, dinâmica, sem
                          animação), velocidade, transição e tempo no avanço automático
 Notas do apresentador    campo no fim de "Conteúdo"; durante a apresentação aperte

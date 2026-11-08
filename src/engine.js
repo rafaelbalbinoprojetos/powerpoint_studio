@@ -308,6 +308,102 @@ Object.assign(FX,{
   funnel(el,tl,at){ tl.from(el.querySelectorAll('.fn-s'),{scaleX:.15,opacity:0,transformOrigin:'50% 50%',stagger:.14,duration:1,ease:'expo.out'},at+.1); tl.from(el.querySelectorAll('.fn-rate'),{opacity:0,y:-8,stagger:.14,duration:.5},at+.5); return .3; }
 });
 
+/* ---------- 3D de verdade (canvas, sem biblioteca) ---------- */
+const cfgAttr=o=>esc(JSON.stringify(o));
+Object.assign(TEMPLATES,{
+ particulas3d:{name:'Partículas 3D',desc:'Milhares de partículas em 3D que formam uma palavra, se desfazem numa forma e voltam, com a câmera orbitando',
+  fields:[{k:'word',t:'text',l:'Palavra formada pelas partículas (curta: 1 a 12 letras)'},{k:'shape',t:'select',l:'Forma intermediária',opts:{esfera:'Esfera',helice:'Hélice (DNA)',onda:'Onda',galaxia:'Galáxia'}},{k:'kicker',t:'text',l:'Rótulo'},{k:'title',t:'area',l:'Título (embaixo)'},{k:'lead',t:'area',l:'Texto de apoio'}],
+  sample:{word:'2026',shape:'esfera',kicker:'O próximo passo',title:'Um novo *capítulo*',lead:''},
+  render(d){ return `<canvas class="dk-3d dk-3d-full" width="1600" height="900" data-kind="particles" data-cfg="${cfgAttr({word:d.word||'',shape:d.shape||'esfera'})}"></canvas><div class="dk-l dk-p3-txt">${head(d,'h2')}</div>`; }},
+ barras3d:{name:'Barras 3D',desc:'Gráfico de barras em 3D sobre um piso, crescendo do chão com a câmera girando em volta',
+  fields:[{k:'kicker',t:'text',l:'Rótulo'},{k:'title',t:'area',l:'Título'},{k:'lead',t:'area',l:'Subtítulo'},{k:'unit',t:'text',l:'Unidade (ex.: R$ mil)'},{k:'bars',t:'items',l:'Barras',max:8,sub:[{k:'label',t:'text',l:'Rótulo'},{k:'value',t:'text',l:'Valor'},{k:'hot',t:'bool',l:'Destacar'}]}],
+  sample:{kicker:'Resultados',title:'Economia *por trimestre*',lead:'',unit:'R$ mil',bars:[{label:'T1',value:'120',hot:false},{label:'T2',value:'210',hot:false},{label:'T3',value:'260',hot:false},{label:'T4',value:'410',hot:true}]},
+  render(d){ const b=arr(d.bars).slice(0,8).map(x=>({l:String(x.label||''),v:String(x.value||''),n:num(x.value),h:!!x.hot}));
+    return `<canvas class="dk-3d dk-3d-full" width="1600" height="900" data-kind="bars" data-cfg="${cfgAttr({bars:b,unit:d.unit||''})}"></canvas><div class="dk-b3-txt">${head(d)}</div>`; }}
+});
+const V3={
+  proj(x,y,z,c){ const cy=Math.cos(c.yaw), sy=Math.sin(c.yaw); const X=x*cy-z*sy; let Z=x*sy+z*cy; const cp=Math.cos(c.pitch), sp=Math.sin(c.pitch); const Y=y*cp+Z*sp; Z=-y*sp+Z*cp; const s=c.f/(c.f+Z+c.dist); return [c.cx+X*s,c.cy-Y*s,s,Z]; },
+  colors(cv){ const cs=getComputedStyle(cv), g=k=>hex2rgb((cs.getPropertyValue(k)||'').trim()||'#888'); return {a:g('--accent'),b:g('--alert'),c:g('--ok'),t:g('--title'),m:g('--muted'),light:cs.colorScheme==='light',fd:cs.getPropertyValue('--f-display'),fb:cs.getPropertyValue('--f-body')}; },
+  ease:p=>p<.5?4*p*p*p:1-Math.pow(-2*p+2,3)/2
+};
+/* nuvens de pontos */
+function ptsSphere(N){ const o=new Float32Array(N*3); for(let i=0;i<N;i++){ const y=1-2*(i+.5)/N, r=Math.sqrt(1-y*y), th=i*2.39996; o[i*3]=Math.cos(th)*r*330; o[i*3+1]=y*330; o[i*3+2]=Math.sin(th)*r*330; } return o; }
+function ptsHelix(N){ const o=new Float32Array(N*3); for(let i=0;i<N;i++){ const s=i%2, u=(i/N)*14*Math.PI, j=(Math.random()-.5)*26; o[i*3]=Math.cos(u+s*Math.PI)*170+j; o[i*3+1]=(i/N-.5)*700; o[i*3+2]=Math.sin(u+s*Math.PI)*170+j; } return o; }
+function ptsWave(N){ const o=new Float32Array(N*3), c=Math.ceil(Math.sqrt(N*2.2)), r=Math.ceil(N/c); for(let i=0;i<N;i++){ const gx=i%c, gz=Math.floor(i/c), x=(gx/c-.5)*1300, z=(gz/r-.5)*600; o[i*3]=x; o[i*3+1]=Math.sin(x*.012)*70+Math.cos(z*.015)*50-60; o[i*3+2]=z; } return o; }
+function ptsGalaxy(N){ const o=new Float32Array(N*3); for(let i=0;i<N;i++){ const arm=i%3, d=Math.pow(Math.random(),.6)*560, an=arm*2.094+d*.011+(Math.random()-.5)*.6; const y0=(Math.random()-.5)*(70-d*.08), z0=Math.sin(an)*d; o[i*3]=Math.cos(an)*d; o[i*3+1]=y0*.8-z0*.6; o[i*3+2]=y0*.6+z0*.8; } return o; } // galáxia inclinada para a espiral aparecer
+function ptsWord(word,font,N){
+  const w=String(word||'').trim()||'•'; const c=document.createElement('canvas'); c.width=1800; c.height=560; const x=c.getContext('2d');
+  let fs=430; x.font=`700 ${fs}px ${font||'sans-serif'}`; const mw=x.measureText(w).width; if(mw>1700){ fs=Math.floor(fs*1700/mw); x.font=`700 ${fs}px ${font||'sans-serif'}`; }
+  x.fillStyle='#fff'; x.textAlign='center'; x.textBaseline='middle'; x.fillText(w,900,290);
+  const px=x.getImageData(0,0,1800,560).data, cand=[];
+  for(let y=0;y<560;y+=3) for(let i=0;i<1800;i+=3){ if(px[(y*1800+i)*4+3]>140) cand.push((i-900)*.8,(280-y)*.8); }
+  const o=new Float32Array(N*3), k=cand.length/2; if(!k) return ptsSphere(N);
+  for(let i=0;i<N;i++){ const j=Math.floor(Math.random()*k); o[i*3]=cand[j*2]+(Math.random()-.5)*2; o[i*3+1]=cand[j*2+1]+(Math.random()-.5)*2; o[i*3+2]=(Math.random()-.5)*36; } return o;
+}
+function run3dParticles(cv,cfg,o){
+  const W=cv.width,H=cv.height,cx=cv.getContext('2d'),K=V3.colors(cv),N=4200;
+  const font=K.fd||'sans-serif'; let word=ptsWord(cfg.word,font,N);
+  const shp=({esfera:ptsSphere,helice:ptsHelix,onda:ptsWave,galaxia:ptsGalaxy}[cfg.shape]||ptsSphere)(N), gal=ptsGalaxy(N);
+  const delay=new Float32Array(N).map(()=>Math.random()*.35);
+  const cur=new Float32Array(o.still?word:gal); let from=new Float32Array(cur), to=o.still?word:gal, t0=null, mStart=0, mDur=1, phase=0, alive=true, raf=0;
+  /* sequência: galáxia → palavra → forma → palavra → forma … */
+  const seq=[{to:()=>word,at:1.1,dur:2.4},{to:()=>shp,at:8,dur:2.2},{to:()=>word,at:12.5,dur:2.2}];
+  const cols=[K.a,K.b,K.c].map(c=>`rgb(${c[0]},${c[1]},${c[2]})`);
+  if(document.fonts&&document.fonts.load) document.fonts.load(`700 100px ${font}`).then(()=>{ if(!alive) return; const nw=ptsWord(cfg.word,font,N); if(to===word){ to=nw; } word=nw; if(o.still){ cur.set(nw); draw(0); } }).catch(()=>{});
+  function morph(target,now,dur){ from=new Float32Array(cur); to=target; mStart=now; mDur=dur; }
+  function draw(tt){
+    cx.clearRect(0,0,W,H); cx.globalCompositeOperation=K.light?'source-over':'lighter';
+    const cam={yaw:Math.sin(tt*.22)*.5+(o.still?.22:0),pitch:.1+Math.sin(tt*.17)*.07,f:1100,dist:380,cx:W/2,cy:H*.44};
+    const buckets=[[],[],[]];
+    for(let i=0;i<N;i++){ const p=V3.proj(cur[i*3],cur[i*3+1],cur[i*3+2],cam); if(p[2]<=0) continue; buckets[i%7===0?2:i%3===0?1:0].push(p); }
+    buckets.forEach((bk,j)=>{ cx.fillStyle=cols[j]; for(const p of bk){ const s=Math.max(1.5,3.4*p[2]); cx.globalAlpha=Math.min(1,(K.light?.6:.55)+.55*p[2]-.2); cx.fillRect(p[0]-s/2,p[1]-s/2,s,s); } });
+    cx.globalAlpha=1; cx.globalCompositeOperation='source-over';
+  }
+  function frame(now){
+    if(!alive) return; if(t0==null) t0=now; const tt=(now-t0)/1000;
+    if(phase<seq.length&&tt>=seq[phase].at){ morph(seq[phase].to(),tt,seq[phase].dur); phase++; if(phase===seq.length){ seq.push({to:()=>shp,at:tt+5,dur:2.2},{to:()=>word,at:tt+9.5,dur:2.2}); } }
+    const p=(tt-mStart)/mDur;
+    if(p<=1.35) for(let i=0;i<N;i++){ const q=V3.ease(Math.max(0,Math.min(1,(p-delay[i])/.65))); const k=i*3; cur[k]=from[k]+(to[k]-from[k])*q; cur[k+1]=from[k+1]+(to[k+1]-from[k+1])*q; cur[k+2]=from[k+2]+(to[k+2]-from[k+2])*q; }
+    draw(tt); raf=requestAnimationFrame(frame);
+  }
+  if(o.still) draw(0); else raf=requestAnimationFrame(frame);
+  return {kill(){ alive=false; cancelAnimationFrame(raf); }};
+}
+function run3dBars(cv,cfg,o){
+  const W=cv.width,H=cv.height,cx=cv.getContext('2d'),K=V3.colors(cv); const B=cfg.bars||[]; const n=B.length; if(!n) return {kill(){}};
+  const mx=Math.max(1,...B.map(b=>b.n)), sp=Math.min(190,1100/Math.max(1,n)), bw=sp*.55, x0=-(n-1)*sp/2;
+  const shade=(c,f,add=0)=>`rgb(${Math.min(255,c[0]*f+add)|0},${Math.min(255,c[1]*f+add)|0},${Math.min(255,c[2]*f+add)|0})`;
+  let alive=true, raf=0, t0=null;
+  function draw(tt){
+    cx.clearRect(0,0,W,H);
+    const cam={yaw:-.6+Math.sin(tt*.2)*.22+(o.still?0:0),pitch:.42,f:1500,dist:950,cx:W/2,cy:H*.74};
+    /* piso em grade */
+    cx.lineWidth=1; cx.strokeStyle=`rgba(${K.m[0]},${K.m[1]},${K.m[2]},.22)`;
+    const G=Math.max(700,n*sp*.75); for(let g=-G;g<=G;g+=80){ let a=V3.proj(g,0,-360,cam),b=V3.proj(g,0,360,cam); cx.beginPath(); cx.moveTo(a[0],a[1]); cx.lineTo(b[0],b[1]); cx.stroke(); }
+    for(let z=-360;z<=360;z+=80){ let a=V3.proj(-G,0,z,cam),b=V3.proj(G,0,z,cam); cx.beginPath(); cx.moveTo(a[0],a[1]); cx.lineTo(b[0],b[1]); cx.stroke(); }
+    const faces=[], tops=[];
+    B.forEach((b,i)=>{ const g=o.still?1:V3.ease(Math.max(0,Math.min(1,(tt-.3-i*.18)/1.4))); const h=Math.max(2,b.n/mx*430*g); const X0=x0+i*sp-bw/2, X1=X0+bw, Z0=-bw/2, Z1=bw/2; const c=b.h?K.b:K.a;
+      const P=(x,y,z)=>V3.proj(x,y,z,cam);
+      const cz=P(X0+bw/2,h/2,0)[3];
+      const q=(pts,col)=>{ const pp=pts.map(v=>P(...v)); const z=pp.reduce((s,v)=>s+v[3],0)/4; if(z>cz+.5) return; faces.push({pp,col,z}); }; // só faces viradas para a câmera
+      q([[X0,0,Z1],[X1,0,Z1],[X1,h,Z1],[X0,h,Z1]],shade(c,.62)); q([[X0,0,Z0],[X1,0,Z0],[X1,h,Z0],[X0,h,Z0]],shade(c,.62));
+      q([[X0,0,Z0],[X0,0,Z1],[X0,h,Z1],[X0,h,Z0]],shade(c,.82)); q([[X1,0,Z0],[X1,0,Z1],[X1,h,Z1],[X1,h,Z0]],shade(c,.82));
+      q([[X0,h,Z0],[X1,h,Z0],[X1,h,Z1],[X0,h,Z1]],shade(c,1,45));
+      tops.push({top:P(X0+bw/2,h+34,0),base:P(X0+bw/2,0,0),b,g}); });
+    faces.sort((p,q)=>q.z-p.z).forEach(f=>{ cx.fillStyle=f.col; cx.beginPath(); f.pp.forEach((v,i)=>i?cx.lineTo(v[0],v[1]):cx.moveTo(v[0],v[1])); cx.closePath(); cx.fill(); cx.strokeStyle='rgba(255,255,255,.08)'; cx.stroke(); });
+    cx.textAlign='center'; const tc=`rgb(${K.t[0]},${K.t[1]},${K.t[2]})`, mc=`rgb(${K.m[0]},${K.m[1]},${K.m[2]})`;
+    tops.forEach(({top,base,b,g})=>{ cx.globalAlpha=Math.min(1,g*1.4); cx.fillStyle=tc; cx.font=`600 ${Math.round(40*top[2]*1.6)}px ${K.fd}`; cx.fillText(b.v,top[0],top[1]);
+      cx.fillStyle=mc; cx.font=`500 ${Math.round(22*base[2]*1.6)}px ${K.fb}`; cx.fillText(b.l,base[0],base[1]+(bw*.75+34)*base[2]); });
+    cx.globalAlpha=1;
+    if(cfg.unit){ cx.textAlign='right'; cx.fillStyle=mc; cx.font=`500 20px ${K.fb}`; cx.fillText(cfg.unit.toUpperCase(),W-70,90); }
+  }
+  function frame(now){ if(!alive) return; if(t0==null) t0=now; draw((now-t0)/1000); raf=requestAnimationFrame(frame); }
+  if(o.still) draw(0); else raf=requestAnimationFrame(frame);
+  return {kill(){ alive=false; cancelAnimationFrame(raf); }};
+}
+/* liga/desliga os canvases 3D de um slide */
+function start3D(sl,o={}){ return [...sl.querySelectorAll('canvas.dk-3d')].map(cv=>{ let cfg={}; try{ cfg=JSON.parse(cv.dataset.cfg||'{}'); }catch(_){} return cv.dataset.kind==='bars'?run3dBars(cv,cfg,o):run3dParticles(cv,cfg,o); }); }
+
 /* ---------- faixa de cabeçalho (deck.header = {on, image, text, logo}) ---------- */
 const NOHEAD=['capa','mergulho','revelar','paralaxe','video'];
 function headShown(deck,s){ const h=deck.header; if(!h||!h.on||!s) return false; if(s.head==='show') return true; if(s.head==='hide') return false; return !NOHEAD.includes(s.t); }
@@ -524,6 +620,7 @@ function createPlayer(root,deck,opts={}){
     backBtn.hidden=!(hid(n)&&backTo!=null);
     if(G && !reduce && S(n).anim!=='nenhuma'){ G.set(sl,{clearProps:'all'}); tl=build(sl,G,loops,{anim:S(n).anim,speed:+S(n).speed||0}); }
     else if(G) loops=hubLoops(sl,G);
+    loops.push(...start3D(sl,{still:reduce}));
     pgTxt(n); arm(n);
   }
   const EXIT={deslizar:d=>({opacity:0,x:-d*80,scale:.97,filter:'blur(10px)'}),fade:()=>({opacity:0}),zoom:()=>({opacity:0,scale:1.12,filter:'blur(14px)'}),subir:d=>({opacity:0,y:-d*90,filter:'blur(8px)'})};
@@ -541,6 +638,7 @@ function createPlayer(root,deck,opts={}){
     n=Math.max(0,Math.min(slides.length-1,n)); slides.forEach(s=>{ s.classList.remove('on'); videos(s,false); }); kill(); fresh(n).classList.add('on'); cur=n; if(band) band.classList.toggle('on',headShown(deck,S(n)));
     pgTxt(n); videos(slides[n],true);
     if(G){ loops=hubLoops(slides[n],G); slides[n].querySelectorAll('.feed').forEach(p=>{p.style.strokeDashoffset=0;}); }
+    loops.push(...start3D(slides[n],{still:reduce}));
   }
   function replay(){ const n=cur; slides[n].classList.remove('on'); kill(); enter(n); }
   /* troca só um slide (edição ao vivo, sem reconstruir o deck inteiro) */
@@ -559,6 +657,7 @@ function renderStatic(root,deck,i){
   const t=themeOf(deck); ensureFonts([t.fontDisplay,t.fontBody], root.ownerDocument);
   root.innerHTML=`<div class="dk-player dk-static" style='${themeVars(t)};background:radial-gradient(ellipse at 62% 45%,${t.light?'color-mix(in srgb,'+t.accent+' 7%,'+t.bg+')':'color-mix(in srgb,'+t.accent+' 25%,'+t.bg+')'},${t.bg} 70%)'><div class="dk-vp"><div class="dk-stage">${slideHTML(deck,i,t)}${headShown(deck,deck.slides[i])?bandHTML(deck,t).replace('class="dk-band"','class="dk-band on"'):''}${footHTML(deck,t,i)}</div></div></div>`;
   const p=root.firstElementChild, st=p.querySelector('.dk-stage');
+  start3D(p,{still:true});
   const fit=()=>{const r=p.getBoundingClientRect(); if(!r.width) return; st.style.transform=`translate(-50%,-50%) scale(${Math.min(r.width/1920,r.height/1080)})`;};
   fit(); const ro=new ResizeObserver(fit); ro.observe(p); return ()=>ro.disconnect();
 }

@@ -96,6 +96,8 @@ Para uma marca própria, mantenha o preset mais próximo e sobrescreva no `theme
 | `funil` | Conversão entre etapas (até 6) | `kicker`, `title`, `lead`, `stages`: [{`label`, `value`, `text`}], `showRate` (bool) |
 | `matriz` | SWOT, prioridades, riscos (4 quadrantes) | `kicker`, `title`, `aTitle`, `a` (lista), `bTitle`, `b`, `cTitle`, `c`, `dTitle`, `d`, `xLabel`, `yLabel` |
 | `painel` | OnePage de dashboard: indicadores, tabela, rosca e destaques numa tela | `kicker`, `title`, `kpis`: [{`label`, `value`, `delta` ("+12%"; negativo fica vermelho), `link` (id de slide oculto)}] (até 4), `tableTitle`, `header`, `rows`, `chartTitle`, `mix`: [{`label`, `value`}] (até 6), `highlights` (lista) |
+| `particulas3d` | Momento "uau" (abertura, virada de capítulo, número-chave): partículas 3D formam uma palavra, viram outra forma e voltam | `word` (1 a 12 letras: nome, número, ano), `shape` (`esfera`, `helice`, `onda`, `galaxia`), `kicker`, `title`, `lead` |
+| `barras3d` | Gráfico de barras em 3D com câmera girando (até 8 barras) | `kicker`, `title`, `lead`, `unit`, `bars`: [{`label`, `value`, `hot`}] |
 
 **OnePage com slides ocultos:** crie o `onepage` e, para cada bloco que precisa de detalhe, um slide com `hidden: true`; ponha o `id` desse slide no `link` do bloco. Na apresentação, clicar no bloco abre o slide oculto, que mostra "Voltar ao resumo".
 

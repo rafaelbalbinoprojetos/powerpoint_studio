@@ -383,3 +383,11 @@
 .pn-dn{display:grid;grid-template-columns:290px 1fr;gap:28px;align-items:center;flex:1}
 .pn-h{display:flex;gap:12px;flex-wrap:wrap}
 .pn-h .dk-chip{font-size:16px;padding:9px 16px}
+
+/* ---------- 3D (canvas) ---------- */
+.dk-3d{display:block}
+.dk-3d-full{position:absolute;inset:0;width:100%;height:100%}
+.dk-t-particulas3d{justify-content:flex-end}
+.dk-p3-txt{position:relative;z-index:1;max-width:1200px}
+.dk-p3-txt .dk-h2{font-size:64px}
+.dk-b3-txt{position:relative;z-index:1}
