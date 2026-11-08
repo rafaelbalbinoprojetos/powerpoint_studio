@@ -225,6 +225,45 @@
 /* granulado de filme, sutil */
 .dk-player::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:5;opacity:var(--grain,0);background-size:180px 180px;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .5 0 0 0 0 .5 0 0 0 1.6 -.3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+
+/* ---------- modelos cinematográficos ---------- */
+.dk-phx{width:100%;height:100%;display:grid;place-items:center;position:relative;background:radial-gradient(circle at 30% 25%,color-mix(in srgb,var(--accent) 60%,var(--bg)),color-mix(in srgb,var(--surface) 90%,var(--bg)) 75%);filter:hue-rotate(var(--h,0deg))}
+.dk-phx::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent 0 79px,color-mix(in srgb,var(--title) 9%,transparent) 79px 80px),repeating-linear-gradient(90deg,transparent 0 79px,color-mix(in srgb,var(--title) 9%,transparent) 79px 80px)}
+.dk-phx span{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);white-space:nowrap;font-family:var(--f-mono);font-size:22px;letter-spacing:.18em;text-transform:uppercase;color:color-mix(in srgb,var(--title) 75%,transparent)}
+.dk-t-mergulho,.dk-t-revelar,.dk-t-paralaxe{padding:0}
+
+/* mergulho 3D */
+.dk-dive{position:absolute;inset:0;perspective:1200px;perspective-origin:50% 50%}
+.dk-dl{position:absolute;left:50%;top:50%;width:1920px;height:1080px;z-index:calc(10 - var(--i));transform:translate3d(-50%,-50%,calc(var(--i) * -1400px))}
+.dk-dl > img,.dk-dl > .dk-phx{width:100%;height:100%;object-fit:cover;display:block}
+.dk-dl > .dk-phx span{left:auto;top:auto;right:128px;bottom:150px;transform:none;font-size:20px}
+.dk-dl .cap{position:absolute;left:128px;bottom:150px;font-family:var(--f-display);font-size:68px;font-weight:var(--w-title,600);letter-spacing:var(--trk,-.02em);color:#fff;text-shadow:0 4px 40px rgba(0,0,0,.55)}
+.dk-dive-end{position:absolute;inset:0;z-index:20;display:flex;flex-direction:column;justify-content:center;padding:96px 128px 120px;background:linear-gradient(90deg,color-mix(in srgb,var(--bg) 92%,transparent) 0%,color-mix(in srgb,var(--bg) 70%,transparent) 55%,color-mix(in srgb,var(--bg) 25%,transparent) 100%)}
+.dk-dive-end .dk-h1{max-width:1300px}
+
+/* galeria 3D */
+.dk-g3{position:absolute;left:0;right:0;bottom:70px;height:600px;perspective:2200px;perspective-origin:50% 20%}
+.dk-g3-tilt{position:absolute;left:50%;top:50%;transform-style:preserve-3d;transform:rotateX(-7deg)}
+.dk-ring3d{position:absolute;left:0;top:0;transform-style:preserve-3d}
+.dk-ring3d figure{position:absolute;width:440px;height:300px;margin:-150px 0 0 -220px;border-radius:var(--r-md);overflow:hidden;border:var(--bw) solid var(--edge);box-shadow:0 30px 60px rgba(0,0,0,.4);backface-visibility:hidden}
+.dk-ring3d figure > img,.dk-ring3d figure > .dk-phx{width:100%;height:100%;object-fit:cover;display:block}
+.dk-ring3d figcaption{position:absolute;left:0;right:0;bottom:0;padding:30px 20px 14px;font-family:var(--f-mono);font-size:16px;letter-spacing:.14em;text-transform:uppercase;color:#fff;background:linear-gradient(transparent,rgba(0,0,0,.7))}
+
+/* revelar */
+.dk-rv{position:absolute;inset:0;overflow:hidden}
+.dk-rv > img,.dk-rv > .dk-phx{width:100%;height:100%;object-fit:cover;display:block}
+.dk-rv.dim::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,color-mix(in srgb,var(--bg) 88%,transparent) 0%,color-mix(in srgb,var(--bg) 40%,transparent) 50%,transparent 80%)}
+.dk-rv-txt{position:relative;z-index:1;margin-top:auto;padding:0 128px 170px;max-width:1350px}
+
+/* paralaxe */
+.dk-px{position:absolute;inset:0;overflow:hidden}
+.px-bg{position:absolute;inset:-50px}
+.px-bg > img,.px-bg > .dk-phx{width:100%;height:100%;object-fit:cover;display:block}
+.px-bg::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,color-mix(in srgb,var(--bg) 30%,transparent),color-mix(in srgb,var(--bg) 75%,transparent))}
+.px-tx{position:absolute;left:0;right:0;top:100px;display:flex;flex-direction:column;align-items:center;text-align:center}
+.px-title{font-size:250px;line-height:.9;max-width:1760px;margin-top:20px;text-wrap:balance}
+.px-fg{position:absolute;left:0;right:0;margin:0 auto;bottom:0;height:880px;max-width:1300px;object-fit:contain;filter:drop-shadow(0 30px 60px rgba(0,0,0,.5))}
+.px-lead{position:absolute;left:128px;bottom:110px;max-width:620px;z-index:2;margin:0}
 </style>
 <style>
 /* Layout: mesa de montagem — lista de slides | palco | inspetor; empilha no celular */
@@ -622,6 +661,61 @@ Object.assign(TEMPLATES,{
   render(d){ return `${d.src?`<video class="dk-video${d.dim?' dim':''}" src="${esc(d.src)}" muted loop playsinline preload="metadata"></video>`:'<div class="dk-video dk-ph">Informe o endereço do vídeo</div>'}<div class="dk-l dk-vtxt">${head(d,'h1')}</div>`; }}
 });
 
+/* ---------- modelos cinematográficos (3D) ---------- */
+const phx=(i,label)=>`<div class="dk-phx" style="--h:${i*55}deg"><span>${esc(label)}</span></div>`;
+const media=(src,i,label)=>src?`<img src="${im(src)}" alt="">`:phx(i,label);
+Object.assign(TEMPLATES,{
+ mergulho:{name:'Mergulho 3D',desc:'A câmera atravessa imagens em profundidade, uma atrás da outra, até a mensagem final',
+  fields:[{k:'layers',t:'items',l:'Camadas (da frente para o fundo)',max:5,sub:[{k:'image',t:'image',l:'Imagem'},{k:'caption',t:'text',l:'Legenda'}]},{k:'kicker',t:'text',l:'Rótulo final'},{k:'title',t:'area',l:'Mensagem final'},{k:'lead',t:'area',l:'Texto de apoio'}],
+  sample:{layers:[{image:'',caption:'Onde começamos'},{image:'',caption:'O que construímos'},{image:'',caption:'Para onde vamos'}],kicker:'A jornada',title:'Cada camada\n*nos trouxe até aqui*',lead:''},
+  render(d){ const L=arr(d.layers).slice(0,5);
+    return `<div class="dk-dive" data-a="dive">${L.map((x,i)=>`<div class="dk-dl" style="--i:${i}">${media(x.image,i,'Camada '+(i+1))}${x.caption?`<div class="cap">${esc(x.caption)}</div>`:''}</div>`).join('')}</div>${d.title||d.kicker?`<div class="dk-dive-end">${head(d,'h1')}</div>`:''}`; }},
+ galeria3d:{name:'Galeria 3D',desc:'Imagens num carrossel girando em perspectiva',
+  fields:[{k:'kicker',t:'text',l:'Rótulo'},{k:'title',t:'area',l:'Título'},{k:'lead',t:'area',l:'Subtítulo'},{k:'images',t:'items',l:'Imagens',max:8,sub:[{k:'image',t:'image',l:'Imagem'},{k:'caption',t:'text',l:'Legenda'}]}],
+  sample:{kicker:'Portfólio',title:'O que já *entregamos*',lead:'',images:[{caption:'Projeto 1'},{caption:'Projeto 2'},{caption:'Projeto 3'},{caption:'Projeto 4'},{caption:'Projeto 5'},{caption:'Projeto 6'}].map(x=>Object.assign({image:''},x))},
+  render(d){ const I=arr(d.images).slice(0,8), n=Math.max(3,I.length), W=440, R=Math.round(W/2/Math.tan(Math.PI/n))+60;
+    return `${head(d)}<div class="dk-g3" data-a="ring"><div class="dk-g3-tilt"><div class="dk-ring3d">${[...Array(n)].map((_,i)=>{ const x=I[i]||{}; return `<figure style="transform:rotateY(${(i*360/n).toFixed(2)}deg) translateZ(${R}px)">${media(x.image,i,'Imagem '+(i+1))}${x.caption?`<figcaption>${esc(x.caption)}</figcaption>`:''}</figure>`; }).join('')}</div></div></div>`; }},
+ revelar:{name:'Revelar',desc:'Imagem em tela cheia surgindo por uma máscara (círculo ou cortina) com zoom',
+  fields:[{k:'image',t:'image',l:'Imagem'},{k:'kicker',t:'text',l:'Rótulo'},{k:'title',t:'area',l:'Título'},{k:'lead',t:'area',l:'Texto de apoio'},{k:'curtain',t:'bool',l:'Abrir como cortina (em vez de círculo)'},{k:'dim',t:'bool',l:'Escurecer o lado do texto'}],
+  sample:{image:'',kicker:'Lançamento',title:'Apresentamos\n*a nova fase*',lead:'',curtain:false,dim:true},
+  render(d){ return `<div class="dk-rv${d.curtain?' cur':''}${d.dim?' dim':''}" data-a="reveal">${media(d.image,0,'Sua imagem aqui')}</div><div class="dk-l dk-rv-txt">${head(d,'h1')}</div>`; }},
+ paralaxe:{name:'Paralaxe',desc:'Fundo, título e figura recortada em profundidades diferentes (título passa atrás da figura)',
+  fields:[{k:'bg',t:'image',l:'Imagem de fundo'},{k:'subject',t:'image',l:'Figura na frente (PNG transparente)'},{k:'kicker',t:'text',l:'Rótulo'},{k:'title',t:'area',l:'Título grande'},{k:'lead',t:'area',l:'Texto de apoio'}],
+  sample:{bg:'',subject:'',kicker:'Edição 2026',title:'FUTURO',lead:''},
+  render(d){ return `<div class="dk-px" data-a="parallax"><div class="px-bg">${media(d.bg,1,'Fundo')}</div><div class="px-tx">${d.kicker?`<div class="dk-kicker">${esc(d.kicker)}</div>`:''}<h1 class="dk-h1 px-title">${rich(d.title)}</h1></div>${d.subject?`<img class="px-fg" src="${im(d.subject)}" alt="">`:''}${d.lead?`<p class="dk-lead px-lead">${rich(d.lead)}</p>`:''}</div>`; }}
+});
+/* animações desses modelos: devolvem quanto tempo empurrar o resto */
+const FX={
+  dive(el,tl,at){
+    const L=[...el.querySelectorAll('.dk-dl')], n=L.length, DZ=1400, caps=L.map(l=>l.querySelector('.cap')), end=el.parentNode.querySelector('.dk-dive-end');
+    const o={z:-600};
+    const apply=()=>L.forEach((l,i)=>{ const rel=o.z-i*DZ; const op=rel<=0?1:Math.max(0,1-rel/650);
+      l.style.opacity=op; l.style.visibility=op<=.01?'hidden':'visible'; l.style.transform=`translate3d(-50%,-50%,${rel}px)`;
+      l.style.filter=rel<-150?`brightness(${Math.max(.4,1+rel/2800).toFixed(3)})`:'none'; });
+    apply(); caps.forEach(c=>c&&tl.set(c,{opacity:0},0)); if(end) tl.set(end,{opacity:0},0);
+    tl.to(o,{z:0,duration:1.5,ease:'power3.out',onUpdate:apply},at);
+    let t=at+1;
+    L.forEach((l,i)=>{ if(caps[i]) tl.fromTo(caps[i],{opacity:0,y:30},{opacity:1,y:0,duration:.7,ease:'power2.out'},t); t+=1.7;
+      if(i<n-1){ if(caps[i]) tl.to(caps[i],{opacity:0,duration:.3},t-.2); tl.to(o,{z:(i+1)*DZ,duration:1.9,ease:'power2.inOut',onUpdate:apply},t); t+=1.9; } });
+    if(end){ if(caps[n-1]) tl.to(caps[n-1],{opacity:0,duration:.4},t-.6); tl.fromTo(end,{opacity:0},{opacity:1,duration:1.1,ease:'power2.out'},t-.5); }
+    return 0;
+  },
+  ring(el,tl,at,keep,G){ const r=el.querySelector('.dk-ring3d'); if(!r) return 0;
+    tl.from(r,{rotationY:-150,z:-1600,duration:2.4,ease:'power3.out'},at);
+    tl.from(r.children,{opacity:0,stagger:.07,duration:1,ease:'power2.out'},at);
+    keep.push(G.to(r,{rotationY:'+=360',duration:40,repeat:-1,ease:'none',delay:2.4})); return .3; },
+  reveal(el,tl,at){ const cur=el.classList.contains('cur'), img=el.firstElementChild;
+    tl.fromTo(el,{clipPath:cur?'inset(0% 50% 0% 50%)':'circle(0% at 50% 50%)'},{clipPath:cur?'inset(0% 0% 0% 0%)':'circle(85% at 50% 50%)',duration:1.9,ease:'expo.inOut'},at);
+    if(img) tl.fromTo(img,{scale:1.4},{scale:1,duration:2.8,ease:'power3.out'},at);
+    return 1.1; },
+  parallax(el,tl,at,keep,G){ const bg=el.querySelector('.px-bg'), tx=el.querySelector('.px-tx'), fg=el.querySelector('.px-fg');
+    if(bg) tl.fromTo(bg,{scale:1.35,filter:'blur(14px)'},{scale:1.06,filter:'blur(0px)',duration:2.6,ease:'power3.out'},at);
+    if(tx) tl.fromTo(tx,{y:140,opacity:0,scale:.9},{y:0,opacity:1,scale:1,duration:1.9,ease:'expo.out'},at+.3);
+    if(fg) tl.fromTo(fg,{y:220,scale:1.25,opacity:0},{y:0,scale:1,opacity:1,duration:2.1,ease:'expo.out'},at+.5);
+    [[bg,10],[tx,22],[fg,42]].forEach(([e,a])=>{ if(e) keep.push(G.to(e,{x:a,y:-a*.35,duration:7,yoyo:true,repeat:-1,ease:'sine.inOut',delay:2.8})); });
+    return .9; }
+};
+
 /* campos que faltam no slide ganham valor vazio (não texto de exemplo) */
 function emptyOf(f){ return f.t==='bool'?false:(f.t==='list'||f.t==='items')?[]:''; }
 function fillDefaults(s){ const T=TEMPLATES[s&&s.t]; if(!T) return s; s.d=s.d||{}; T.fields.forEach(f=>{ if(s.d[f.k]===undefined) s.d[f.k]=emptyOf(f); }); return s; }
@@ -657,11 +751,13 @@ function build(sl,G,keep,o={}){
   const tl=G.timeline({defaults:{ease:'expo.out',duration:1.1}}); let at=0;
   if(style==='suave'){
     sl.querySelectorAll('[data-a]').forEach(el=>{
+      if(FX[el.dataset.a]){ at+=FX[el.dataset.a](el,tl,at,keep,G); return; }
       const multi=['stagger','cards','fromleft'].includes(el.dataset.a);
       tl.from(multi?el.children:el,{opacity:0,duration:.9,ease:'power2.out',stagger:multi?.08:0},at); at+=.12;
       if(el.dataset.a==='bars') tl.from(el.querySelectorAll('.dk-bar-c i'),{scaleY:0,transformOrigin:'50% 100%',stagger:.06,duration:1,ease:'power3.out'},at);
     });
   } else sl.querySelectorAll('[data-a]').forEach(el=>{
+    if(FX[el.dataset.a]){ at+=FX[el.dataset.a](el,tl,at,keep,G); return; }
     switch(el.dataset.a){
       case 'bars': tl.from(el.querySelectorAll('.dk-bar-c i'),{scaleY:0,transformOrigin:'50% 100%',stagger:.1,duration:1.3,ease:'power3.out'},at+.2);
         tl.from(el.querySelectorAll('.dk-bar-v, .dk-bar > span'),{opacity:0,y:20,stagger:.05,duration:.7},at+.5); at+=.3; break;
@@ -776,7 +872,8 @@ function createPlayer(root,deck,opts={}){
   /* avanço automático: deck.auto={secs,loop}; slide.dur sobrescreve */
   function arm(n){
     clearTimeout(autoT); if(!opts.autoplay) return;
-    const a=deck.auto||{}; const secs=+S(n).dur||+a.secs||0; if(secs<=0) return;
+    const a=deck.auto||{}; let secs=+S(n).dur||+a.secs||0; if(secs<=0) return;
+    if(!S(n).dur && tl) secs=Math.max(secs,Math.min(tl.duration(),60)+1); // espera animações longas (ex.: Mergulho 3D)
     autoT=setTimeout(()=>{ if(n<slides.length-1) go(n+1,1); else if(a.loop) go(0,1); else opts.onEnd&&opts.onEnd(); },secs*1000);
   }
   function enter(n){
