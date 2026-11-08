@@ -268,7 +268,7 @@ function build(sl,G,keep,o={}){
       case 'logo': tl.from(el,{opacity:0,scale:.85,filter:'blur(14px)',duration:1.4},at); at+=.2; break;
       case 'hero': tl.from(el,{opacity:0,x:120,scale:1.06,filter:'blur(18px)',duration:1.8,ease:'power3.out'},.1); break;
       case 'stagger': tl.from(el.children,{y:30,opacity:0,stagger:.08,duration:.9},at+.1); at+=.2; break;
-      case 'cards': tl.from(el.children,{y:80,opacity:0,rotationX:25,transformPerspective:900,stagger:.12,duration:1.2},at+.1);
+      case 'cards': G.set(el.children,{transformPerspective:1200}); tl.from(el.children,{y:70,opacity:0,rotationX:18,transformOrigin:"50% 100%",force3D:true,stagger:.12,duration:1.3,ease:"power3.out",clearProps:"transform,opacity"},at+.1);
         tl.add(()=>[...el.children].forEach((c,i)=>setTimeout(()=>c.classList.add('lit'),i*180)),at+.6); at+=.3; break;
       case 'node': tl.from(el,{y:50,opacity:0,scale:.92,duration:.9},at); at+=.22; break;
       case 'arrow': tl.from(el,{scaleX:0,duration:.5,ease:'power2.out'},at-.1); break;
@@ -278,7 +278,7 @@ function build(sl,G,keep,o={}){
       case 'fromleft': tl.from(el.children,{x:-80,opacity:0,stagger:.12},at); break;
       case 'fromright': tl.from(el,{x:80,opacity:0},at+.3); break;
       case 'hub': tl.from(el.querySelector('.dk-core'),{scale:0,rotation:-90,duration:1.3,ease:'back.out(1.6)'},at); at+=.3; break;
-      case 'screen': tl.from(el,{y:90,opacity:0,rotationY:-14,rotationX:8,transformPerspective:1600,scale:.94,duration:1.6,ease:'power4.out'},at);
+      case 'screen': G.set(el,{transformPerspective:1600}); tl.from(el,{y:90,opacity:0,rotationY:-14,rotationX:8,scale:.94,force3D:true,duration:1.6,ease:'power3.out',clearProps:"transform,opacity"},at);
         { const r=el.querySelectorAll('.mk-bars rect'); if(r.length) tl.from(r,{scaleY:0,transformOrigin:'50% 100%',transformBox:'fill-box',stagger:.02,duration:.7,ease:'power3.out'},at+.6);
           const li=el.querySelectorAll('.mk-li'); if(li.length) tl.from(li,{x:40,opacity:0,stagger:.08,duration:.6},at+.7); }
         at+=.25; break;
@@ -293,7 +293,7 @@ function build(sl,G,keep,o={}){
   });
   const fl=sl.querySelector('[data-float]'); if(fl) tl.to(fl,{y:-14,duration:3,yoyo:true,repeat:-1,ease:'sine.inOut'},2);
   keep.push(...hubLoops(sl,G));
-  if(style==='dinamico') tl.from(sl,{scale:1.08,rotationX:7,y:40,transformPerspective:1600,transformOrigin:'50% 60%',duration:1.8,ease:'expo.out'},0); // câmera se aproximando
+  if(style==='dinamico') G.set(sl,{transformPerspective:1600}); tl.from(sl,{scale:1.08,rotationX:7,y:40,transformOrigin:'50% 60%',duration:1.8,ease:'expo.out'},0); // câmera se aproximando
   if(o.speed) tl.timeScale(tl.timeScale()*o.speed);
   return tl;
 }
@@ -377,8 +377,10 @@ function createPlayer(root,deck,opts={}){
     if(!S(n).dur && tl) secs=Math.max(secs,Math.min(tl.duration(),60)+1); // espera animações longas (ex.: Mergulho 3D)
     autoT=setTimeout(()=>{ if(n<slides.length-1) go(n+1,1); else if(a.loop) go(0,1); else opts.onEnd&&opts.onEnd(); },secs*1000);
   }
+  /* recria o slide do zero a cada entrada: animação interrompida nunca deixa elemento torto */
+  function fresh(n){ const tmp=document.createElement('div'); tmp.innerHTML=slideHTML(deck,n,t); const ns=tmp.firstElementChild; splitWords(ns); tame(ns); slides[n].replaceWith(ns); slides[n]=ns; return ns; }
   function enter(n){
-    const sl=slides[n]; sl.classList.add('on'); videos(sl,true);
+    const sl=fresh(n); sl.classList.add('on'); videos(sl,true);
     if(G && !reduce && S(n).anim!=='nenhuma'){ G.set(sl,{clearProps:'all'}); tl=build(sl,G,loops,{anim:S(n).anim,speed:+S(n).speed||0}); }
     else if(G) loops=hubLoops(sl,G);
     pgTxt(n); arm(n);
@@ -395,7 +397,7 @@ function createPlayer(root,deck,opts={}){
     else done();
   }
   function still(n){ // mostra o slide sem animar
-    n=Math.max(0,Math.min(slides.length-1,n)); slides.forEach(s=>{ s.classList.remove('on'); videos(s,false); }); kill(); slides[n].classList.add('on'); cur=n;
+    n=Math.max(0,Math.min(slides.length-1,n)); slides.forEach(s=>{ s.classList.remove('on'); videos(s,false); }); kill(); fresh(n).classList.add('on'); cur=n;
     pgTxt(n); videos(slides[n],true);
     if(G){ loops=hubLoops(slides[n],G); slides[n].querySelectorAll('.feed').forEach(p=>{p.style.strokeDashoffset=0;}); }
   }
@@ -403,8 +405,7 @@ function createPlayer(root,deck,opts={}){
   /* troca só um slide (edição ao vivo, sem reconstruir o deck inteiro) */
   function update(n,nd){
     deck=nd; if(!slides[n]) return;
-    const tmp=document.createElement('div'); tmp.innerHTML=slideHTML(deck,n,t); const ns=tmp.firstElementChild;
-    splitWords(ns); tame(ns); slides[n].replaceWith(ns); slides[n]=ns;
+    fresh(n);
     if(n===cur) still(n);
   }
   go(opts.start||0,1,true);
