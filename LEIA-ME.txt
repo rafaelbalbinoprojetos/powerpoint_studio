@@ -62,6 +62,8 @@ Mais > Apresentação pronta  Pitch (OnePage), Resultados do trimestre e Lançam
 OnePage                  resumo em uma tela; cada bloco pode abrir um slide oculto.
                          Na apresentação, o slide oculto mostra "Voltar ao resumo"
 Faixa de cabeçalho       aba Tema: faixa de ponta a ponta com imagem e nome do tema
+Fundos premium           aba Tema > Fundo animado: Aurora, Malha de cor, Topografia,
+                         Pontos em onda, Feixes de luz e Bokeh
 Mais > PDF               abre a impressão com um slide por página
 Mais > Gravar vídeo      grava a aba enquanto a apresentação roda sozinha
                          (Chrome/Edge; sai .mp4 ou .webm)
