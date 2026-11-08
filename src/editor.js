@@ -202,8 +202,11 @@ function renderPane(){
   box.innerHTML=`<div class="sec">Animação deste slide</div>
   <div class="f2"><div class="f"><label for="o-anim">Entrada dos elementos</label><select id="o-anim">${opt(D.ANIMS,s.anim||'padrao')}</select></div>
   <div class="f"><label for="o-speed">Velocidade</label><select id="o-speed">${opt({'0.5':'Bem lenta','0.75':'Lenta','1':'Normal','1.5':'Rápida','2':'Bem rápida'},String(s.speed||1))}</select></div></div>
-  <div class="f2"><div class="f"><label for="o-tr">Transição ao chegar</label><select id="o-tr">${opt(D.TRANSITIONS,s.tr||'deslizar')}</select></div>
+  <div class="f2"><div class="f"><label for="o-tr">Transição ao chegar</label><select id="o-tr">${opt(Object.assign({'':'Padrão da apresentação'},D.TRANSITIONS),s.tr||'')}</select></div>
   <div class="f"><label for="o-dur">Tempo no avanço automático</label><input type="number" id="o-dur" min="0" step="0.5" placeholder="padrão" value="${s.dur||''}"><span class="hint">segundos (vazio = padrão do tema)</span></div></div>
+  ${dataField(tpl)?`<div class="sec">Dados de planilha</div><div class="f"><label for="o-src">Link do Google Planilhas ou de um arquivo CSV</label><input type="text" id="o-src" placeholder="https://docs.google.com/spreadsheets/d/…" value="${esc(s.src||'')}"><span class="hint">Coluna A = rótulo, coluna B = valor. No Google Planilhas: Compartilhar › Qualquer pessoa com o link.</span></div>
+  <div class="btnrow"><button class="btn sm" id="o-srcGo">Importar agora</button><button class="btn sm" id="o-csv">Abrir arquivo CSV…</button></div>
+  <label class="chk"><input type="checkbox" id="o-live"${s.live?' checked':''}> Atualizar os números sozinho ao apresentar</label>`:''}
   <div class="sec">Exibição</div>
   <label class="chk"><input type="checkbox" id="o-hid"${s.hidden?' checked':''}> Slide oculto (só abre por um link do OnePage)</label>
   ${d.header&&d.header.on?`<div class="f"><label for="o-head">Faixa de cabeçalho neste slide</label><select id="o-head">${opt({'':'Automático','show':'Mostrar','hide':'Esconder'},s.head||'')}</select></div>`:''}
@@ -213,11 +216,16 @@ function renderPane(){
   const animCh=()=>{ touch(); if(player){ player.update(sel,deck()); player.replay(); } };
   $('#o-anim').onchange=e=>{ if(e.target.value==='padrao') delete s.anim; else s.anim=e.target.value; animCh(); };
   $('#o-speed').onchange=e=>{ const v=+e.target.value; if(v===1) delete s.speed; else s.speed=v; animCh(); };
-  $('#o-tr').onchange=e=>{ if(e.target.value==='deslizar') delete s.tr; else s.tr=e.target.value; touch(); if(player) player.update(sel,deck()); };
+  $('#o-tr').onchange=e=>{ if(!e.target.value) delete s.tr; else s.tr=e.target.value; touch(); if(player) player.update(sel,deck()); };
   $('#o-dur').oninput=e=>{ const v=parseFloat(e.target.value); if(v>0) s.dur=v; else delete s.dur; touch(); };
   $('#o-hid').onchange=e=>{ if(e.target.checked) s.hidden=true; else delete s.hidden; touch(); renderRail(); };
   if($('#o-head')) $('#o-head').onchange=e=>{ if(e.target.value) s.head=e.target.value; else delete s.head; touch(); renderPreview(false); refreshThumb(sel); };
   $('#o-notes').oninput=e=>{ s.notes=e.target.value; if(!s.notes) delete s.notes; touch(); };
+  if($('#o-src')){ const fill=rows=>{ const n=applyRows(s,rows); if(!n) return setStatus('Não encontrei linhas com rótulo e valor'); touch(); renderPreview(false); refreshThumb(sel); renderPane(); setStatus(n+' linhas importadas',true); };
+    $('#o-src').oninput=e=>{ const v=e.target.value.trim(); if(v) s.src=v; else { delete s.src; delete s.live; } touch(); };
+    $('#o-srcGo').onclick=async()=>{ if(!s.src) return setStatus('Cole o link da planilha primeiro'); setStatus('Buscando dados…'); try{ fill(await fetchRows(s.src)); }catch(e){ setStatus('Não consegui ler a planilha. Ela está compartilhada com qualquer pessoa com o link?'); } };
+    $('#o-csv').onclick=()=>{ const inp=document.createElement('input'); inp.type='file'; inp.accept='.csv,text/csv,.txt'; inp.onchange=async()=>{ try{ fill(csvRows(await inp.files[0].text())); }catch(e){ setStatus('Arquivo CSV inválido'); } }; inp.click(); };
+    $('#o-live').onchange=e=>{ if(e.target.checked) s.live=true; else delete s.live; touch(); }; }
   const tip=document.createElement('p'); tip.className='tip';
   tip.innerHTML='Use <code>*palavra*</code> para destacar com a cor do tema e <code>`SQ01`</code> para um código. Clique num texto do slide para editar ali mesmo (Enter confirma, Esc cancela). Arraste imagens do computador para o slide e as miniaturas para reordenar. <code>Ctrl+Z</code> desfaz.';
   pane.appendChild(tip);
@@ -282,7 +290,11 @@ function themePane(pane){
   <div class="f"><label for="t-fd">Fonte dos títulos</label><select id="t-fd">${D.FONTS.map(f=>`<option${f===eff.fontDisplay?' selected':''}>${f}</option>`).join('')}</select></div>
   <div class="f"><label for="t-fb">Fonte do texto</label><select id="t-fb">${D.FONTS.map(f=>`<option${f===eff.fontBody?' selected':''}>${f}</option>`).join('')}</select></div>
   <div class="f"><label for="t-bg">Fundo animado</label><select id="t-bg">${Object.entries(D.BACKGROUNDS).map(([k,l])=>`<option value="${k}"${k===eff.background?' selected':''}>${l}</option>`).join('')}</select></div>
+  <div class="sec">Movimento e acessibilidade</div>
+  <div class="f"><label for="t-tr">Transição padrão entre slides</label><select id="t-tr">${opt(D.TRANSITIONS,d.tr||'deslizar')}</select><span class="hint">“Voo pela tela infinita” espalha os slides num mapa e a câmera voa de um para o outro.</span></div>
+  <label class="chk"><input type="checkbox" id="t-calm"${d.calm?' checked':''}> Movimento reduzido ao apresentar (para quem é sensível a animações)</label>
   <div class="sec">Marca</div><div class="f"><label>Logo (aparece na capa, rodapé e núcleo)</label><div id="logoBox"></div><span class="hint">PNG ou SVG transparente funciona melhor.</span></div>
+  <button class="btn sm" id="brandKit"${th.logo?'':' disabled'}>✨ Criar tema com as cores da logo</button>
   <div class="f"><label for="t-ft">Texto do rodapé</label><input type="text" id="t-ft" value="${esc(d.footerText||'')}" placeholder="${esc(d.name||'')}"></div>
   <label class="chk"><input type="checkbox" id="t-fon"${d.footer===false?'':' checked'}> Mostrar rodapé</label>
   <div class="sec">Faixa de cabeçalho</div>
@@ -315,6 +327,9 @@ function themePane(pane){
   $('#t-fb').onchange=e=>{ th.fontBody=e.target.value; ch(); };
   $('#t-bg').onchange=e=>{ th.background=e.target.value; ch(); };
   $('#t-ft').oninput=e=>{ d.footerText=e.target.value; ch(); };
+  $('#t-tr').onchange=e=>{ if(e.target.value==='deslizar') delete d.tr; else d.tr=e.target.value; touch(); renderPreview(false); };
+  $('#t-calm').onchange=e=>{ if(e.target.checked) d.calm=true; else delete d.calm; touch(); };
+  $('#brandKit').onclick=async()=>{ setStatus('Lendo as cores da logo…'); try{ const k=await brandKit(D.resolveImage(th.logo),eff.light); if(!k) return setStatus('Não achei cores marcantes na logo (ela é só preto e branco?)'); Object.assign(th,k,{custom:'Kit da marca'}); ch(); themePane(pane); setStatus('Tema criado com as cores da marca',true); }catch(e){ setStatus('Não consegui ler a imagem da logo'); } };
   $('#t-fon').onchange=e=>{ d.footer=e.target.checked?undefined:false; if(d.footer===undefined) delete d.footer; ch(); };
   const autoCh=()=>{ const secs=parseFloat($('#t-auto').value), loop=$('#t-loop').checked; if(secs>0||loop) d.auto={secs:secs>0?secs:0,loop}; else delete d.auto; touch(); };
   $('#t-auto').oninput=autoCh; $('#t-loop').onchange=autoCh;
@@ -352,6 +367,7 @@ function gallery(kind){
 $('#deckMenu').onclick=()=>{
   const m=modal(`<h3>Apresentações</h3><p class="sub">${mode==='db'?'Salvas na sua conta, disponíveis em qualquer aparelho.':'Salvas só neste navegador.'}</p><div class="menu">
   <button class="btn" data-a="new">+ Nova apresentação</button><button class="btn" data-a="vitrine">Começar de uma apresentação pronta</button><button class="btn" data-a="script">Criar a partir de um roteiro (texto)</button><button class="btn" data-a="dup">Duplicar esta apresentação</button>
+  <div class="sec">Qualidade</div><button class="btn" data-a="review">Revisar apresentação (nota de qualidade)</button>
   <div class="sec">Apresentar</div><button class="btn" data-a="stage">Modo palco (tela de espera com contagem regressiva)</button>
   <div class="sec">Exportar</div><button class="btn" data-a="pdf">Salvar em PDF (um slide por página)</button><button class="btn" data-a="rec">Gravar vídeo (narração, trilha, horizontal ou vertical)</button>
   <div class="sec">Backup</div><button class="btn" data-a="bk">Baixar backup de todas (.json)</button><button class="btn" data-a="im">Importar backup (.json)</button>
@@ -370,6 +386,7 @@ $('#deckMenu').onclick=()=>{
   on('pdf',exportPDF);
   on('rec',recordVideo);
   on('stage',stageDialog);
+  on('review',reviewDialog);
   on('dup',()=>{ const id=uid(); decks[id]=Object.assign(clone(deck()),{name:(deck().name||'Apresentação')+' (cópia)'}); curId=id; sel=0; touch(); renderAll(); });
   on('del',()=>{ confirmBox('Excluir “'+(deck().name||'Sem nome')+'”?','Excluir',async()=>{ const id=curId; delete decks[id]; delete hist[id]; if(mode==='db'){ try{ await db.doc('decks/'+id).delete(); }catch(e){ setStatus('Não consegui excluir'); } } else localSave(); if(!Object.keys(decks).length){ const n=uid(); decks[n]=starter(); } curId=Object.keys(decks)[0]; sel=0; renderAll(); }); });
 };
@@ -502,19 +519,99 @@ addEventListener('keydown',e=>{
 });
 addEventListener('beforeunload',()=>{ if(dirty&&mode!=='db') localSave(); });
 
+/* ---------- dados de planilha (Google Planilhas ou CSV) ---------- */
+function dataField(tpl){ return tpl&&tpl.fields.find(f=>f.t==='items'&&f.sub.some(x=>x.k==='value')); }
+function csvRows(txt){ txt=String(txt).replace(/^\uFEFF/,''); const first=txt.split('\n')[0]; const sep=first.split(';').length>first.split(',').length?';':(first.split('\t').length>first.split(',').length?'\t':',');
+  const rows=[]; let row=[], cell='', q=false;
+  for(let i=0;i<txt.length;i++){ const ch=txt[i]; if(q){ if(ch==='"'){ if(txt[i+1]==='"'){ cell+='"'; i++; } else q=false; } else cell+=ch; }
+    else if(ch==='"') q=true; else if(ch===sep){ row.push(cell); cell=''; } else if(ch==='\n'||ch==='\r'){ if(ch==='\r'&&txt[i+1]==='\n') i++; row.push(cell); rows.push(row); row=[]; cell=''; } else cell+=ch; }
+  if(cell||row.length){ row.push(cell); rows.push(row); }
+  return rows.map(r=>r.map(c=>c.trim())).filter(r=>r.some(Boolean)); }
+function sheetURL(u){ const m=/docs\.google\.com\/spreadsheets\/d\/([\w-]+)/.exec(u); if(!m) return u; const g=/[#&?]gid=(\d+)/.exec(u); return 'https://docs.google.com/spreadsheets/d/'+m[1]+'/gviz/tq?tqx=out:csv'+(g?'&gid='+g[1]:''); }
+async function fetchRows(src){ const r=await fetch(sheetURL(src),{cache:'no-store'}); if(!r.ok) throw new Error('http '+r.status); return csvRows(await r.text()); }
+function applyRows(s,rows){ const f=dataField(T[s.t]); if(!f||!rows.length) return 0;
+  const isNum=v=>/\d/.test(String(v||'')); if(!isNum(rows[0][1])) rows=rows.slice(1); // primeira linha é cabeçalho
+  rows=rows.filter(r=>r[0]&&isNum(r[1])); if(!rows.length) return 0;
+  const lk=(f.sub.find(y=>y.k==='label')||f.sub.find(y=>y.t==='text'&&y.k!=='value')||{}).k, old=(s.d&&s.d[f.k])||[];
+  s.d=s.d||{}; s.d[f.k]=rows.slice(0,f.max||8).map((r,i)=>{ const o=Object.assign({},old[i]||{}); f.sub.forEach(y=>{ if(o[y.k]===undefined) o[y.k]=y.t==='bool'?false:''; }); if(lk) o[lk]=r[0]; o.value=r[1]; return o; });
+  return s.d[f.k].length; }
+
+/* ---------- kit da marca: tema a partir das cores da logo ---------- */
+function rgb2hsl(r,g,b){ r/=255; g/=255; b/=255; const mx=Math.max(r,g,b), mn=Math.min(r,g,b), l=(mx+mn)/2; let h=0, s=0; if(mx!==mn){ const d=mx-mn; s=l>.5?d/(2-mx-mn):d/(mx+mn); h=mx===r?(g-b)/d+(g<b?6:0):mx===g?(b-r)/d+2:(r-g)/d+4; h*=60; } return [h,s,l]; }
+function hsl2hex(h,s,l){ h=((h%360)+360)%360; const k=n=>(n+h/30)%12, a=s*Math.min(l,1-l), f=n=>l-a*Math.max(-1,Math.min(k(n)-3,9-k(n),1)); return '#'+[f(0),f(8),f(4)].map(x=>Math.round(x*255).toString(16).padStart(2,'0')).join(''); }
+function lumHex(h){ const c=String(h||'#000').replace('#',''); const full=c.length===3?c.split('').map(x=>x+x).join(''):c; return [0,2,4].map(i=>parseInt(full.substr(i,2),16)/255).map(x=>x<=.03928?x/12.92:Math.pow((x+.055)/1.055,2.4)).reduce((a,x,i)=>a+x*[.2126,.7152,.0722][i],0); }
+function contrast(a,b){ const x=lumHex(a), y=lumHex(b); return (Math.max(x,y)+.05)/(Math.min(x,y)+.05); }
+async function brandKit(src,light){
+  const img=await new Promise((res,rej)=>{ const i=new Image(); i.onload=()=>res(i); i.onerror=rej; i.src=src; });
+  const c=document.createElement('canvas'); c.width=c.height=80; const x=c.getContext('2d'); x.drawImage(img,0,0,80,80); const px=x.getImageData(0,0,80,80).data;
+  const bins={}; for(let i=0;i<px.length;i+=4){ if(px[i+3]<200) continue; const [h,s,l]=rgb2hsl(px[i],px[i+1],px[i+2]); if(s<.22||l<.12||l>.93) continue; const k=Math.floor(h/15); const b=bins[k]||(bins[k]={n:0,h:0,s:0,l:0}); b.n++; b.h+=h; b.s+=s; b.l+=l; }
+  const list=Object.values(bins).map(b=>({n:b.n,h:b.h/b.n,s:b.s/b.n,l:b.l/b.n})).sort((p,q)=>q.n*q.s-p.n*p.s);
+  if(!list.length) return null;
+  const A=list[0], far=q=>{ const d=Math.abs(q.h-A.h); return Math.min(d,360-d)>40; }, B=list.find(q=>far(q)&&q.n>A.n*.05)||{h:(A.h+38)%360,s:A.s,l:A.l};
+  const sat=v=>Math.max(.55,Math.min(.95,v));
+  const t=light?{bg:hsl2hex(A.h,.3,.97),surface:'#ffffff',title:hsl2hex(A.h,.35,.12),text:hsl2hex(A.h,.15,.26),muted:hsl2hex(A.h,.1,.42)}
+               :{bg:hsl2hex(A.h,.35,.06),surface:hsl2hex(A.h,.28,.11),title:hsl2hex(A.h,.2,.97),text:hsl2hex(A.h,.12,.85),muted:hsl2hex(A.h,.1,.64)};
+  const tone=(q)=>{ let l=light?Math.min(.48,Math.max(.36,q.l)):Math.min(.66,Math.max(.52,q.l)), hx=hsl2hex(q.h,sat(q.s),l); for(let k=0;k<8&&contrast(hx,t.bg)<3.2;k++){ l+=light?-.04:.04; hx=hsl2hex(q.h,sat(q.s),l); } return hx; };
+  t.accent=tone(A); t.alert=tone(B); t.light=!!light;
+  return t;
+}
+
+/* ---------- revisão de qualidade ---------- */
+function review(d){
+  const out=[], add=(sev,i,msg,fix)=>out.push({sev,i,msg,fix}), th=D.themeOf(d);
+  [['text','Texto',4.5],['title','Títulos',4.5],['muted','Texto suave',3],['accent','Destaque',3]].forEach(([k,l,min])=>{ if(!/^#[0-9a-f]{3,6}$/i.test(th[k]||'')||!/^#[0-9a-f]{3,6}$/i.test(th.bg||'')) return; const r=contrast(th[k],th.bg); if(r<min) add(r<min*.7?3:2,-1,'Contraste baixo: “'+l+'” sobre o fundo ('+r.toFixed(1)+':1; o recomendado é '+min+':1).','Ajuste as cores no painel Tema.'); });
+  const SKIP=['image','src','video','link','icon','shape','style','lat','lon','go'];
+  const strs=o=>typeof o==='string'?[o]:Array.isArray(o)?o.flatMap(strs):o&&typeof o==='object'?Object.entries(o).filter(([k])=>!SKIP.includes(k)).flatMap(([,v])=>strs(v)):[];
+  let secs=0, run=1; const noNotes=[];
+  d.slides.forEach((s,i)=>{ const tpl=T[s.t]; if(!tpl) return; const dd=s.d||{};
+    const words=strs(dd).filter(x=>!/^(data:|https?:|asset:|\/)/.test(x)).join(' ').replace(/[*`]/g,'').split(/\s+/).filter(Boolean).length;
+    if(words>110) add(3,i,'Texto demais ('+words+' palavras). A plateia lê ou ouve, não os dois.','Divida em dois slides ou leve os detalhes para as notas.');
+    else if(words>75) add(2,i,'Bastante texto ('+words+' palavras).','Tente ficar abaixo de 75 palavras.');
+    if(tpl.fields.some(f=>f.k==='title')&&!String(dd.title||'').trim()) add(2,i,'Slide sem título.','Um título curto ajuda a plateia a se localizar.');
+    else if(String(dd.title||'').length>90) add(1,i,'Título longo (mais de 90 caracteres).','Títulos curtos têm mais impacto.');
+    tpl.fields.forEach(f=>{
+      if(f.t==='image'&&!dd[f.k]&&!/vazio|opcional/i.test(f.l)) add(2,i,'Imagem faltando: “'+f.l+'”.','Envie uma imagem ou troque de modelo.');
+      if(f.t==='items'){ const it=dd[f.k]||[]; if(f.max&&it.length>f.max) add(2,i,(it.length-f.max)+' item(ns) não aparecem: o modelo mostra '+f.max+'.','Remova itens ou troque de modelo.');
+        if(!it.length) add(2,i,'“'+f.l+'” está vazio.','Adicione itens.');
+        const im=f.sub.find(x=>x.t==='image'); if(im&&it.length&&it.some(x=>!x[im.k])) add(2,i,'Há itens sem imagem.','Complete as imagens.'); } });
+    if(i>0&&d.slides[i-1].t===s.t){ run++; if(run===3) add(1,i,'Três slides seguidos com o mesmo modelo ('+tpl.name+').','Varie o modelo para manter a atenção.'); } else run=1;
+    if(s.hidden&&!d.slides.some(o=>o!==s&&JSON.stringify(o.d||{}).includes('"'+s.id+'"'))) add(2,i,'Slide oculto sem nenhum link: ninguém consegue chegar nele.','Ligue-o num OnePage ou desmarque “oculto”.');
+    JSON.stringify(dd).replace(/"(?:link|go)":"([^"]+)"/g,(m,id)=>{ if(!d.slides.some(o=>o.id===id)) add(3,i,'Link para um slide que foi excluído.','Escolha outro destino no campo de link.'); return m; });
+    if(s.src&&!dataField(tpl)) add(1,i,'Slide tem planilha ligada, mas o modelo atual não usa dados.','Troque para um modelo de gráfico.');
+    if(!s.hidden&&!s.notes&&words>30) noNotes.push(i+1);
+    if(!s.hidden) secs+=s.dur?+s.dur:Math.max(20,(words+String(s.notes||'').split(/\s+/).filter(Boolean).length)/2.2);
+  });
+  if(d.slides[0]&&!['capa','mergulho','revelar','paralaxe','particulas3d','logo3d','tunel3d','video','globo3d'].includes(d.slides[0].t)) add(1,0,'A apresentação não abre com uma capa.','Uma capa ou um slide de impacto prepara a plateia.');
+  if(noNotes.length) add(1,noNotes.length===1?noNotes[0]-1:-2,noNotes.length===1?'Slide sem notas do apresentador.':noNotes.length+' slides sem notas do apresentador ('+noNotes.slice(0,8).join(', ')+(noNotes.length>8?'…':'')+').','Notas ajudam no ensaio e aparecem na janela do apresentador.');
+  if(d.slides.length>25) add(1,-1,d.slides.length+' slides: é bastante.','Considere um OnePage com slides ocultos para os detalhes.');
+  const pen={3:12,2:5,1:2};
+  return {out:out.sort((a,b)=>b.sev-a.sev||a.i-b.i),score:Math.max(0,100-out.reduce((a,x)=>a+pen[x.sev],0)),secs};
+}
+function reviewDialog(){
+  const d=deck(), r=review(d), mins=Math.max(1,Math.round(r.secs/60));
+  const grade=r.score>=90?'Excelente':r.score>=75?'Boa':r.score>=55?'Precisa de ajustes':'Revise com atenção', lab={3:'Importante',2:'Atenção',1:'Dica'};
+  const m=modal(`<h3>Revisão da apresentação</h3><div class="rv-top"><div class="rv-score" style="--p:${r.score}"><b>${r.score}</b><small>de 100</small></div><div><b>${grade}</b><p class="sub">${d.slides.length} slides · cerca de ${mins} min de fala · ${r.out.length?r.out.length+' ponto(s) a melhorar':'nada a corrigir'}</p></div></div>
+  <div class="rv-list">${r.out.map(x=>`<div class="rv-i s${x.sev}"><span class="rv-tag">${lab[x.sev]}</span><div class="rv-t"><b>${x.i===-1?'Tema':x.i===-2?'Geral':'Slide '+(x.i+1)}</b> ${esc(x.msg)}<small>${esc(x.fix)}</small></div>${x.i===-2?'<span></span>':`<button class="btn sm" data-go="${x.i<0?'tema':x.i}">${x.i<0?'Abrir':'Ir'}</button>`}</div>`).join('')||'<p class="sub">Tudo certo. Boa apresentação!</p>'}</div>
+  <div class="row"><button class="btn pri" data-c>Fechar</button></div>`,'confirm review');
+  m.el.querySelector('[data-c]').onclick=m.close;
+  m.el.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{ m.close(); if(b.dataset.go==='tema'){ tab='theme'; renderPane(); } else { select(+b.dataset.go); tab='content'; renderPane(); } });
+}
+
 /* ---------- modo apresentação ---------- */
 function present(start,o={}){
   const d=o.deck||deck(); if(!d.slides.length) return;
   const th=D.themeOf(d);
   const hostHTML=o.vertical?`<div class="vframe" style='${D.themeVars(th)}'><div class="vf-top"><span class="vf-k"></span><b class="vf-t"></b></div><div class="host vf-host"></div><div class="vf-bot"><span class="vf-brand">${esc(d.footerText||d.name||'')}</span><div class="vf-pg"><i></i></div></div></div>`:'<div class="host"></div>';
-  const w=document.createElement('div'); w.className='show'+(o.recording?' rec':'')+(o.vertical?' vert':''); w.innerHTML=`${hostHTML}<div class="bar"><button data-x aria-label="Sair">✕</button><button data-p aria-label="Anterior">‹</button><div class="pg"><i></i></div><span class="n"></span><button data-n aria-label="Próximo">›</button><button data-v aria-label="Janela do apresentador" title="Janela do apresentador (P)">🗒</button><button data-tool="laser" aria-label="Ponteiro laser" title="Ponteiro laser (L)">●</button><button data-tool="zoom" aria-label="Zoom" title="Zoom: clique para aproximar (Z)">⌕</button><button data-tool="voice" aria-label="Comando por voz" title="Comando por voz (V)">🎙</button><button data-tool="help" aria-label="Atalhos" title="Atalhos (?)">?</button><button data-f aria-label="Tela cheia">⤢</button></div><canvas class="laser" aria-hidden="true"></canvas><div class="voice-chip" hidden></div>`;
+  const w=document.createElement('div'); w.className='show'+(o.recording?' rec':'')+(o.vertical?' vert':''); w.innerHTML=`${hostHTML}<div class="bar"><button data-x aria-label="Sair">✕</button><button data-p aria-label="Anterior">‹</button><div class="pg"><i></i></div><span class="n"></span><button data-n aria-label="Próximo">›</button><button data-v aria-label="Janela do apresentador" title="Janela do apresentador (P)">🗒</button><button data-tool="laser" aria-label="Ponteiro laser" title="Ponteiro laser (L)">●</button><button data-tool="zoom" aria-label="Zoom" title="Zoom: clique para aproximar (Z)">⌕</button><button data-tool="voice" aria-label="Comando por voz" title="Comando por voz (V)">🎙</button><button data-tool="cc" aria-label="Legendas ao vivo" title="Legendas ao vivo (C)">CC</button><button data-tool="a11y" aria-label="Alto contraste" title="Alto contraste (A)">◐</button><button data-tool="help" aria-label="Atalhos" title="Atalhos (?)">?</button><button data-f aria-label="Tela cheia">⤢</button></div><canvas class="laser" aria-hidden="true"></canvas><div class="voice-chip" hidden></div>`;
   document.body.appendChild(w);
   let pop=null;
   const tell=msg=>{ try{ if(pop&&!pop.closed) pop.postMessage(Object.assign({em:1},msg),'*'); }catch(_){} };
   const upd=n=>{ w.querySelector('.n').textContent=(n+1)+' / '+d.slides.length; w.querySelector('.pg i').style.width=((n+1)/d.slides.length*100)+'%'; tell({type:'index',n});
     if(o.vertical){ const s=d.slides[n]||{}, sd=s.d||{}; const vt=w.querySelector('.vf-t'), vk=w.querySelector('.vf-k'); vk.textContent=sd.kicker||''; vt.innerHTML=esc(plain(sd.title||sd.quote||sd.word||'')).replace(/\n/g,'<br>'); w.querySelector('.vf-pg i').style.width=((n+1)/d.slides.length*100)+'%';
       if(D.ensureFonts) D.ensureFonts([th.fontDisplay,th.fontBody]); if(window.gsap) gsap.fromTo([vk,vt],{y:24,opacity:0},{y:0,opacity:1,duration:.7,stagger:.08,ease:'expo.out'}); } };
-  const pl=D.createPlayer(w.querySelector('.host'),d,{start:start||0,onChange:upd,autoplay:!o.stage,links:true,onEnd:o.onEnd}); upd(start||0);
+  const pl=D.createPlayer(w.querySelector('.host'),d,{start:start||0,onChange:upd,autoplay:!o.stage,links:true,onEnd:o.onEnd,noMotion:!!d.calm}); upd(start||0);
+  /* números ao vivo: slides ligados a uma planilha buscam os dados de novo */
+  d.slides.forEach((s,i)=>{ if(s.live&&s.src) fetchRows(s.src).then(rows=>{ if(closed||!applyRows(s,rows)) return; if(d===deck()) touch(); pl.update(i,d); if(i===pl.index) pl.replay(); }).catch(()=>{}); });
   /* 3, 2, 1 antes de gravar */
   const countdown=n=>new Promise(res=>{ const c=document.createElement('div'); c.className='cdown'; w.appendChild(c); let k=n; const tick=()=>{ if(k<=0){ c.remove(); return res(); } c.textContent=k; c.classList.remove('pop'); void c.offsetWidth; c.classList.add('pop'); k--; setTimeout(tick,850); }; tick(); });
   /* modo palco: tela de espera com contagem regressiva */
@@ -548,40 +645,49 @@ function present(start,o={}){
   const setZoom=v=>{ zoomMode=v; toolBtn('zoom').classList.toggle('on',v); w.classList.toggle('zoom-mode',v); if(!v) unzoom(); };
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   const say=(t,ms)=>{ chip.hidden=false; chip.textContent=t; clearTimeout(chip._t); if(ms) chip._t=setTimeout(()=>{ if(voiceOn) chip.textContent='🎙 Ouvindo… diga “próximo” ou “voltar”'; else chip.hidden=true; },ms); };
-  function setVoice(v){
-    if(v&&!SR){ say('Comando por voz não funciona neste navegador. Use Chrome ou Edge.',3500); return; }
-    voiceOn=v; toolBtn('voice').classList.toggle('on',v);
-    if(!v){ try{ rec&&rec.stop(); }catch(_){} rec=null; chip.hidden=true; return; }
-    rec=new SR(); rec.lang='pt-BR'; rec.continuous=true; rec.interimResults=false;
-    rec.onresult=e=>{ const t=e.results[e.results.length-1][0].transcript.toLowerCase().trim();
-      if(/pr[oó]xim|avan[cç]|seguinte|next/.test(t)){ pl.next(); say('🎙 “'+t+'” → próximo',1600); }
-      else if(/volt|anterior|back/.test(t)){ pl.prev(); say('🎙 “'+t+'” → voltar',1600); }
-      else if(/tela cheia/.test(t)){ fs(); say('🎙 tela cheia',1600); }
-      else if(/laser/.test(t)){ setLaser(!laser); say('🎙 laser',1600); }
-      else if(/in[ií]cio|primeiro/.test(t)){ pl.go(0); say('🎙 início',1600); }
-      else say('🎙 “'+t+'”',1400); };
-    rec.onerror=ev=>{ if(ev.error==='not-allowed'||ev.error==='service-not-allowed'){ say('Microfone bloqueado. Permita o microfone no navegador.',4000); voiceOn=false; toolBtn('voice').classList.remove('on'); } };
-    rec.onend=()=>{ if(voiceOn&&rec) try{ rec.start(); }catch(_){} };
-    try{ rec.start(); say('🎙 Ouvindo… diga “próximo” ou “voltar”'); }catch(_){ say('Não consegui ligar o microfone.',3000); }
+  /* um só reconhecimento de fala serve aos comandos de voz e às legendas */
+  let ccOn=false, ccT=0; const ccEl=document.createElement('div'); ccEl.className='cc-line'; ccEl.hidden=true; ccEl.setAttribute('aria-live','polite'); w.appendChild(ccEl);
+  function command(t){
+    if(/pr[oó]xim|avan[cç]|seguinte|next/.test(t)){ pl.next(); say('🎙 “'+t+'” → próximo',1600); }
+    else if(/volt|anterior|back/.test(t)){ pl.prev(); say('🎙 “'+t+'” → voltar',1600); }
+    else if(/tela cheia/.test(t)){ fs(); say('🎙 tela cheia',1600); }
+    else if(/laser/.test(t)){ setLaser(!laser); say('🎙 laser',1600); }
+    else if(/in[ií]cio|primeiro/.test(t)){ pl.go(0); say('🎙 início',1600); }
+    else say('🎙 “'+t+'”',1400); }
+  function syncRec(){
+    if(!(voiceOn||ccOn)){ if(rec){ const r=rec; rec=null; try{ r.stop(); }catch(_){} } return; }
+    if(rec) return;
+    rec=new SR(); rec.lang='pt-BR'; rec.continuous=true; rec.interimResults=true;
+    rec.onresult=e=>{ let interim='', fin=''; for(let i=e.resultIndex;i<e.results.length;i++){ const r=e.results[i]; if(r.isFinal) fin+=r[0].transcript; else interim+=r[0].transcript; }
+      if(ccOn){ const txt=(fin||interim).trim(); if(txt){ ccEl.hidden=false; ccEl.textContent=txt; clearTimeout(ccT); ccT=setTimeout(()=>{ ccEl.hidden=true; },3500); } }
+      if(voiceOn&&fin.trim()) command(fin.toLowerCase().trim()); };
+    rec.onerror=ev=>{ if(ev.error==='not-allowed'||ev.error==='service-not-allowed'){ say('Microfone bloqueado. Permita o microfone no navegador.',4000); voiceOn=false; ccOn=false; toolBtn('voice').classList.remove('on'); toolBtn('cc').classList.remove('on'); rec=null; } };
+    rec.onend=()=>{ if((voiceOn||ccOn)&&rec) try{ rec.start(); }catch(_){} };
+    try{ rec.start(); }catch(_){ say('Não consegui ligar o microfone.',3000); }
   }
+  function setVoice(v){ if(v&&!SR){ say('Comando por voz não funciona neste navegador. Use Chrome ou Edge.',3500); return; } voiceOn=v; toolBtn('voice').classList.toggle('on',v); if(v) say('🎙 Ouvindo… diga “próximo” ou “voltar”'); else chip.hidden=true; syncRec(); }
+  function setCC(v){ if(v&&!SR){ say('Legendas ao vivo não funcionam neste navegador. Use Chrome ou Edge.',3500); return; } ccOn=v; toolBtn('cc').classList.toggle('on',v); if(v) say('Legendas ligadas: é só falar',2200); else ccEl.hidden=true; syncRec(); }
+  const setA11y=()=>{ const on=w.classList.toggle('a11y'); toolBtn('a11y').classList.toggle('on',on); say(on?'Alto contraste ligado':'Alto contraste desligado',1500); };
   function toggleHelp(){ if(help){ help.remove(); help=null; return; }
     help=document.createElement('div'); help.className='kbd-help'; help.innerHTML=`<div class="kh-in"><h3>Atalhos da apresentação</h3><dl>
       <dt>→ · Espaço · Enter</dt><dd>Próximo</dd><dt>← · Backspace</dt><dd>Anterior</dd><dt>F</dt><dd>Tela cheia</dd><dt>P</dt><dd>Janela do apresentador (notas e cronômetro)</dd>
-      <dt>L</dt><dd>Ponteiro laser</dd><dt>Z</dt><dd>Zoom: clique para aproximar, clique de novo para voltar</dd><dt>V</dt><dd>Comando por voz: “próximo”, “voltar”, “início”, “tela cheia”</dd><dt>B</dt><dd>Tela preta (pausa)</dd><dt>Esc</dt><dd>Sair</dd></dl><p>Pressione ? ou Esc para fechar</p></div>`;
+      <dt>L</dt><dd>Ponteiro laser</dd><dt>Z</dt><dd>Zoom: clique para aproximar, clique de novo para voltar</dd><dt>V</dt><dd>Comando por voz: “próximo”, “voltar”, “início”, “tela cheia”</dd><dt>C</dt><dd>Legendas ao vivo do que você fala</dd><dt>A</dt><dd>Alto contraste (texto mais legível)</dd><dt>B</dt><dd>Tela preta (pausa)</dd><dt>Esc</dt><dd>Sair</dd></dl><p>Pressione ? ou Esc para fechar</p></div>`;
     help.onclick=toggleHelp; w.appendChild(help); }
   const black=()=>w.classList.toggle('blackout');
   toolBtn('laser').onclick=e=>{ e.stopPropagation(); setLaser(!laser); };
   toolBtn('zoom').onclick=e=>{ e.stopPropagation(); setZoom(!zoomMode); };
   toolBtn('voice').onclick=e=>{ e.stopPropagation(); setVoice(!voiceOn); };
   toolBtn('help').onclick=e=>{ e.stopPropagation(); toggleHelp(); };
+  toolBtn('cc').onclick=e=>{ e.stopPropagation(); setCC(!ccOn); };
+  toolBtn('a11y').onclick=e=>{ e.stopPropagation(); setA11y(); };
   let closed=false;
-  const close=()=>{ if(closed) return; closed=true; clearInterval(stageT); setVoice(false); setLaser(false); removeEventListener('resize',sizeL); tell({type:'end'}); pl.destroy(); w.remove(); removeEventListener('keydown',key); removeEventListener('message',onMsg); try{ if(document.fullscreenElement) document.exitFullscreen(); }catch(_){} if(location.hash.startsWith('#play-')) try{ history.replaceState(null,'',location.pathname+location.search); }catch(_){} o.onClose&&o.onClose(); };
+  const close=()=>{ if(closed) return; closed=true; clearInterval(stageT); voiceOn=false; ccOn=false; syncRec(); clearTimeout(ccT); setLaser(false); removeEventListener('resize',sizeL); tell({type:'end'}); pl.destroy(); w.remove(); removeEventListener('keydown',key); removeEventListener('message',onMsg); try{ if(document.fullscreenElement) document.exitFullscreen(); }catch(_){} if(location.hash.startsWith('#play-')) try{ history.replaceState(null,'',location.pathname+location.search); }catch(_){} o.onClose&&o.onClose(); };
   const key=e=>{ const k=e.key.toLowerCase();
     if(e.key==='Escape'){ if(help) return toggleHelp(); if(w.classList.contains('blackout')) return black(); if(zoomed||zoomMode) return setZoom(false); return close(); }
     if(e.ctrlKey||e.metaKey||e.altKey) return;
     if(stageEl&&['ArrowRight','PageDown',' ','Enter'].includes(e.key)){ e.preventDefault(); return endStage(); }
     if(['ArrowRight','PageDown',' ','Enter'].includes(e.key)){e.preventDefault();pl.next();} else if(['ArrowLeft','PageUp','Backspace'].includes(e.key)){e.preventDefault();pl.prev();}
-    else if(k==='f') fs(); else if(k==='p') openPresenter(); else if(k==='l') setLaser(!laser); else if(k==='z') setZoom(!zoomMode); else if(k==='v') setVoice(!voiceOn); else if(k==='b'||k==='.') black(); else if(e.key==='?'||k==='h') toggleHelp(); };
+    else if(k==='f') fs(); else if(k==='p') openPresenter(); else if(k==='l') setLaser(!laser); else if(k==='z') setZoom(!zoomMode); else if(k==='v') setVoice(!voiceOn); else if(k==='c') setCC(!ccOn); else if(k==='a') setA11y(); else if(k==='b'||k==='.') black(); else if(e.key==='?'||k==='h') toggleHelp(); };
   addEventListener('keydown',key);
   w.querySelector('[data-x]').onclick=close; w.querySelector('[data-p]').onclick=()=>pl.prev(); w.querySelector('[data-n]').onclick=()=>pl.next(); w.querySelector('[data-f]').onclick=fs; w.querySelector('[data-v]').onclick=openPresenter;
   host.onclick=e=>{ if(stageEl) return endStage(); if(o.recording) return;
@@ -592,7 +698,7 @@ function present(start,o={}){
   return {close,player:pl,frame:o.vertical?w.querySelector('.vframe'):w.querySelector('.host'),countdown};
 }
 $('#playBtn').onclick=()=>present(sel);
-window.EstudioMotion={present:(i,o)=>present(i||0,o||{}),version:'3'}; // gancho para testes e automações
+window.EstudioMotion={present:(i,o)=>present(i||0,o||{}),csvRows,applyRows,review,brandKit,version:'3.1'}; // gancho para testes e automações
 
 /* janela do apresentador: slide atual, próximo, notas e cronômetro */
 function presenterMode(){

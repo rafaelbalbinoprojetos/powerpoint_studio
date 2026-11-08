@@ -96,3 +96,24 @@ Mais > Gravar vídeo      horizontal 16:9 ou vertical 9:16 (Reels/Stories), avan
                          sonora que abaixa sozinha quando você fala. O vídeo é
                          recortado só na área do slide (Chrome/Edge recentes).
 Mais > Modo palco        tela de espera com contagem regressiva antes de começar
+
+NOVIDADES (versão 3.1)
+Novos modelos 3D         Globo 3D (arcos de conexão entre cidades), Logo 3D (sua
+                         logo em partículas girando) e Túnel 3D (abre capítulos)
+Ícones animados          em Cartões e Fluxo: escolha um ícone por item e ele se
+                         desenha na tela
+Tela infinita            transição "Voo pela tela infinita": os slides ficam num
+                         mapa e a câmera voa de um para o outro (estilo Prezi).
+                         Aba Tema > Transição padrão aplica a todos os slides
+Dados de planilha        em slides de gráfico: cole o link do Google Planilhas
+                         (compartilhado com qualquer pessoa com o link) ou abra
+                         um CSV. Coluna A = rótulo, B = valor. "Atualizar ao
+                         apresentar" busca os números de novo a cada apresentação
+Kit da marca             aba Tema > Criar tema com as cores da logo
+Mais > Revisar           nota de qualidade de 0 a 100: texto demais, contraste,
+                         imagens faltando, links quebrados, slides ocultos sem
+                         acesso, tempo estimado de fala, com botão "Ir"
+Acessibilidade           ao apresentar: C legendas ao vivo do que você fala
+                         (Chrome/Edge), A alto contraste. Aba Tema > Movimento
+                         reduzido. O sistema já respeita o "reduzir movimento"
+                         do Windows

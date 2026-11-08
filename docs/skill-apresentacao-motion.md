@@ -40,14 +40,17 @@ O deck é gravado no banco do Estúdio. Rafa abre o Estúdio, escolhe a apresent
 - Ids de slide únicos dentro do deck.
 - Documento até 256 KiB: nunca coloque imagem em base64 no deck; use `asset:`.
 - `header`: faixa de ponta a ponta no topo, ex.: `{"on": true, "text": "Pitch · Rodada Seed 2026", "image": "asset:<id>"}` (`logo: false` tira a logo da faixa). Sem imagem, usa as cores do tema. Capa e slides de tela cheia ficam sem faixa automaticamente.
+- `tr`: transição padrão do deck inteiro (mesmos valores do `tr` de cada slide). `voo` = tela infinita estilo Prezi: os slides ficam espalhados num mapa e a câmera voa entre eles; ótimo para narrativas e visão geral.
+- `calm: true`: movimento reduzido ao apresentar (acessibilidade).
 - `auto`: avanço automático ao apresentar, ex.: `{"secs": 6, "loop": true}`. Use só se Rafa pedir (TV, quiosque, vídeo).
 
 ### Opções de cada slide (ao lado de `t` e `d`)
 
 - `notes`: notas do apresentador (texto). Escreva o que falar quando o roteiro trouxer isso.
 - `hidden: true`: slide oculto, pulado na navegação normal; só abre por um link de um `onepage`.
-- `anim`: `suave`, `dinamico` ou `nenhuma` (padrão: completa). `speed`: 0.5 a 2. `tr` (transição ao chegar): `magico`, `fade`, `zoom`, `subir`, `nenhuma` (padrão: deslizar). **`magico` (movimento mágico)**: título, rótulo, imagens e números iguais viajam do slide anterior para a nova posição. Para usar bem, repita o mesmo `kicker`/`title` (ou o mesmo número/imagem) em slides seguidos com modelos diferentes, ex.: `destaque` → `cartoes` com o mesmo título; `numeros` → `painel` com o mesmo valor. `dur`: segundos no avanço automático.
+- `anim`: `suave`, `dinamico` ou `nenhuma` (padrão: completa). `speed`: 0.5 a 2. `tr` (transição ao chegar): `magico`, `voo`, `fade`, `zoom`, `subir`, `nenhuma` (padrão: deslizar). **`magico` (movimento mágico)**: título, rótulo, imagens e números iguais viajam do slide anterior para a nova posição. Para usar bem, repita o mesmo `kicker`/`title` (ou o mesmo número/imagem) em slides seguidos com modelos diferentes, ex.: `destaque` → `cartoes` com o mesmo título; `numeros` → `painel` com o mesmo valor. `dur`: segundos no avanço automático.
 - `head`: `show` ou `hide` força a faixa de cabeçalho neste slide.
+- `src` + `live: true` (só modelos com itens de valor: gráficos, pizza, barras, funil etc.): link de Google Planilhas publicado ou CSV; coluna A = rótulo, B = valor. Com `live`, os números são buscados de novo ao apresentar.
 
 ### Temas (`theme.preset`)
 
@@ -70,8 +73,8 @@ Para uma marca própria, mantenha o preset mais próximo e sobrescreva no `theme
 |---|---|---|
 | `capa` | Abertura | `showLogo` (bool), `kicker`, `title`, `lead`, `chain` ("Dados, Análise, Decisão" — 2 a 4 itens, vírgula), `chips` (lista de textos), `image` (PNG transparente grande à direita) |
 | `destaque` | Frase de seção ou ideia central | `kicker`, `title`, `lead`, `image` (opcional) |
-| `cartoes` | 2 a 4 blocos paralelos | `kicker`, `title`, `lead`, `numbered` (bool), `cards`: [{`label`, `title`, `text`}] |
-| `fluxo` | Processo, papéis, etapas em sequência | `kicker`, `title`, `lead`, `steps`: [{`tag`, `title`, `text`, `hot` (bool, destaca)}] (2 a 5), `noteTitle`, `note` (alerta opcional) |
+| `cartoes` | 2 a 4 blocos paralelos | `kicker`, `title`, `lead`, `numbered` (bool), `cards`: [{`icon`, `label`, `title`, `text`}] |
+| `fluxo` | Processo, papéis, etapas em sequência | `kicker`, `title`, `lead`, `steps`: [{`icon`, `tag`, `title`, `text`, `hot` (bool, destaca)}] (2 a 5), `noteTitle`, `note` (alerta opcional) |
 | `convergencia` | Várias fontes alimentando um sistema | `kicker`, `title`, `sources`: [{`title`, `text`}] (2 a 4), `core` (texto do núcleo; vazio usa o logo), `checksTitle`, `checks` (lista), `statValue`, `statLabel` |
 | `tela` | Funcionalidades com captura do sistema | `kicker`, `title`, `items`: [{`label`, `text`}] (até 5), `screen` (captura; vazio gera tela simulada), `mockTitle`, `peek` (imagem espiando, opcional) |
 | `numeros` | 1 a 4 indicadores com contagem | `kicker`, `title`, `lead`, `stats`: [{`label`, `prefix`, `value`, `suffix`, `text`, `badge`}] |
@@ -98,6 +101,11 @@ Para uma marca própria, mantenha o preset mais próximo e sobrescreva no `theme
 | `painel` | OnePage de dashboard: indicadores, tabela, rosca e destaques numa tela | `kicker`, `title`, `kpis`: [{`label`, `value`, `delta` ("+12%"; negativo fica vermelho), `link` (id de slide oculto)}] (até 4), `tableTitle`, `header`, `rows`, `chartTitle`, `mix`: [{`label`, `value`}] (até 6), `highlights` (lista) |
 | `particulas3d` | Momento "uau" (abertura, virada de capítulo, número-chave): partículas 3D formam uma palavra, viram outra forma e voltam | `word` (1 a 12 letras: nome, número, ano), `shape` (`esfera`, `helice`, `onda`, `galaxia`), `kicker`, `title`, `lead` |
 | `barras3d` | Gráfico de barras em 3D com câmera girando (até 8 barras) | `kicker`, `title`, `lead`, `unit`, `bars`: [{`label`, `value`, `hot`}] |
+| `globo3d` | Planeta de pontos girando com arcos de conexão a partir do 1º local (presença, expansão, alcance) | `kicker`, `title`, `lead`, `stats` (lista curta), `points`: [{`label`, `lat`, `lon`}] (até 10; o primeiro é o centro) |
+| `logo3d` | Logo vira escultura 3D de partículas que se monta e gira (abertura, lançamento de marca) | `image` (vazio = logo do tema), `word` (texto se não houver logo), `kicker`, `title`, `lead` |
+| `tunel3d` | Viagem por túnel 3D que desacelera e revela o título no centro (abrir capítulos) | `style` (`aneis`, `grade`, `estrelas`), `kicker`, `title`, `lead` |
+
+**Ícones animados:** `icon` em `cartoes` e `fluxo` desenha um ícone com traço animado. Valores: `grafico`, `alvo`, `foguete`, `escudo`, `pessoas`, `relogio`, `raio`, `engrenagem`, `dinheiro`, `ideia`, `check`, `globo`, `coracao`, `cadeado`, `nuvem`, `chat`, `estrela`, `caminhao` (vazio = sem ícone). Use quando o tema de cada cartão for claro.
 
 **OnePage com slides ocultos:** crie o `onepage` e, para cada bloco que precisa de detalhe, um slide com `hidden: true`; ponha o `id` desse slide no `link` do bloco. Na apresentação, clicar no bloco abre o slide oculto, que mostra "Voltar ao resumo".
 

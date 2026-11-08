@@ -392,3 +392,22 @@
 .dk-p3-txt .dk-h2{font-size:64px}
 .dk-b3-txt{position:relative;z-index:1}
 .dk-mm-ov{position:absolute;inset:0;padding:0!important;visibility:visible!important;z-index:20;pointer-events:none;display:block!important;opacity:1}
+
+/* ícones animados */
+.dk-ico{display:block;width:62px;height:62px;color:var(--accent);margin-bottom:22px;filter:drop-shadow(0 0 calc(10px * var(--gm,1)) var(--glow));overflow:visible}
+.dk-ico path,.dk-ico circle{stroke-dasharray:1;stroke-dashoffset:0}
+.dk-node .dk-ico{width:46px;height:46px;margin-bottom:14px}
+.dk-node.hot .dk-ico{color:var(--alert)}
+/* globo, logo e túnel 3D */
+.dk-gl-txt{position:relative;z-index:1;max-width:760px;margin-top:auto;margin-bottom:auto}
+.dk-gl-txt .dk-h2{font-size:76px}
+.dk-gl-st{display:flex;gap:14px;flex-wrap:wrap;margin-top:34px}
+.dk-t-logo3d{justify-content:flex-end}
+.dk-t-tunel3d{justify-content:center;align-items:center;text-align:center}
+.dk-tn-txt{position:relative;z-index:1;max-width:1300px;padding:60px 90px;background:radial-gradient(closest-side,color-mix(in srgb,var(--bg) 82%,transparent),transparent)}
+.dk-tn-txt .dk-kicker{justify-content:center}
+.dk-tn-txt .dk-lead{margin-left:auto;margin-right:auto}
+/* tela infinita */
+.dk-world{position:absolute;left:0;top:0;width:1920px;height:1080px;transform-origin:0 0;z-index:15;pointer-events:none}
+.dk-world .dk-tile{position:absolute;inset:auto;width:1920px;height:1080px;visibility:visible;border-radius:28px;background:color-mix(in srgb,var(--surface) 55%,transparent);border:2px solid color-mix(in srgb,var(--accent) 30%,transparent);box-shadow:0 40px 120px rgba(0,0,0,.45);overflow:hidden}
+.dk-world .dk-tile.dim{opacity:.5}
