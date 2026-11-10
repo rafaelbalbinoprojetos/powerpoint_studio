@@ -61,6 +61,20 @@ function paintShare(s){ const d=deck(); const host=document.createElement('detai
     const nx=d.slides[sel+1]; if(s.share&&nx&&!nx.tr&&(d.tr||'deslizar')!=='magico'){ nx.tr='magico'; setStatus('A chegada do próximo slide passou para “Movimento mágico”',true); } touch(); });
   host.querySelector('[data-sp]').onclick=()=>{ if(!player) return; const i=sel; player.go(i,-1,true); setTimeout(()=>player.go(i+1,1),300); setTimeout(()=>player.go(i,-1,true),3200); };
   const anchor=$('#o-trp'); const f2=anchor&&anchor.closest('.f2'); if(f2) f2.after(host); else $("#pane").appendChild(host); }
+/* história em etapas (data storytelling) */
+const STORY_T=['grafico','barrash','pizza','linha','combo','funil','medidores','numeros','cartoes'];
+function storyLabels(sl){ const tp=T[sl.t]; if(!tp) return []; const f=dataField(tp)||tp.fields.find(x=>x.t==='items'); if(!f) return []; return ((sl.d||{})[f.k]||[]).map((x,i)=>plain(x.label||x.title||('Item '+(i+1)))); }
+function paintStory(s){ if(!STORY_T.includes(s.t)) return; const labs=storyLabels(s); const box=document.createElement('details'); box.className='share-box story-box'; if(s.story&&s.story.length) box.open=true;
+  const rows=()=>(s.story||[]).map((st,j)=>'<div class="story-row" data-j="'+j+'"><b>'+(j+1)+'</b><select data-k="i"><option value="-1">— só o comentário —</option>'+labs.map((l,i)=>'<option value="'+i+'"'+(+st.i===i?' selected':'')+'>'+D.esc(l)+'</option>').join('')+'</select><input data-k="text" placeholder="Comentário que aparece" value="'+D.esc(st.text||'')+'"><label title="A câmera aproxima"><input type="checkbox" data-k="zoom"'+(st.zoom?' checked':'')+'> zoom</label><button class="btn sm" data-x title="Remover">✕</button></div>').join('');
+  const draw=()=>{ box.innerHTML='<summary>História em etapas'+(s.story&&s.story.length?' ('+s.story.length+')':'')+'</summary><p class="hint">Ao apresentar, cada “Próximo” destaca uma categoria (o resto escurece), mostra o comentário e pode aproximar a câmera. Depois da última etapa, segue para o próximo slide.</p>'+rows()+'<div class="btnrow"><button class="btn sm" type="button" data-add>+ Etapa</button>'+(s.story&&s.story.length?'<button class="btn sm" type="button" data-pv>▶ Prévia das etapas</button>':'')+'</div>';
+    box.querySelector('[data-add]').onclick=()=>{ s.story=s.story||[]; const used=new Set(s.story.map(x=>+x.i)); let i=labs.findIndex((_,k)=>!used.has(k)); s.story.push({i:i<0?-1:i,text:'',zoom:false}); touch(); draw(); box.open=true; };
+    box.querySelectorAll('.story-row').forEach(r=>{ const st=s.story[+r.dataset.j];
+      r.querySelector('[data-k="i"]').onchange=ev=>{ st.i=+ev.target.value; touch(); };
+      r.querySelector('[data-k="text"]').oninput=ev=>{ st.text=ev.target.value; touch(); };
+      r.querySelector('[data-k="zoom"]').onchange=ev=>{ st.zoom=ev.target.checked; touch(); };
+      r.querySelector('[data-x]').onclick=()=>{ s.story.splice(+r.dataset.j,1); if(!s.story.length) delete s.story; touch(); draw(); box.open=true; }; });
+    const pv=box.querySelector('[data-pv]'); if(pv) pv.onclick=()=>{ if(!player) return; player.update(sel,deck()); player.go(sel,1,true); const n=s.story.length; for(let k=1;k<=n+1;k++) setTimeout(()=>{ if(k<=n) player.next(); else player.go(sel,1,true); },1800+k*2300-2300); }; };
+  draw(); const after=document.querySelector('#pane .share-box')||($('#o-trp')&&$('#o-trp').closest('.f2')); if(after) after.after(box); else $('#pane').appendChild(box); }
 /* máscara personalizada: PNG (canal alpha) ou SVG higienizado, guardado como data URL dentro da apresentação */
 function cleanSVG(txt){ const doc=new DOMParser().parseFromString(txt,'image/svg+xml'); const root=doc.documentElement; if(!root||root.nodeName.toLowerCase()!=='svg'||doc.querySelector('parsererror')) return null;
   root.querySelectorAll('script,foreignObject,iframe,object,embed,use[href^="http"],image[href^="http"]').forEach(x=>x.remove());
@@ -305,7 +319,7 @@ function renderPane(){
   const animCh=()=>{ touch(); if(player){ player.update(sel,deck()); player.replay(); } };
   $('#o-anim').onchange=e=>{ if(e.target.value==='padrao') delete s.anim; else s.anim=e.target.value; animCh(); };
   $('#o-speed').onchange=e=>{ const v=+e.target.value; if(v===1) delete s.speed; else s.speed=v; animCh(); };
-  paintShare(s);
+  paintShare(s); paintStory(s);
   $('#o-trp').onclick=()=>{ if(!player) return; if(sel<1){ setStatus('A prévia mostra a chegada a partir do slide anterior: escolha o 2º slide ou depois'); return; } player.go(sel-1,-1,true); setTimeout(()=>player.go(sel,1),350); };
   $('#o-tr').onchange=e=>{ if(!e.target.value) delete s.tr; else s.tr=e.target.value; touch(); if(player) player.update(sel,deck()); };
   $('#o-dur').oninput=e=>{ const v=parseFloat(e.target.value); if(v>0) s.dur=v; else delete s.dur; touch(); };
@@ -623,6 +637,9 @@ MODELOS E O QUE ESCREVER EM CADA ITEM
 {combo}          - Jan: realizado / projeção  (até 12)     barras = realizado, linha = projeção
                  - Jun: / 280   (só projeção)   também {barras e linha} ou {projecao}
 {medidores}      - Meta: 0 a 100              (até 4)
+Etapas (gráficos, pizza, linha, funil, números, cartões): depois dos itens, uma linha por etapa
+                 Etapa: Sudeste — lidera com 41% das vendas (zoom)
+                 Etapa: Crescemos em todas as regiões        (sem rótulo = conclusão)
 {heroi}          - Destaque curto             (até 3)      abertura cinematográfica com imagem
 {dividir}        - Tópico                     imagem de um lado, texto do outro
 {numero}         - R$ 12,4 mi                 (1ª linha = o número)
@@ -674,6 +691,7 @@ function textToScript(txt){
   const flush=()=>{ if(para.length){ (cur||(cur={head:'',items:[],paras:[]},blocks.push(cur),cur)).paras.push(para.join(' ')); para=[]; } };
   lines.forEach(l=>{ if(!l){ flush(); return; }
     if(/^([-*•]|\d+[.)])\s+/.test(l)){ flush(); if(!cur){ cur={head:'',items:[],paras:[]}; blocks.push(cur); } cur.items.push(l.replace(/^([-*•]|\d+[.)])\s+/,'')); return; }
+    if(/^etapas*:/i.test(l)){ flush(); if(cur) (cur.steps=cur.steps||[]).push(l); return; }
     const tg=TAG_RE.exec(l), hid=/\((?:oculto|oculta)\)\s*$/i.test(l.replace(TAG_RE,''));
     if(tg&&tagOf(tg[1])||isHead(l)){ flush(); let h=l.replace(/^#+\s*/,''); let tag=null; if(tg&&tagOf(tg[1])){ tag=tagOf(tg[1]); h=h.replace(TAG_RE,''); } h=h.replace(/\s*\((?:oculto|oculta)\)\s*$/i,'').replace(/:$/,'').trim(); const m2=TAG_RE.exec(h); if(!tag&&m2&&tagOf(m2[1])){ tag=tagOf(m2[1]); h=h.replace(TAG_RE,''); } cur={head:h,tag,hidden:hid||/\((?:oculto|oculta)\)/i.test(l),items:[],paras:[]}; blocks.push(cur); return; }
     para.push(l); });
@@ -686,7 +704,7 @@ function textToScript(txt){
   const seq=/\b(primeir[oa]|segund[oa]|terceir[oa]|depois|em seguida|por fim|finalmente|etapa|fase|passo)\b/i;
   blocks.forEach((b,bi)=>{
     const text=b.paras.join(' '), ss=sentences(text);
-    if(b.tag){ out.push(''); out.push('# '+(/\*/.test(b.head)||['citacao','particulas3d'].includes(b.tag)?b.head:accent(b.head))+' {'+b.tag+'}'+(b.hidden?' (oculto)':'')); b.paras.forEach(pp=>out.push(pp)); b.items.forEach(it=>out.push('- '+it)); return; }
+    if(b.tag){ out.push(''); out.push('# '+(/\*/.test(b.head)||['citacao','particulas3d'].includes(b.tag)?b.head:accent(b.head))+' {'+b.tag+'}'+(b.hidden?' (oculto)':'')); b.paras.forEach(pp=>out.push(pp)); b.items.forEach(it=>out.push('- '+it)); (b.steps||[]).forEach(x=>out.push(x)); return; }
     let title=b.head||shorten(ss[0]||'',9); if(!b.head) ss.shift();
     const items=b.items.slice();
     /* frases com números viram indicadores "37%: texto" */
@@ -729,6 +747,7 @@ function parseScript(txt){
     if((m=/^#{1,3}\s+(.+?)(?:\s*\{\s*([\wÀ-ÿ -]+?)\s*\})?(\s*\((?:oculto|oculta)\))?(?:\s*\{\s*([\wÀ-ÿ -]+?)\s*\})?$/i.exec(l))){ if(cur) out.push(cur); let ti=m[1]; let hidden=!!m[3]; const hm=/\s*\((?:oculto|oculta)\)\s*$/i.exec(ti); if(hm){ hidden=true; ti=ti.slice(0,hm.index); } cur=blank(ti); cur.hidden=hidden; const tp=tagOf(m[2]||m[4]); if(tp) cur.tpl=tp; return; }
     if(!cur){ cur=blank(l); return; }
     if((m=/^notas?\s*:\s*(.*)$/i.exec(l))){ cur.notes.push(m[1]); return; }
+    if((m=/^etapa\s*:\s*(.*)$/i.exec(l))){ (cur.story=cur.story||[]).push(m[1]); return; }
     if((m=/^\[(.+)\]$/.exec(l))){ cur.kicker=m[1]; return; }
     if((m=/^(?:[-*•]|\d+[.)])\s+(.+)$/.exec(l))){ cur.bullets.push(m[1]); return; }
     cur.lead.push(l.replace(/^>\s*/,''));
@@ -793,7 +812,9 @@ function toSlide(s,i,n){
       if(it){ const subs=it.sub.filter(f=>f.t==='text'||f.t==='area'); d[it.k]=P.map(p=>{ const o={}; it.sub.forEach(f=>o[f.k]=f.t==='bool'?false:''); if(subs[0]) o[subs[0].k]=p.a; if(subs[1]) o[subs[1].k]=p.b; return o; }); }
       else if(li) d[li.k]=s.bullets; }
   }
-  const sl=D.fillDefaults({id:uid(),t,d}); if(s.notes.length) sl.notes=s.notes.join('\n'); if(s.hidden) sl.hidden=true; return sl;
+  const sl=D.fillDefaults({id:uid(),t,d});
+  if(s.story&&s.story.length&&STORY_T.includes(t)){ const labs=storyLabels(sl).map(x=>plain(x).toLowerCase()); sl.story=s.story.map(x=>{ const zoom=/\(zoom\)\s*$/i.test(x); x=x.replace(/\s*\(zoom\)\s*$/i,''); const p=/^(.+?)\s+[—–-]\s+(.+)$/.exec(x); const i=p?labs.indexOf(plain(p[1]).toLowerCase()):-1; return {i,text:i>=0?p[2]:x,zoom}; }); }
+  if(s.notes.length) sl.notes=s.notes.join('\n'); if(s.hidden) sl.hidden=true; return sl;
 }
 
 /* ---------- ações ---------- */
@@ -923,7 +944,7 @@ function present(start,o={}){
   const upd=n=>{ if(R) R.go(n); w.querySelector('.n').textContent=(n+1)+' / '+d.slides.length; w.querySelector('.pg i').style.width=((n+1)/d.slides.length*100)+'%'; tell({type:'index',n});
     if(o.vertical){ const s=d.slides[n]||{}, sd=s.d||{}; const vt=w.querySelector('.vf-t'), vk=w.querySelector('.vf-k'); vk.textContent=sd.kicker||''; vt.innerHTML=esc(plain(sd.title||sd.quote||sd.word||'')).replace(/\n/g,'<br>'); w.querySelector('.vf-pg i').style.width=((n+1)/d.slides.length*100)+'%';
       if(D.ensureFonts) D.ensureFonts([th.fontDisplay,th.fontBody]); if(window.gsap) gsap.fromTo([vk,vt],{y:24,opacity:0},{y:0,opacity:1,duration:.7,stagger:.08,ease:'expo.out'}); } };
-  const pl=D.createPlayer(w.querySelector('.host'),d,{start:start||0,onChange:upd,autoplay:!o.stage,links:true,onEnd:o.onEnd,noMotion:!!d.calm}); upd(start||0);
+  const pl=D.createPlayer(w.querySelector('.host'),d,{start:start||0,onChange:upd,onStep:(k,n)=>tell({type:'step',k,n}),autoplay:!o.stage,links:true,onEnd:o.onEnd,noMotion:!!d.calm}); upd(start||0);
   /* trilha sonora com detecção de batida */
   const music=(!o.recording&&d.music)?startMusic(d,pl,curId):null;
   /* números ao vivo: slides ligados a uma planilha buscam os dados de novo */
@@ -943,7 +964,8 @@ function present(start,o={}){
   const fs=()=>{ try{ document.fullscreenElement?document.exitFullscreen():w.requestFullscreen().catch(()=>{}); }catch(_){} };
   const onMsg=e=>{ if(!pop||e.source!==pop||!e.data||!e.data.em) return; const m=e.data;
     if(m.type==='ready') tell({type:'deck',deck:d,n:pl.index});
-    else if(m.type==='next') pl.next(); else if(m.type==='prev') pl.prev(); else if(m.type==='go') pl.go(+m.n); };
+    else if(m.type==='next') pl.next(); else if(m.type==='prev') pl.prev(); else if(m.type==='go') pl.go(+m.n);
+    else if(m.type==='replay') pl.replay(); else if(m.type==='black') black(); else if(m.type==='pause'){ const g=window.gsap&&gsap.globalTimeline; if(g){ g.paused(!g.paused()); tell({type:'paused',v:g.paused()}); } } };
   addEventListener('message',onMsg);
   const openPresenter=()=>{ if(pop&&!pop.closed){ pop.focus(); return; } pop=open(location.pathname+location.search+'#presenter','estudio-motion-apresentador','width=1100,height=720'); if(!pop) setStatus('O navegador bloqueou a janela do apresentador'); };
   /* ---------- ferramentas do apresentador: laser, zoom, voz e atalhos ---------- */
@@ -1020,10 +1042,11 @@ window.EstudioMotion={present:(i,o)=>present(i||0,o||{}),csvRows,applyRows,revie
 /* janela do apresentador: slide atual, próximo, notas e cronômetro */
 function presenterMode(){
   document.title='Apresentador · Estúdio Motion';
-  document.body.innerHTML=`<div class="pres"><header><b>Apresentador</b><span class="clock" id="pc">00:00</span><button class="btn sm" id="pr">Zerar</button><span class="n" id="pn">–</span></header>
+  document.body.innerHTML=`<div class="pres"><header><b>Apresentador</b><span class="clock" id="pc" title="Tempo de apresentação">00:00</span><span class="hour" id="ph"></span><button class="btn sm" id="pr">Zerar</button><span class="st" id="pst"></span><select id="pj" title="Ir para o slide"></select><span class="n" id="pn">–</span></header><div class="pbar"><i id="pbar"></i></div>
+  <div class="ptools"><button class="btn sm" id="prp" title="Reinicia as animações do slide atual">↻ Reiniciar cena</button><button class="btn sm" id="ppa" title="Congela/retoma as animações">⏸ Pausar animação</button><button class="btn sm" id="pbk" title="Tela preta (B)">■ Tela preta</button><span class="hint">Setas: navegar · B: tela preta · R: reiniciar cena</span></div>
   <div class="pres-main"><div class="cur"><div class="tv" id="pcur"></div></div><div class="side"><div class="lbl">Próximo</div><div class="tv" id="pnext"></div><div class="lbl">Notas</div><div class="notes" id="pnotes">Aguardando a apresentação…</div></div></div>
   <footer><button class="btn" id="pp">‹ Anterior</button><button class="btn pri" id="px">Próximo ›</button></footer></div>`;
-  let dk=null, n=0, t0=Date.now(), c1=null, c2=null;
+  let dk=null, n=0, t0=Date.now(), c1=null, c2=null, sk=0, sn=0;
   const send=m=>{ try{ opener&&opener.postMessage(Object.assign({em:1},m),'*'); }catch(_){} };
   const paint=()=>{ if(!dk) return; c1&&c1(); c2&&c2();
     c1=D.renderStatic($('#pcur'),dk,n);
@@ -1031,12 +1054,16 @@ function presenterMode(){
     if((dk.slides[n]||{}).hidden) $('#pnext').innerHTML='<div class="end">Próximo: volta ao resumo</div>', c2=null;
     else if(nx<dk.slides.length) c2=D.renderStatic($('#pnext'),dk,nx); else { $('#pnext').innerHTML='<div class="end">Fim da apresentação</div>'; c2=null; }
     const s=dk.slides[n]||{}; $('#pnotes').textContent=s.notes||'Sem notas para este slide.'; $('#pnotes').classList.toggle('empty',!s.notes);
-    $('#pn').textContent=(n+1)+' / '+dk.slides.length; };
+    $('#pn').textContent=(n+1)+' / '+dk.slides.length; $('#pbar').style.width=((n+1)/dk.slides.length*100)+'%';
+    const pj=$('#pj'); if(pj.options.length!==dk.slides.length) pj.innerHTML=dk.slides.map((x,i)=>'<option value="'+i+'">'+(i+1)+'. '+D.esc(String((x.d&&(x.d.title||x.d.quote||x.d.kicker))||(T[x.t]||{}).name||'').replace(/[*\n]/g,' ').slice(0,48))+(x.hidden?' (oculto)':'')+'</option>').join(''); pj.value=n; paintStep(); };
+  const paintStep=()=>{ $('#pst').textContent=sn?'Etapa '+sk+' de '+sn:''; if(sn&&sk<sn){ $('#pnext').querySelectorAll('.end.step').forEach(x=>x.remove()); const b=document.createElement('div'); b.className='end step'; b.textContent='Próximo: etapa '+(sk+1)+' de '+sn+' neste slide'; $('#pnext').prepend(b); } else $('#pnext').querySelectorAll('.end.step').forEach(x=>x.remove()); };
   addEventListener('message',e=>{ if(e.source!==opener||!e.data||!e.data.em) return; const m=e.data;
-    if(m.type==='deck'){ dk=m.deck; n=m.n||0; paint(); } else if(m.type==='index'){ n=m.n; paint(); } else if(m.type==='end'){ $('#pnotes').textContent='A apresentação foi encerrada.'; } });
+    if(m.type==='deck'){ dk=m.deck; n=m.n||0; paint(); } else if(m.type==='index'){ n=m.n; sk=0; sn=(((dk&&dk.slides[n])||{}).story||[]).length; paint(); } else if(m.type==='step'){ sk=m.k; sn=m.n; paintStep(); } else if(m.type==='paused'){ $('#ppa').textContent=m.v?'▶ Retomar animação':'⏸ Pausar animação'; } else if(m.type==='end'){ $('#pnotes').textContent='A apresentação foi encerrada.'; } });
   $('#pp').onclick=()=>send({type:'prev'}); $('#px').onclick=()=>send({type:'next'});
   $('#pr').onclick=()=>{ t0=Date.now(); };
-  addEventListener('keydown',e=>{ if(['ArrowRight','PageDown',' ','Enter'].includes(e.key)){e.preventDefault();send({type:'next'});} else if(['ArrowLeft','PageUp','Backspace'].includes(e.key)){e.preventDefault();send({type:'prev'});} });
+  $('#prp').onclick=()=>send({type:'replay'}); $('#ppa').onclick=()=>send({type:'pause'}); $('#pbk').onclick=()=>send({type:'black'}); $('#pj').onchange=ev=>send({type:'go',n:+ev.target.value});
+  addEventListener('keydown',e=>{ if(['ArrowRight','PageDown',' ','Enter'].includes(e.key)){e.preventDefault();send({type:'next'});} else if(['ArrowLeft','PageUp','Backspace'].includes(e.key)){e.preventDefault();send({type:'prev'});} else if(e.target.tagName!=='SELECT'&&(e.key==='b'||e.key==='B'||e.key==='.')) send({type:'black'}); else if(e.target.tagName!=='SELECT'&&(e.key==='r'||e.key==='R')) send({type:'replay'}); });
+  setInterval(()=>{ $('#ph').textContent=new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); },1000);
   setInterval(()=>{ const s=Math.floor((Date.now()-t0)/1000); $('#pc').textContent=String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0'); },500);
   if(!opener) $('#pnotes').textContent='Abra esta janela pelo botão 🗒 (ou tecla P) durante a apresentação.'; else send({type:'ready'});
 }

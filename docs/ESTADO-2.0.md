@@ -59,6 +59,21 @@ Avaliação do "Prompt Master 2.0" contra o sistema real, e o que foi feito.
    - Antes/Depois: o divisor corre sozinho e pode ser arrastado na apresentação sem trocar de slide.
 6. **Barras + linha** (`combo`): realizado em barras e projeção em linha.
 
+## Fase 2
+
+7. **História em etapas (data storytelling).**
+   - Funciona nos gráficos (barras, barras horizontais, pizza, linha, barras + linha, funil, medidores), em números e em cartões.
+   - Cada Próximo destaca uma categoria: o resto escurece e aparece um balão com o comentário. A câmera aproxima, se a etapa tiver zoom.
+   - Depois da última etapa, a apresentação segue para o próximo slide. O Anterior volta uma etapa.
+   - Campo `story: [{i, text, zoom}]` no slide. Editável na seção "História em etapas", com prévia.
+   - No texto, use `Etapa: Rótulo — comentário (zoom)`.
+   - Funciona também no HTML exportado.
+8. **Janela do apresentador evoluída** (tecla P durante a apresentação):
+   - indicador de etapa e barra de progresso;
+   - hora atual e salto para qualquer slide;
+   - botões Reiniciar cena, Pausar animação e Tela preta (atalhos R e B);
+   - o "Próximo" avisa quando ainda há etapas no slide.
+
 ## Testes executados (navegador headless, Chromium)
 
 - As 14 transições foram executadas no editor, com captura no meio do efeito. Todas revelaram o próximo slide pela forma esperada e limparam máscaras e camadas ao terminar.
@@ -81,8 +96,7 @@ Avaliação do "Prompt Master 2.0" contra o sistema real, e o que foi feito.
 - Background Composer em camadas.
 - Exploded View com GLB/GLTF.
 - Geographic Story com rotas entre cidades.
-- Data storytelling em etapas (drill-down, transformar um gráfico em outro).
-- Janela separada do apresentador.
+- Transformar um gráfico em outro (chart morph) e drill-down para um slide de detalhe.
 - AI Scene Director.
 - Fontes embutidas na exportação.
 - Exportação em vídeo MP4.

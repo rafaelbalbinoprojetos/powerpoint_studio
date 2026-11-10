@@ -70,6 +70,8 @@ Para uma marca própria, mantenha o preset mais próximo e sobrescreva no `theme
 
 ### Modelos (`t`) e campos (`d`)
 
+- `story` (gráficos, pizza, linha, combo, funil, medidores, números, cartões): etapas ao apresentar, ex.: `[{"i":2,"text":"Sudeste lidera com *41%*","zoom":true},{"i":-1,"text":"Conclusão"}]` (`i` = índice do item; -1 = só o comentário). Cada avanço mostra uma etapa antes de ir ao próximo slide. Use em gráficos que contam uma história, 2 a 4 etapas.
+
 | Modelo | Quando usar | Campos |
 |---|---|---|
 | `capa` | Abertura | `showLogo` (bool), `kicker`, `title`, `lead`, `chain` ("Dados, Análise, Decisão" — 2 a 4 itens, vírgula), `chips` (lista de textos), `image` (PNG transparente grande à direita) |

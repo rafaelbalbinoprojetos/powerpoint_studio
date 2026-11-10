@@ -193,3 +193,8 @@ ESTÚDIO MOTION 2.0
 - Modelos novos: Herói cinematográfico, Divisão revelada, Número em destaque, Vidro flutuante,
   Rede de inteligência, Jornada com câmera, Holofote, Antes/depois, Barras + linha.
 - Detalhes técnicos e pendências: docs/ESTADO-2.0.md
+- História em etapas: no painel de um gráfico, "História em etapas" > + Etapa. Ao apresentar,
+  cada Próximo destaca uma categoria com comentário (e zoom opcional). No texto:
+  "Etapa: Sudeste — lidera com 41% (zoom)".
+- Janela do apresentador (P): etapas, progresso, ir para slide, reiniciar cena (R), pausar
+  animação, tela preta (B).
