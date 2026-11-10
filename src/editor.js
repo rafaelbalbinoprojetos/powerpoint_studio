@@ -83,6 +83,22 @@ function cleanSVG(txt){ const doc=new DOMParser().parseFromString(txt,'image/svg
   return 'data:image/svg+xml;base64,'+btoa(unescape(encodeURIComponent(new XMLSerializer().serializeToString(root)))); }
 function pickMask(cb){ const inp=document.createElement('input'); inp.type='file'; inp.accept='image/png,image/svg+xml,.svg,.png'; inp.onchange=()=>{ const f=inp.files[0]; if(!f) return; if(f.size>600e3) return setStatus('Arquivo grande demais para máscara (máx. 600 KB)');
   const rd=new FileReader(); if(/svg/i.test(f.type)||/.svg$/i.test(f.name)){ rd.onload=()=>{ const u=cleanSVG(rd.result); if(!u) return setStatus('SVG inválido'); cb(u); }; rd.readAsText(f); } else { rd.onload=()=>cb(rd.result); rd.readAsDataURL(f); } }; inp.click(); }
+/* ---------- painel em seções recolhíveis (lembra quais ficaram abertas) ---------- */
+const CG_KEY=LS+'-groups'; let cgOpen; try{ cgOpen=JSON.parse(localStorage.getItem(CG_KEY)||'null'); }catch(_){ cgOpen=null; }
+if(!cgOpen||typeof cgOpen!=='object') cgOpen={'Conteúdo do slide':1,'Paleta pronta':1};
+function cgGroup(container){ const kids=[...container.children]; if(!kids.some(k=>k.classList&&k.classList.contains('sec'))) return; let body=null;
+  kids.forEach(k=>{ if(k.classList&&k.classList.contains('sec')&&!k.closest('.tpl-head,.lay-pick')){ const title=k.textContent.replace(/\s+\d+ em aberto$/,'').trim(); const g=document.createElement('details'); g.className='cgrp'; g.dataset.k=title; if(cgOpen[title]) g.open=true;
+      const sm=document.createElement('summary'); sm.innerHTML=k.innerHTML; g.appendChild(sm); body=document.createElement('div'); body.className='cgrp-b'; g.appendChild(body); container.insertBefore(g,k); k.remove();
+      g.addEventListener('toggle',()=>{ if(g.open) cgOpen[title]=1; else delete cgOpen[title]; try{ localStorage.setItem(CG_KEY,JSON.stringify(cgOpen)); }catch(_){} }); }
+    else if(body) body.appendChild(k); }); }
+function collapsePane(){ const pane=$('#pane'); if(!pane||pane.querySelector('.cgrp')) return;
+  if(tab!=='theme'){ const so=pane.querySelector('.slideopts'); const fs=[...pane.children].filter(k=>!k.matches('.tpl-head,.lay-pick,.slideopts'));
+    if(fs.length){ const sec=document.createElement('div'); sec.className='sec'; sec.textContent='Conteúdo do slide'; pane.insertBefore(sec,fs[0]); }
+    cgGroup(pane); if(so) cgGroup(so); }
+  else { cgGroup(pane); [...pane.children].forEach(k=>{ if(!k.classList.contains('cgrp')) cgGroup(k); }); }
+  const bar=document.createElement('div'); bar.className='cg-bar'; bar.innerHTML='<button class="btn sm" type="button" data-all="1">Abrir tudo</button><button class="btn sm" type="button" data-all="0">Recolher tudo</button>';
+  bar.querySelectorAll('button').forEach(x=>x.onclick=()=>pane.querySelectorAll('details.cgrp').forEach(g=>{ g.open=x.dataset.all==='1'; })); pane.prepend(bar); }
+{ const base=renderPane; renderPane=function(){ const r=base.apply(this,arguments); try{ collapsePane(); }catch(err){ console.warn(err); } return r; }; }
 /* biblioteca de slides reutilizáveis (fica neste navegador, vale para todas as apresentações) */
 let myLib=[];
 async function loadLib(){ try{ myLib=(await IDB.get('library'))||[]; }catch(_){ try{ myLib=JSON.parse(lsGet(LS+'-library')||'[]'); }catch(e){ myLib=[]; } } }
@@ -826,6 +842,7 @@ $('#deckSel').onchange=e=>{ if(dirty) save(); if(histT) snap(); curId=e.target.v
 $('#deckName').oninput=e=>{ deck().name=e.target.value; touch(); const o=$('#deckSel').selectedOptions[0]; if(o) o.textContent=e.target.value||'Sem nome'; };
 document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{ tab=b.dataset.tab; renderPane(); });
 $('#prevBtn').onclick=()=>select(sel-1); $('#nextBtn').onclick=()=>select(sel+1);
+$('#firstBtn').onclick=()=>select(0); $('#lastBtn').onclick=()=>select(deck().slides.length-1);
 $('#replayBtn').onclick=()=>{ if(player) player.replay(); };
 $('#undoBtn').onclick=undo; $('#redoBtn').onclick=redo;
 $('#upBtn').onclick=()=>move(-1); $('#downBtn').onclick=()=>move(1);
@@ -848,7 +865,7 @@ addEventListener('keydown',e=>{
   if(mod&&!typing&&k==='z'){ e.preventDefault(); e.shiftKey?redo():undo(); return; }
   if(mod&&!typing&&k==='y'){ e.preventDefault(); redo(); return; }
   if(typing) return;
-  if(e.key==='ArrowRight') select(sel+1); if(e.key==='ArrowLeft') select(sel-1);
+  if(e.key==='ArrowRight') select(sel+1); if(e.key==='ArrowLeft') select(sel-1); if(e.key==='Home') select(0); if(e.key==='End') select(deck().slides.length-1);
 });
 addEventListener('beforeunload',()=>{ if(dirty&&mode!=='db') localSave(); });
 
@@ -940,7 +957,7 @@ function present(start,o={}){
   const d=o.deck||deck(); if(!d.slides.length) return;
   const th=D.themeOf(d);
   const hostHTML=o.vertical?`<div class="vframe" style='${D.themeVars(th)}'><div class="vf-top"><span class="vf-k"></span><b class="vf-t"></b></div><div class="host vf-host"></div><div class="vf-bot"><span class="vf-brand">${esc(d.footerText||d.name||'')}</span><div class="vf-pg"><i></i></div></div></div>`:'<div class="host"></div>';
-  const w=document.createElement('div'); w.className='show'+(o.recording?' rec':'')+(o.vertical?' vert':''); w.innerHTML=`${hostHTML}<div class="bar"><button data-x aria-label="Sair">✕</button><button data-p aria-label="Anterior">‹</button><div class="pg"><i></i></div><span class="n"></span><button data-n aria-label="Próximo">›</button><button data-v aria-label="Janela do apresentador" title="Janela do apresentador (P)">🗒</button><button data-tool="laser" aria-label="Ponteiro laser" title="Ponteiro laser (L)">●</button><button data-tool="zoom" aria-label="Zoom" title="Zoom: clique para aproximar (Z)">⌕</button><button data-tool="voice" aria-label="Comando por voz" title="Comando por voz (V)">🎙</button><button data-tool="cc" aria-label="Legendas ao vivo" title="Legendas ao vivo (C)">CC</button><button data-tool="a11y" aria-label="Alto contraste" title="Alto contraste (A)">◐</button><button data-tool="help" aria-label="Atalhos" title="Atalhos (?)">?</button><button data-f aria-label="Tela cheia">⤢</button></div><canvas class="laser" aria-hidden="true"></canvas><div class="voice-chip" hidden></div>`;
+  const w=document.createElement('div'); w.className='show'+(o.recording?' rec':'')+(o.vertical?' vert':''); w.innerHTML=`${hostHTML}<div class="bar"><button data-x aria-label="Sair">✕</button><button data-first aria-label="Primeiro slide" title="Primeiro slide (Home)">⏮</button><button data-p aria-label="Anterior">‹</button><div class="pg"><i></i></div><span class="n"></span><button data-n aria-label="Próximo">›</button><button data-last aria-label="Último slide" title="Último slide (End)">⏭</button><button data-v aria-label="Janela do apresentador" title="Janela do apresentador (P)">🗒</button><button data-tool="laser" aria-label="Ponteiro laser" title="Ponteiro laser (L)">●</button><button data-tool="zoom" aria-label="Zoom" title="Zoom: clique para aproximar (Z)">⌕</button><button data-tool="voice" aria-label="Comando por voz" title="Comando por voz (V)">🎙</button><button data-tool="cc" aria-label="Legendas ao vivo" title="Legendas ao vivo (C)">CC</button><button data-tool="a11y" aria-label="Alto contraste" title="Alto contraste (A)">◐</button><button data-tool="help" aria-label="Atalhos" title="Atalhos (?)">?</button><button data-f aria-label="Tela cheia">⤢</button></div><canvas class="laser" aria-hidden="true"></canvas><div class="voice-chip" hidden></div>`;
   document.body.appendChild(w);
   let pop=null;
   const tell=msg=>{ try{ if(pop&&!pop.closed) pop.postMessage(Object.assign({em:1},msg),'*'); }catch(_){} };
@@ -968,7 +985,7 @@ function present(start,o={}){
   const fs=()=>{ try{ document.fullscreenElement?document.exitFullscreen():w.requestFullscreen().catch(()=>{}); }catch(_){} };
   const onMsg=e=>{ if(!pop||e.source!==pop||!e.data||!e.data.em) return; const m=e.data;
     if(m.type==='ready') tell({type:'deck',deck:d,n:pl.index});
-    else if(m.type==='next') pl.next(); else if(m.type==='prev') pl.prev(); else if(m.type==='go') pl.go(+m.n);
+    else if(m.type==='next') pl.next(); else if(m.type==='prev') pl.prev(); else if(m.type==='go') pl.go(+m.n); else if(m.type==='first'||m.type==='last'){ let j=m.type==='first'?0:d.slides.length-1; const st=m.type==='first'?1:-1; while(d.slides[j]&&d.slides[j].hidden) j+=st; if(d.slides[j]) pl.go(j); }
     else if(m.type==='replay') pl.replay(); else if(m.type==='black') black(); else if(m.type==='pause'){ const g=window.gsap&&gsap.globalTimeline; if(g){ g.paused(!g.paused()); tell({type:'paused',v:g.paused()}); } } };
   addEventListener('message',onMsg);
   const openPresenter=()=>{ if(pop&&!pop.closed){ pop.focus(); return; } pop=open(location.pathname+location.search+'#presenter','estudio-motion-apresentador','width=1100,height=720'); if(!pop) setStatus('O navegador bloqueou a janela do apresentador'); };
@@ -1029,10 +1046,13 @@ function present(start,o={}){
     if(e.key==='F5'&&!e.ctrlKey&&!e.metaKey){ e.preventDefault(); return fs(); }
     if(e.ctrlKey||e.metaKey||e.altKey) return;
     if(stageEl&&['ArrowRight','PageDown',' ','Enter'].includes(e.key)){ e.preventDefault(); return endStage(); }
+    if(e.key==='Home'||e.key==='End'){ e.preventDefault(); let j=e.key==='Home'?0:d.slides.length-1; const st=e.key==='Home'?1:-1; while(d.slides[j]&&d.slides[j].hidden&&j>=0&&j<d.slides.length) j+=st; if(d.slides[j]) pl.go(j); return; }
     if(['ArrowRight','PageDown',' ','Enter'].includes(e.key)){e.preventDefault(); if(music&&music.sync) music.onBeat(()=>pl.next()); else pl.next();} else if(['ArrowLeft','PageUp','Backspace'].includes(e.key)){e.preventDefault();pl.prev();}
     else if(k==='f') fs(); else if(k==='p') openPresenter(); else if(k==='l') setLaser(!laser); else if(k==='z') setZoom(!zoomMode); else if(k==='v') setVoice(!voiceOn); else if(k==='c') setCC(!ccOn); else if(k==='a') setA11y(); else if(k==='b'||k==='.') black(); else if(k==='r'&&R) R.pause(); else if(k==='m'&&music) say(music.toggle()?'♪ Música ligada':'♪ Música desligada',1400); else if(e.key==='?'||k==='h') toggleHelp(); };
   addEventListener('keydown',key);
-  w.querySelector('.bar [data-x]').onclick=close; w.querySelector('.bar [data-p]').onclick=()=>pl.prev(); w.querySelector('.bar [data-n]').onclick=()=>pl.next(); w.querySelector('.bar [data-f]').onclick=fs; w.querySelector('.bar [data-v]').onclick=openPresenter;
+  w.querySelector('.bar [data-x]').onclick=close; w.querySelector('.bar [data-p]').onclick=()=>pl.prev(); w.querySelector('.bar [data-n]').onclick=()=>pl.next();
+  const firstVis=()=>{ let j=0; while(j<d.slides.length-1&&d.slides[j].hidden) j++; return j; }, lastVis=()=>{ let j=d.slides.length-1; while(j>0&&d.slides[j].hidden) j--; return j; };
+  w.querySelector('.bar [data-first]').onclick=()=>pl.go(firstVis()); w.querySelector('.bar [data-last]').onclick=()=>pl.go(lastVis()); w.querySelector('.bar [data-f]').onclick=fs; w.querySelector('.bar [data-v]').onclick=openPresenter;
   host.onclick=e=>{ if(stageEl) return endStage(); if(o.recording) return;
     if(zoomMode){ if(zoomed) unzoom(); else { zoomed=true; host.style.transformOrigin=`${e.clientX}px ${e.clientY}px`; host.style.transform='scale(2.2)'; w.classList.add('zoomed'); } return; }
     e.clientX>innerWidth*.3?pl.next():pl.prev(); };
@@ -1049,7 +1069,7 @@ function presenterMode(){
   document.body.innerHTML=`<div class="pres"><header><b>Apresentador</b><span class="clock" id="pc" title="Tempo de apresentação">00:00</span><span class="hour" id="ph"></span><button class="btn sm" id="pr">Zerar</button><span class="st" id="pst"></span><select id="pj" title="Ir para o slide"></select><span class="n" id="pn">–</span></header><div class="pbar"><i id="pbar"></i></div>
   <div class="ptools"><button class="btn sm" id="prp" title="Reinicia as animações do slide atual">↻ Reiniciar cena</button><button class="btn sm" id="ppa" title="Congela/retoma as animações">⏸ Pausar animação</button><button class="btn sm" id="pbk" title="Tela preta (B)">■ Tela preta</button><span class="hint">Setas: navegar · B: tela preta · R: reiniciar cena</span></div>
   <div class="pres-main"><div class="cur"><div class="tv" id="pcur"></div></div><div class="side"><div class="lbl">Próximo</div><div class="tv" id="pnext"></div><div class="lbl">Notas</div><div class="notes" id="pnotes">Aguardando a apresentação…</div></div></div>
-  <footer><button class="btn" id="pp">‹ Anterior</button><button class="btn pri" id="px">Próximo ›</button></footer></div>`;
+  <footer><button class="btn" id="pf" title="Primeiro slide (Home)">⏮ Primeiro</button><button class="btn" id="pp">‹ Anterior</button><button class="btn pri" id="px">Próximo ›</button><button class="btn" id="pl2" title="Último slide (End)">Último ⏭</button></footer></div>`;
   let dk=null, n=0, t0=Date.now(), c1=null, c2=null, sk=0, sn=0;
   const send=m=>{ try{ opener&&opener.postMessage(Object.assign({em:1},m),'*'); }catch(_){} };
   const paint=()=>{ if(!dk) return; c1&&c1(); c2&&c2();
@@ -1063,10 +1083,11 @@ function presenterMode(){
   const paintStep=()=>{ $('#pst').textContent=sn?'Etapa '+sk+' de '+sn:''; if(sn&&sk<sn){ $('#pnext').querySelectorAll('.end.step').forEach(x=>x.remove()); const b=document.createElement('div'); b.className='end step'; b.textContent='Próximo: etapa '+(sk+1)+' de '+sn+' neste slide'; $('#pnext').prepend(b); } else $('#pnext').querySelectorAll('.end.step').forEach(x=>x.remove()); };
   addEventListener('message',e=>{ if(e.source!==opener||!e.data||!e.data.em) return; const m=e.data;
     if(m.type==='deck'){ dk=m.deck; n=m.n||0; paint(); } else if(m.type==='index'){ n=m.n; sk=0; sn=(((dk&&dk.slides[n])||{}).story||[]).length; paint(); } else if(m.type==='step'){ sk=m.k; sn=m.n; paintStep(); } else if(m.type==='paused'){ $('#ppa').textContent=m.v?'▶ Retomar animação':'⏸ Pausar animação'; } else if(m.type==='end'){ $('#pnotes').textContent='A apresentação foi encerrada.'; } });
+  $('#pf').onclick=()=>send({type:'first'}); $('#pl2').onclick=()=>send({type:'last'});
   $('#pp').onclick=()=>send({type:'prev'}); $('#px').onclick=()=>send({type:'next'});
   $('#pr').onclick=()=>{ t0=Date.now(); };
   $('#prp').onclick=()=>send({type:'replay'}); $('#ppa').onclick=()=>send({type:'pause'}); $('#pbk').onclick=()=>send({type:'black'}); $('#pj').onchange=ev=>send({type:'go',n:+ev.target.value});
-  addEventListener('keydown',e=>{ if(['ArrowRight','PageDown',' ','Enter'].includes(e.key)){e.preventDefault();send({type:'next'});} else if(['ArrowLeft','PageUp','Backspace'].includes(e.key)){e.preventDefault();send({type:'prev'});} else if(e.target.tagName!=='SELECT'&&(e.key==='b'||e.key==='B'||e.key==='.')) send({type:'black'}); else if(e.target.tagName!=='SELECT'&&(e.key==='r'||e.key==='R')) send({type:'replay'}); });
+  addEventListener('keydown',e=>{ if(['ArrowRight','PageDown',' ','Enter'].includes(e.key)){e.preventDefault();send({type:'next'});} else if(['ArrowLeft','PageUp','Backspace'].includes(e.key)){e.preventDefault();send({type:'prev'});} else if(e.target.tagName!=='SELECT'&&(e.key==='b'||e.key==='B'||e.key==='.')) send({type:'black'}); else if(e.target.tagName!=='SELECT'&&(e.key==='r'||e.key==='R')) send({type:'replay'}); else if(e.key==='Home') send({type:'first'}); else if(e.key==='End') send({type:'last'}); });
   setInterval(()=>{ $('#ph').textContent=new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); },1000);
   setInterval(()=>{ const s=Math.floor((Date.now()-t0)/1000); $('#pc').textContent=String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0'); },500);
   if(!opener) $('#pnotes').textContent='Abra esta janela pelo botão 🗒 (ou tecla P) durante a apresentação.'; else send({type:'ready'});
@@ -1096,7 +1117,7 @@ async function exportHTML(){
     const html=`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(d.name||'Apresentação')}</title><style>html,body{height:100%;margin:0;background:#000}#app{position:fixed;inset:0}${css}</style>${gsapTag}</head><body><div id="app"></div><script>${js.replace(/<\/script/gi,'<\\/script')}<\/script><script>
 const DECK=${JSON.stringify(d).replace(/</g,'\\u003c')};
 const pl=Deck.createPlayer(document.getElementById('app'),DECK,{start:0,autoplay:true,links:true});
-addEventListener('keydown',e=>{if(['ArrowRight','PageDown',' ','Enter'].includes(e.key)){e.preventDefault();pl.next();}else if(['ArrowLeft','PageUp','Backspace'].includes(e.key)){e.preventDefault();pl.prev();}else if(e.key==='f'||e.key==='F'){document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen();}});
+addEventListener('keydown',e=>{if(['ArrowRight','PageDown',' ','Enter'].includes(e.key)){e.preventDefault();pl.next();}else if(['ArrowLeft','PageUp','Backspace'].includes(e.key)){e.preventDefault();pl.prev();}else if(e.key==='Home'){pl.go(0);}else if(e.key==='End'){pl.go(pl.count-1);}else if(e.key==='f'||e.key==='F'){document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen();}});
 document.getElementById('app').addEventListener('click',e=>{e.clientX>innerWidth*.3?pl.next():pl.prev();});
 let sx=null;addEventListener('touchstart',e=>{sx=e.touches[0].clientX},{passive:true});addEventListener('touchend',e=>{if(sx==null)return;const dx=e.changedTouches[0].clientX-sx;if(Math.abs(dx)>40)dx<0?pl.next():pl.prev();sx=null},{passive:true});
 <\/script></body></html>`;
@@ -1315,3 +1336,4 @@ function mergeDeck(base,local,remote){
   });
 })();
 })();
+

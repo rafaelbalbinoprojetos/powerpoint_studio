@@ -202,3 +202,7 @@ ESTÚDIO MOTION 2.0
   de outro com as mesmas categorias (ex.: barras -> pizza): as categorias viajam de um para o outro.
 - Detalhe ao clicar: nos itens do gráfico, "Abre o slide de detalhe". Na apresentação, clique na
   barra/fatia; "Voltar" retorna. No texto: slide "(oculto)" com o mesmo nome da categoria.
+- Primeiro/último slide: botões ⏮ e ⏭ ao lado de ‹ › (editor, apresentação e janela do
+  apresentador) ou teclas Home/End.
+- Painel da direita em seções recolhíveis (abas Conteúdo e Tema); "Abrir tudo"/"Recolher tudo".
+  O editor lembra quais seções você deixou abertas.
