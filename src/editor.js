@@ -47,6 +47,28 @@ const localMedia={};
 { const base=v=>v.startsWith('asset:')?'/_blob/'+v.slice(6):v; D.setImageResolver(v=>{ v=String(v||''); if(v.startsWith('local:')) return localMedia[v]||''; return base(v); }); }
 async function preloadLocal(){ const keys=new Set(); Object.values(decks).forEach(dk=>(dk.slides||[]).forEach(sl=>{ const v=sl.d&&sl.d.src; if(typeof v==='string'&&v.startsWith('local:')) keys.add(v); }));
   for(const k of keys){ if(localMedia[k]) continue; try{ const b=await IDB.get(k.slice(6)); if(b) localMedia[k]=URL.createObjectURL(b); }catch(_){} } }
+/* Smart Morph: vincular elementos deste slide aos do próximo (viajam no "Movimento mágico") */
+function shareKeys(i){ const d=deck(), tmp=document.createElement('div'); try{ tmp.innerHTML=D.slideHTML(d,i,D.themeOf(d)); }catch(_){ return []; } const out=[], seen=new Set();
+  if(tmp.querySelector('.dk-logo')) { out.push(['logo','Logo']); seen.add('logo'); }
+  tmp.querySelectorAll('[data-f]').forEach(el=>{ const k=el.dataset.f; if(seen.has(k)) return; seen.add(k); const tx=(el.textContent||'').replace(/s+/g,' ').trim(); out.push([k,(tx||k).slice(0,38)]); }); return out.slice(0,24); }
+function paintShare(s){ const d=deck(); const host=document.createElement('details'); host.className='share-box'; if(s.share&&Object.keys(s.share).length) host.open=true;
+  if(sel>=d.slides.length-1){ return; }
+  const A=shareKeys(sel), B=shareKeys(sel+1); if(!A.length||!B.length) return;
+  host.innerHTML='<summary>Elementos compartilhados com o próximo slide</summary><p class="hint">Escolha qual elemento do próximo slide corresponde a cada um deste. No “Movimento mágico” ele viaja (posição, tamanho e cor) em vez de sumir e reaparecer. Títulos, imagens iguais, números iguais e a logo já são ligados sozinhos.</p>'
+    +A.map(([k,l])=>'<div class="share-row"><span title="'+D.esc(k)+'">'+D.esc(l)+'</span><select data-k="'+D.esc(k)+'"><option value="">— automático —</option>'+B.map(([k2,l2])=>'<option value="'+D.esc(k2)+'"'+(s.share&&s.share[k]===k2?' selected':'')+'>'+D.esc(l2)+'</option>').join('')+'</select></div>').join('')
+    +'<div class="btnrow"><button class="btn sm" type="button" data-sp>▶ Prévia do movimento</button></div>';
+  host.querySelectorAll('select').forEach(x=>x.onchange=()=>{ s.share=s.share||{}; if(x.value) s.share[x.dataset.k]=x.value; else delete s.share[x.dataset.k]; if(!Object.keys(s.share).length) delete s.share;
+    const nx=d.slides[sel+1]; if(s.share&&nx&&!nx.tr&&(d.tr||'deslizar')!=='magico'){ nx.tr='magico'; setStatus('A chegada do próximo slide passou para “Movimento mágico”',true); } touch(); });
+  host.querySelector('[data-sp]').onclick=()=>{ if(!player) return; const i=sel; player.go(i,-1,true); setTimeout(()=>player.go(i+1,1),300); setTimeout(()=>player.go(i,-1,true),3200); };
+  const anchor=$('#o-trp'); const f2=anchor&&anchor.closest('.f2'); if(f2) f2.after(host); else $("#pane").appendChild(host); }
+/* máscara personalizada: PNG (canal alpha) ou SVG higienizado, guardado como data URL dentro da apresentação */
+function cleanSVG(txt){ const doc=new DOMParser().parseFromString(txt,'image/svg+xml'); const root=doc.documentElement; if(!root||root.nodeName.toLowerCase()!=='svg'||doc.querySelector('parsererror')) return null;
+  root.querySelectorAll('script,foreignObject,iframe,object,embed,use[href^="http"],image[href^="http"]').forEach(x=>x.remove());
+  [root,...root.querySelectorAll('*')].forEach(el=>[...el.attributes].forEach(a=>{ const n=a.name.toLowerCase(), v=String(a.value).trim().toLowerCase(); if(n.startsWith('on')||((n==='href'||n==='xlink:href')&&!v.startsWith('#')&&!v.startsWith('data:image/'))) el.removeAttribute(a.name); }));
+  if(!root.getAttribute('xmlns')) root.setAttribute('xmlns','http://www.w3.org/2000/svg');
+  return 'data:image/svg+xml;base64,'+btoa(unescape(encodeURIComponent(new XMLSerializer().serializeToString(root)))); }
+function pickMask(cb){ const inp=document.createElement('input'); inp.type='file'; inp.accept='image/png,image/svg+xml,.svg,.png'; inp.onchange=()=>{ const f=inp.files[0]; if(!f) return; if(f.size>600e3) return setStatus('Arquivo grande demais para máscara (máx. 600 KB)');
+  const rd=new FileReader(); if(/svg/i.test(f.type)||/.svg$/i.test(f.name)){ rd.onload=()=>{ const u=cleanSVG(rd.result); if(!u) return setStatus('SVG inválido'); cb(u); }; rd.readAsText(f); } else { rd.onload=()=>cb(rd.result); rd.readAsDataURL(f); } }; inp.click(); }
 /* biblioteca de slides reutilizáveis (fica neste navegador, vale para todas as apresentações) */
 let myLib=[];
 async function loadLib(){ try{ myLib=(await IDB.get('library'))||[]; }catch(_){ try{ myLib=JSON.parse(lsGet(LS+'-library')||'[]'); }catch(e){ myLib=[]; } } }
@@ -267,7 +289,7 @@ function renderPane(){
   box.innerHTML=`<div class="sec">Animação deste slide</div>
   <div class="f2"><div class="f"><label for="o-anim">Entrada dos elementos</label><select id="o-anim">${opt(D.ANIMS,s.anim||'padrao')}</select></div>
   <div class="f"><label for="o-speed">Velocidade</label><select id="o-speed">${opt({'0.5':'Bem lenta','0.75':'Lenta','1':'Normal','1.5':'Rápida','2':'Bem rápida'},String(s.speed||1))}</select></div></div>
-  <div class="f2"><div class="f"><label for="o-tr">Transição ao chegar</label><select id="o-tr">${opt(Object.assign({'':'Padrão da apresentação'},D.TRANSITIONS),s.tr||'')}</select></div>
+  <div class="f2"><div class="f"><label for="o-tr">Transição ao chegar</label><select id="o-tr">${opt(Object.assign({'':'Padrão da apresentação'},D.TRANSITIONS),s.tr||'')}</select><button class="btn sm" id="o-trp" type="button" style="margin-top:6px">▶ Prévia da transição</button></div>
   <div class="f"><label for="o-dur">Tempo no avanço automático</label><input type="number" id="o-dur" min="0" step="0.5" placeholder="padrão" value="${s.dur||''}"><span class="hint">segundos (vazio = padrão do tema)</span></div></div>
   ${dataField(tpl)?`<div class="sec">Dados de planilha</div><div class="f"><label for="o-src">Link do Google Planilhas ou de um arquivo CSV</label><input type="text" id="o-src" placeholder="https://docs.google.com/spreadsheets/d/…" value="${esc(s.src||'')}"><span class="hint">Coluna A = rótulo, coluna B = valor. No Google Planilhas: Compartilhar › Qualquer pessoa com o link.</span></div>
   <div class="btnrow"><button class="btn sm" id="o-srcGo">Importar agora</button><button class="btn sm" id="o-csv">Abrir arquivo CSV…</button></div>
@@ -283,6 +305,8 @@ function renderPane(){
   const animCh=()=>{ touch(); if(player){ player.update(sel,deck()); player.replay(); } };
   $('#o-anim').onchange=e=>{ if(e.target.value==='padrao') delete s.anim; else s.anim=e.target.value; animCh(); };
   $('#o-speed').onchange=e=>{ const v=+e.target.value; if(v===1) delete s.speed; else s.speed=v; animCh(); };
+  paintShare(s);
+  $('#o-trp').onclick=()=>{ if(!player) return; if(sel<1){ setStatus('A prévia mostra a chegada a partir do slide anterior: escolha o 2º slide ou depois'); return; } player.go(sel-1,-1,true); setTimeout(()=>player.go(sel,1),350); };
   $('#o-tr').onchange=e=>{ if(!e.target.value) delete s.tr; else s.tr=e.target.value; touch(); if(player) player.update(sel,deck()); };
   $('#o-dur').oninput=e=>{ const v=parseFloat(e.target.value); if(v>0) s.dur=v; else delete s.dur; touch(); };
   $('#o-hid').onchange=e=>{ if(e.target.checked) s.hidden=true; else delete s.hidden; touch(); renderRail(); };
@@ -359,7 +383,10 @@ function themePane(pane){
   <div class="f"><label for="t-fb">Fonte do texto</label><select id="t-fb">${D.FONTS.map(f=>`<option${f===eff.fontBody?' selected':''}>${f}</option>`).join('')}</select></div>
   <div class="f"><label for="t-bg">Fundo animado</label><select id="t-bg">${Object.entries(D.BACKGROUNDS).map(([k,l])=>`<option value="${k}"${k===eff.background?' selected':''}>${l}</option>`).join('')}</select></div>
   <div class="sec">Movimento e acessibilidade</div>
-  <div class="f"><label for="t-tr">Transição padrão entre slides</label><select id="t-tr">${opt(D.TRANSITIONS,d.tr||'deslizar')}</select><span class="hint">“Voo pela tela infinita” espalha os slides num mapa e a câmera voa de um para o outro.</span></div>
+  <div class="f"><label for="t-dir">Estilo de direção (Motion Studio)</label><select id="t-dir">${opt(Object.assign({'':'Personalizado'},Object.fromEntries(Object.entries(D.DIRECTION).map(([k,v])=>[k,v.name]))),d.motion||'')}</select><span class="hint">${d.motion&&D.DIRECTION[d.motion]?D.esc(D.DIRECTION[d.motion].desc)+' ':''}Ajusta de uma vez transição, duração, entrada dos elementos e velocidade de todos os slides que não têm configuração própria.</span></div>
+  <div class="f"><label for="t-tr">Transição padrão entre slides</label><select id="t-tr">${opt(D.TRANSITIONS,d.tr||'deslizar')}</select><span class="hint">“Voo pela tela infinita” espalha os slides num mapa e a câmera voa de um para o outro. As “Máscara · …” revelam o próximo slide através de uma forma animada.</span></div>
+  <div class="f2"><div class="f"><label for="t-trd">Duração das transições</label><select id="t-trd">${opt({'':'Normal',rapida:'Rápida',lenta:'Lenta'},d.trDur||'')}</select></div>
+  <div class="f"><label>Máscara personalizada</label><div class="btnrow"><button class="btn sm" id="t-msk" type="button">${d.trMask?'Trocar':'Enviar'} PNG/SVG…</button>${d.trMask?'<button class="btn sm" id="t-mskx" type="button">Remover</button>':''}</div><span class="hint">Usada pela transição “Máscara · Personalizada”: a forma cresce do centro revelando o próximo slide. PNG respeita a transparência.</span></div></div>
   <div class="sec">Trilha sonora ao apresentar</div>
   <div class="f"><div class="btnrow"><button class="btn sm" id="t-mus">${d.music?'Trocar música':'Escolher música…'}</button>${d.music?'<button class="btn sm" id="t-musx">Remover</button>':''}</div><span class="hint" id="t-musn">${d.music?esc(d.music.name||'música'):'MP3, M4A ou OGG. Toca ao apresentar; tecla M liga e desliga.'}</span></div>
   ${d.music?`<div class="f"><label for="t-mvol">Volume</label><input type="range" id="t-mvol" min="5" max="100" value="${d.music.vol||60}"></div>
@@ -400,7 +427,11 @@ function themePane(pane){
   $('#t-fb').onchange=e=>{ th.fontBody=e.target.value; ch(); };
   $('#t-bg').onchange=e=>{ th.background=e.target.value; ch(); };
   $('#t-ft').oninput=e=>{ d.footerText=e.target.value; ch(); };
-  $('#t-tr').onchange=e=>{ if(e.target.value==='deslizar') delete d.tr; else d.tr=e.target.value; touch(); renderPreview(false); };
+  $('#t-dir').onchange=e=>{ const k=e.target.value, p=D.DIRECTION[k]; if(!p){ delete d.motion; touch(); renderPane(); return; } d.motion=k; if(p.tr==='deslizar') delete d.tr; else d.tr=p.tr; if(p.trDur) d.trDur=p.trDur; else delete d.trDur; d.anim=p.anim; d.speed=p.speed; touch(); renderPane(); renderPreview(true); setStatus('Estilo “'+p.name+'” aplicado',true); };
+  $('#t-trd').onchange=e=>{ if(e.target.value) d.trDur=e.target.value; else delete d.trDur; touch(); renderPreview(false); };
+  $('#t-msk').onclick=()=>pickMask(src=>{ d.trMask=src; touch(); renderPane(); renderPreview(false); setStatus('Máscara pronta: escolha a transição “Máscara · Personalizada”',true); });
+  if($('#t-mskx')) $('#t-mskx').onclick=()=>{ delete d.trMask; touch(); renderPane(); renderPreview(false); };
+  $('#t-tr').onchange=e=>{ delete d.motion; if(e.target.value==='deslizar') delete d.tr; else d.tr=e.target.value; touch(); renderPreview(false); };
   $('#t-mus').onclick=()=>{ const inp=document.createElement('input'); inp.type='file'; inp.accept='audio/*'; inp.onchange=async()=>{ const f=inp.files[0]; if(!f) return;
       if(f.size>25e6){ setStatus('Música muito grande (máx. 25 MB)'); return; } setStatus('Guardando a música…');
       let src=''; if(assets){ try{ src='asset:'+(await assets.upload(f)).id; }catch(_){ src=''; } }
@@ -527,7 +558,7 @@ function showcaseDialog(){
     c.onclick=()=>{ m.close(); const id=uid(); decks[id]=build(x); curId=id; sel=0; touch(); renderAll(); setStatus('“'+x.name+'” criada',true); }; });
 }
 /* ---------- tags de modelo: {grafico}, {globo}, {cartoes}… (com ou sem acento) ---------- */
-const TAG_ALIAS={combo:'combo',barraselinha:'combo',barraslinha:'combo',projecao:'combo',realizadoxprojecao:'combo',grafico:'grafico',graficos:'grafico',barras:'grafico',colunas:'grafico',barrash:'barrash',ranking:'barrash',barrashorizontais:'barrash',pizza:'pizza',rosca:'pizza',donut:'pizza',linha:'linha',area:'linha',evolucao:'linha',medidores:'medidores',metas:'medidores',medidor:'medidores',funil:'funil',matriz:'matriz',swot:'matriz',
+const TAG_ALIAS={heroi:'heroi',hero:'heroi',abertura:'heroi',dividir:'dividir',split:'dividir',divisao:'dividir',numerao:'numerao',numero:'numerao',bignumber:'numerao',numerogrande:'numerao',vidros:'vidros',vidro:'vidros',glass:'vidros',rede:'rede',network:'rede',conexoes:'rede',jornada:'jornada',journey:'jornada',holofote:'holofote',spotlight:'holofote',antesdepois:'antesdepois',antesedepois2:'antesdepois',beforeafter:'antesdepois',combo:'combo',barraselinha:'combo',barraslinha:'combo',projecao:'combo',realizadoxprojecao:'combo',grafico:'grafico',graficos:'grafico',barras:'grafico',colunas:'grafico',barrash:'barrash',ranking:'barrash',barrashorizontais:'barrash',pizza:'pizza',rosca:'pizza',donut:'pizza',linha:'linha',area:'linha',evolucao:'linha',medidores:'medidores',metas:'medidores',medidor:'medidores',funil:'funil',matriz:'matriz',swot:'matriz',
   globo:'globo3d',globo3d:'globo3d',mapa:'globo3d',mundo:'globo3d',barras3d:'barras3d',grafico3d:'barras3d',particulas:'particulas3d',particulas3d:'particulas3d',tunel:'tunel3d',tunel3d:'tunel3d',logo:'logo3d',logo3d:'logo3d',
   cartoes:'cartoes',cartao:'cartoes',cards:'cartoes',card:'cartoes',numeros:'numeros',indicadores:'numeros',kpi:'numeros',kpis:'numeros',fluxo:'fluxo',etapas:'fluxo',processo:'fluxo',passos:'fluxo',
   linhadotempo:'agenda',agenda:'agenda',cronograma:'agenda',timeline:'agenda',comparacao:'comparacao',antesedepois:'comparacao',versus:'comparacao',tabela:'tabela',citacao:'citacao',frase:'citacao',depoimento:'citacao',
@@ -592,6 +623,18 @@ MODELOS E O QUE ESCREVER EM CADA ITEM
 {combo}          - Jan: realizado / projeção  (até 12)     barras = realizado, linha = projeção
                  - Jun: / 280   (só projeção)   também {barras e linha} ou {projecao}
 {medidores}      - Meta: 0 a 100              (até 4)
+{heroi}          - Destaque curto             (até 3)      abertura cinematográfica com imagem
+{dividir}        - Tópico                     imagem de um lado, texto do outro
+{numero}         - R$ 12,4 mi                 (1ª linha = o número)
+                 - 2025: 9                    comparação (opcional)
+                 - Variação: +38% no ano      tendência (opcional)
+{vidros}         - Título: texto              (até 4)      cartões de vidro flutuando
+{rede}           - Centro: Governança         nó do meio
+                 - Compras: pedidos           (até 8; termine com * para destacar)
+{jornada}        - Jan: Marco — contexto      (até 7)      a câmera viaja de marco em marco
+{holofote}       - Destaque                   (até 4)
+{antesdepois}    - Antes: 48 dias             (2 linhas)   divisor arrastável
+                 - Depois: 6 dias
 {funil}          - Etapa: valor               (até 6)
 {matriz}         - Quadrante: item, item      (4 linhas)   também {swot}
 {onepage}        - Bloco: valor e texto       (até 6). Um slide "(oculto)" com o mesmo título vira o detalhe do bloco
@@ -730,6 +773,15 @@ function toSlide(s,i,n){
     case 'cartoes': d.cards=P.map(p=>({label:'',title:p.a,text:p.b})); break;
     case 'agenda': d.events=P.map(p=>({when:p.a,title:p.b,text:''})); break;
     case 'tabela': d.rows=s.bullets.map(b=>b.replace(/\s*[:—–]\s+/,' | ')); break;
+    case 'heroi': d.chips=s.bullets.slice(0,3); d.light=true; break;
+    case 'dividir': d.bullets=s.bullets; break;
+    case 'holofote': d.points=s.bullets.slice(0,4); break;
+    case 'vidros': d.cards=P.slice(0,4).map((p,j)=>({label:String(j+1).padStart(2,'0'),title:p.a,text:p.b})); break;
+    case 'jornada': d.steps=P.slice(0,7).map(p=>{ const q=/^(.+?)\s+[—–-]\s+(.+)$/.exec(p.b); return {when:p.a,title:q?q[1]:p.b,text:q?q[2]:''}; }); break;
+    case 'rede': { const c=P.find(p=>/^(centro|central|hub|n[uú]cleo)$/i.test(p.a)); d.center=c?c.b:plain(s.title).split(' ')[0]; d.mesh=true; d.nodes=P.filter(p=>p!==c).slice(0,8).map(p=>({label:p.a.replace(/\s*\*$/,''),text:p.b.replace(/\s*\*$/,''),hot:/\*$/.test(p.a)||/\*$/.test(p.b)})); break; }
+    case 'antesdepois': { const a=P[0]||{a:'Antes',b:''}, b=P[1]||{a:'Depois',b:''}; Object.assign(d,{beforeLabel:a.a,beforeValue:a.b,afterLabel:b.a,afterValue:b.b,pos:'50'}); break; }
+    case 'numerao': { const first=s.bullets[0]||''; const m=/^(R\$|US\$|€)?\s*([\d.,]+)\s*(.*)$/i.exec(first.replace(/^[^:]*:\s*(?=(R\$|US\$|€)?\s*\d)/,''))||[];
+      Object.assign(d,{prefix:m[1]||'',value:m[2]||first,suffix:m[3]||''}); P.slice(1).forEach(p=>{ if(/varia|cresc|queda|delta/i.test(p.a)){ d.delta=p.b; if(/^-|queda|caiu/i.test(p.b)) d.trend='baixa'; } else if(!d.compareLabel){ d.compareLabel=p.a; d.compareValue=p.b; } }); break; }
     case 'combo': d.points=P.map(p=>{ const m=/^(.*?)\s*\/\s*(.*)$/.exec(p.b); return {label:p.a,value:m?m[1].trim():p.b,proj:m?m[2].trim():''}; }).slice(0,12); d.showValues=true; break;
     case 'grafico': case 'barras3d': case 'barrash': d.bars=P.map(p=>({label:p.a,value:p.b,hot:false})); break;
     case 'globo3d': d.points=s.bullets.map(b=>{ const m=/^(.+?)\s*[:–—]\s*(-?[\d.]+)\s*[,;]\s*(-?[\d.]+)/.exec(b); const nm=m?m[1].trim():b.replace(/[:–—(].*$/,'').trim(); const g=m?[+m[2],+m[3]]:geoOf(nm); return g?{label:nm,lat:String(g[0]),lon:String(g[1])}:null; }).filter(Boolean).slice(0,10); d.stats=[]; d.camera='tour'; break;

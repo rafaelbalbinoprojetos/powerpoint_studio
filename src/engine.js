@@ -209,6 +209,51 @@ Object.assign(TEMPLATES,{
   sample:{bg:'',subject:'',kicker:'Edição 2026',title:'FUTURO',lead:''},
   render(d){ return `<div class="dk-px" data-a="parallax"><div class="px-bg">${media(d.bg,1,'Fundo')}</div><div class="px-tx">${d.kicker?`<div class="dk-kicker">${esc(d.kicker)}</div>`:''}<h1 class="dk-h1 px-title">${rich(d.title)}</h1></div>${d.subject?`<img class="px-fg" src="${im(d.subject)}" alt="">`:''}${d.lead?`<p class="dk-lead px-lead">${rich(d.lead)}</p>`:''}</div>`; }}
 });
+/* ---------- modelos premium (Estúdio Motion 2.0) ---------- */
+Object.assign(TEMPLATES,{
+ heroi:{name:'Herói cinematográfico',desc:'Título grande sobre imagem em tela cheia, com câmera lenta, luz que varre e camadas em profundidade',
+  fields:[{k:'image',t:'image',l:'Imagem de fundo'},{k:'kicker',t:'text',l:'Rótulo'},{k:'title',t:'area',l:'Título'},{k:'lead',t:'area',l:'Texto de apoio'},{k:'chips',t:'list',l:'Destaques curtos (até 3)'},{k:'light',t:'bool',l:'Luz que varre a cena'}],
+  sample:{image:'',kicker:'Plano 2027',title:'A próxima *década*\ncomeça agora',lead:'Uma visão em três movimentos.',chips:['Dados','Pessoas','Escala'],light:true},
+  render(d){ return `<div class="ch-bg" data-a="cinehero">${media(d.image,0,'Imagem de fundo')}<i class="ch-vig"></i>${d.light?'<i class="ch-light"></i>':''}</div><div class="dk-l ch-tx">${head(d,'h1')}${arr(d.chips).length?`<div class="ch-chips" data-a="stagger">${arr(d.chips).slice(0,3).map((c,i)=>`<span data-f="chips.${i}">${esc(c)}</span>`).join('')}</div>`:''}</div>`; }},
+ dividir:{name:'Divisão revelada',desc:'Imagem e texto lado a lado; um divisor corre e revela a imagem por máscara',
+  fields:[{k:'image',t:'image',l:'Imagem'},{k:'kicker',t:'text',l:'Rótulo'},{k:'title',t:'area',l:'Título'},{k:'lead',t:'area',l:'Texto'},{k:'bullets',t:'list',l:'Tópicos (opcional)'},{k:'ratio',t:'select',l:'Proporção da imagem',opts:{'':'50%',p40:'40%',p60:'60%'}},{k:'side',t:'select',l:'Lado da imagem',opts:{'':'Direita',esq:'Esquerda'}}],
+  sample:{image:'',kicker:'Operação',title:'Onde o *dado* vira decisão',lead:'Cada reserva passa por três filtros antes de chegar ao gestor.',bullets:['Validação automática','Revisão humana','Aprovação em 24 h'],ratio:'',side:''},
+  render(d){ const w={p40:40,p60:60}[d.ratio]||50; return `<div class="sp-w${d.side==='esq'?' esq':''}" style="--sw:${w}%"><div class="sp-tx">${head(d)}${arr(d.bullets).length?`<ul class="sp-ul" data-a="stagger">${arr(d.bullets).map((b,i)=>`<li data-f="bullets.${i}">${rich(b)}</li>`).join('')}</ul>`:''}</div><div class="sp-im" data-a="split">${media(d.image,1,'Sua imagem')}<i class="sp-div"></i></div></div>`; }},
+ numerao:{name:'Número em destaque',desc:'Um número gigante que conta, com tendência, comparação e contexto',
+  fields:[{k:'kicker',t:'text',l:'Rótulo'},{k:'prefix',t:'text',l:'Prefixo (ex.: R$)'},{k:'value',t:'text',l:'Número principal'},{k:'suffix',t:'text',l:'Unidade (ex.: mi, %)'},{k:'title',t:'area',l:'O que o número significa'},{k:'trend',t:'select',l:'Tendência',opts:{'':'Subindo',baixa:'Caindo',neutra:'Estável'}},{k:'delta',t:'text',l:'Variação (ex.: +18% no ano)'},{k:'compareLabel',t:'text',l:'Comparação: rótulo (ex.: 2025)'},{k:'compareValue',t:'text',l:'Comparação: valor'},{k:'lead',t:'area',l:'Contexto'}],
+  sample:{kicker:'Capital circulante',prefix:'R$',value:'12,4',suffix:'mi',title:'liberados com a *nova governança*',trend:'',delta:'+38% sobre 2025',compareLabel:'2025',compareValue:'9',lead:'Valor que deixou de ficar parado em reservas sem uso.'},
+  render(d){ const v=num(d.value), c=num(d.compareValue), has=d.compareValue&&c>0, mx=Math.max(v,c,1); const tr=d.trend||'alta';
+    return `<div class="bn-w"><div class="dk-kicker" data-a="left" data-f="kicker">${esc(d.kicker)}</div><div class="bn-v" data-a="bignum">${d.prefix?`<span class="bn-p">${esc(d.prefix)}</span>`:''}<b${countAttr(d.value)} data-f="value">${esc(d.value)}</b>${d.suffix?`<span class="bn-s">${esc(d.suffix)}</span>`:''}</div>
+      ${d.title?`<h2 class="dk-h2 bn-t" data-a="words" data-f="title">${rich(d.title)}</h2>`:''}
+      <div class="bn-row" data-a="up">${d.delta?`<span class="bn-d ${tr}"><svg viewBox="0 0 24 24"><path pathLength="1" d="${tr==='baixa'?'M4 6l8 10 8-10':tr==='neutra'?'M3 12h18M15 6l6 6-6 6':'M4 18l8-10 8 10'}"/></svg>${esc(d.delta)}</span>`:''}
+      ${has?`<div class="bn-cmp"><div><small>${esc(d.compareLabel||'Antes')}</small><i style="--w:${(c/mx*100).toFixed(1)}%"></i><em>${esc(d.compareValue)}</em></div><div class="now"><small>Agora</small><i style="--w:${(v/mx*100).toFixed(1)}%"></i><em>${esc(d.value)}</em></div></div>`:''}</div>
+      ${d.lead?`<p class="dk-lead bn-l" data-a="up" data-f="lead">${rich(d.lead)}</p>`:''}</div>`; }},
+ vidros:{name:'Vidro flutuante',desc:'Cartões translúcidos em profundidades diferentes, flutuando devagar',
+  fields:[{k:'kicker',t:'text',l:'Rótulo'},{k:'title',t:'area',l:'Título'},{k:'cards',t:'items',l:'Cartões',max:4,sub:[{k:'label',t:'text',l:'Rótulo'},{k:'title',t:'text',l:'Título'},{k:'text',t:'area',l:'Texto'}]}],
+  sample:{kicker:'Pilares',title:'Três camadas de *confiança*',cards:[{label:'01',title:'Transparência',text:'Toda reserva tem dono, prazo e motivo.'},{label:'02',title:'Controle',text:'Alertas antes do vencimento.'},{label:'03',title:'Velocidade',text:'Decisão em um dia, não em um mês.'}]},
+  render(d){ const c=arr(d.cards).slice(0,4); return `${head(d)}<div class="gl-w" data-a="glass">${c.map((x,i)=>`<div class="gl-c" style="--z:${[0,1,2,1][i]};--i:${i}"><small data-f="cards.${i}.label">${esc(x.label)}</small><h3 data-f="cards.${i}.title">${esc(x.title)}</h3><p data-f="cards.${i}.text">${rich(x.text)}</p></div>`).join('')}</div>`; }},
+ rede:{name:'Rede de inteligência',desc:'Nós conectados com dados fluindo pelas linhas; um nó central e até 8 ao redor',
+  fields:[{k:'kicker',t:'text',l:'Rótulo'},{k:'title',t:'area',l:'Título'},{k:'center',t:'text',l:'Nó central'},{k:'nodes',t:'items',l:'Nós',max:8,sub:[{k:'label',t:'text',l:'Nome'},{k:'text',t:'text',l:'Detalhe curto'},{k:'hot',t:'bool',l:'Destacar'}]},{k:'mesh',t:'bool',l:'Ligar também os vizinhos'}],
+  sample:{kicker:'Ecossistema',title:'Tudo *conectado*',center:'Governança',mesh:true,nodes:[{label:'Compras',text:'pedidos',hot:false},{label:'Estoque',text:'reservas',hot:true},{label:'Financeiro',text:'capital',hot:false},{label:'Manutenção',text:'demandas',hot:false},{label:'Gestores',text:'aprovação',hot:false},{label:'Auditoria',text:'trilha',hot:false}]},
+  render(d){ const ns=arr(d.nodes).slice(0,8), N=ns.length, W=1600, H=600, cx=W/2, cy=H/2; const P=ns.map((_,i)=>{ const a=-Math.PI/2+i*2*Math.PI/Math.max(1,N); return [cx+Math.cos(a)*620, cy+Math.sin(a)*235]; });
+    const ln=[]; P.forEach((p,i)=>{ ln.push(`<path class="nt-l${ns[i].hot?' hot':''}" d="M${cx},${cy} L${p[0].toFixed(0)},${p[1].toFixed(0)}"/>`); if(d.mesh&&N>2){ const q=P[(i+1)%N]; ln.push(`<path class="nt-l m" d="M${p[0].toFixed(0)},${p[1].toFixed(0)} L${q[0].toFixed(0)},${q[1].toFixed(0)}"/>`); } });
+    return `${head(d)}<div class="nt-w" data-a="net"><svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">${ln.join('')}</svg>
+      <div class="nt-n nt-c" style="left:50%;top:50%"><b data-f="center">${esc(d.center||'')}</b></div>
+      ${ns.map((x,i)=>`<div class="nt-n${x.hot?' hot':''}" style="left:${P[i][0]/W*100}%;top:${P[i][1]/H*100}%"><b data-f="nodes.${i}.label">${esc(x.label)}</b>${x.text?`<small>${esc(x.text)}</small>`:''}</div>`).join('')}</div>`; }},
+ jornada:{name:'Jornada com câmera',desc:'Linha do tempo longa: a câmera mostra o todo e depois viaja de marco em marco',
+  fields:[{k:'kicker',t:'text',l:'Rótulo'},{k:'title',t:'area',l:'Título'},{k:'steps',t:'items',l:'Marcos',max:7,sub:[{k:'when',t:'text',l:'Quando'},{k:'title',t:'text',l:'Marco'},{k:'text',t:'area',l:'Contexto'}]},{k:'dwell',t:'select',l:'Tempo em cada marco',opts:{'':'Normal (1,8 s)',rapido:'Rápido (1 s)',lento:'Lento (3 s)'}}],
+  sample:{kicker:'Roteiro',title:'Nossa *jornada*',dwell:'',steps:[{when:'Jan',title:'Diagnóstico',text:'Mapa de todas as reservas.'},{when:'Mar',title:'Regras',text:'Prazos e responsáveis definidos.'},{when:'Jun',title:'Painel',text:'Acompanhamento diário.'},{when:'Set',title:'Escala',text:'Todas as plantas no modelo.'},{when:'Dez',title:'Resultado',text:'R$ 12 mi liberados.'}]},
+  render(d){ const s=arr(d.steps).slice(0,7); return `${head(d)}<div class="jy-w" data-a="journey" data-dwell="${{rapido:1,lento:3}[d.dwell]||1.8}"><div class="jy-t" style="--n:${Math.max(1,s.length)}"><i class="jy-line"></i>${s.map((x,i)=>`<div class="jy-s"><span class="jy-dot"></span><small data-f="steps.${i}.when">${esc(x.when)}</small><h3 data-f="steps.${i}.title">${esc(x.title)}</h3><p data-f="steps.${i}.text">${rich(x.text)}</p></div>`).join('')}</div></div>`; }},
+ holofote:{name:'Holofote',desc:'Uma imagem no escuro; o holofote passeia, para no centro e os destaques aparecem',
+  fields:[{k:'image',t:'image',l:'Imagem ou produto'},{k:'kicker',t:'text',l:'Rótulo'},{k:'title',t:'area',l:'Título'},{k:'points',t:'list',l:'Destaques (até 4)'}],
+  sample:{image:'',kicker:'Apresentando',title:'O novo *painel*',points:['Atualiza a cada hora','Alertas no celular','Histórico completo']},
+  render(d){ return `<div class="sl-w" data-a="spot"><div class="sl-img">${media(d.image,0,'Sua imagem')}</div><i class="sl-dark"></i></div><div class="dk-l sl-tx">${head(d)}${arr(d.points).length?`<ul class="sl-pt" data-a="stagger">${arr(d.points).slice(0,4).map((p,i)=>`<li data-f="points.${i}">${rich(p)}</li>`).join('')}</ul>`:''}</div>`; }},
+ antesdepois:{name:'Antes / depois',desc:'Duas imagens com um divisor que corre sozinho e pode ser arrastado na apresentação',
+  fields:[{k:'kicker',t:'text',l:'Rótulo'},{k:'title',t:'area',l:'Título'},{k:'before',t:'image',l:'Imagem do antes'},{k:'after',t:'image',l:'Imagem do depois'},{k:'beforeLabel',t:'text',l:'Rótulo do antes'},{k:'afterLabel',t:'text',l:'Rótulo do depois'},{k:'beforeValue',t:'text',l:'Indicador do antes (opcional)'},{k:'afterValue',t:'text',l:'Indicador do depois (opcional)'},{k:'pos',t:'text',l:'Posição final do divisor (0 a 100)'}],
+  sample:{kicker:'Resultado',title:'Antes *e depois*',before:'',after:'',beforeLabel:'Antes',afterLabel:'Depois',beforeValue:'48 dias',afterValue:'6 dias',pos:'50'},
+  render(d){ const p=Math.max(5,Math.min(95,num(d.pos)||50)); return `${head(d)}<div class="ba-w" data-a="ba" data-pos="${p}" style="--p:${p}%"><div class="ba-i ba-a">${media(d.after,2,'Depois')}</div><div class="ba-i ba-b">${media(d.before,1,'Antes')}</div>
+    <div class="ba-h"><i></i><span>⟷</span></div><div class="ba-lb l"><small>${esc(d.beforeLabel||'Antes')}</small>${d.beforeValue?`<b>${esc(d.beforeValue)}</b>`:''}</div><div class="ba-lb r"><small>${esc(d.afterLabel||'Depois')}</small>${d.afterValue?`<b>${esc(d.afterValue)}</b>`:''}</div></div>`; }}
+});
 /* animações desses modelos: devolvem quanto tempo empurrar o resto */
 const FX={
   dive(el,tl,at){
@@ -626,8 +671,56 @@ function splitWords(root){
 /* ---------- animações ---------- */
 const fmtN=(v,dec)=>v.toLocaleString('pt-BR',{minimumFractionDigits:dec,maximumFractionDigits:dec});
 /* estilos de entrada por slide: padrao | suave | dinamico */
+const DIRECTION={corporativo:{name:'Corporativo',tr:'dissolver',trDur:'rapida',anim:'suave',speed:1.15,desc:'Movimentos discretos, transições rápidas e suaves.'},
+  cinematografico:{name:'Cinematográfico',tr:'vidro',trDur:'lenta',anim:'padrao',speed:.9,desc:'Profundidade, revelações por máscara e ritmo narrativo.'},
+  dinamico:{name:'Dinâmico',tr:'cortina',trDur:'rapida',anim:'dinamico',speed:1.25,desc:'Entradas rápidas e transições energéticas.'},
+  minimalista:{name:'Minimalista',tr:'fade',trDur:'',anim:'suave',speed:1,desc:'Esmaecer e deslocamentos curtos, quase imperceptíveis.'},
+  tecnologico:{name:'Tecnológico',tr:'obturador',trDur:'',anim:'padrao',speed:1.05,desc:'Obturador digital, redes e efeitos luminosos.'}};
 const ANIMS={padrao:'Padrão (completa)',suave:'Suave (só aparece)',dinamico:'Dinâmica (mais movimento)',nenhuma:'Sem animação'};
-const TRANSITIONS={magico:'Movimento mágico (elementos viajam)',morph:'Morph (caixas se transformam no próximo slide)',deslizar:'Deslizar',fade:'Esmaecer',zoom:'Zoom',subir:'Subir',voo:'Voo pela tela infinita (estilo Prezi)',nenhuma:'Corte seco'};
+Object.assign(FX,{
+  cinehero(el,tl,at){ const img=el.querySelector('img,.dk-ph'), lt=el.querySelector('.ch-light');
+    if(img) tl.fromTo(img,{scale:1.28,filter:'blur(12px) brightness(.6)'},{scale:1.06,filter:'blur(0px) brightness(1)',duration:3.2,ease:'power3.out'},at);
+    if(lt) tl.fromTo(lt,{xPercent:-120,opacity:0},{xPercent:260,opacity:1,duration:2.6,ease:'power2.inOut'},at+.5);
+    return .5; },
+  split(el,tl,at){ const dv=el.querySelector('.sp-div'), esq=el.closest('.sp-w').classList.contains('esq');
+    tl.fromTo(el,{clipPath:esq?'inset(0 100% 0 0)':'inset(0 0 0 100%)'},{clipPath:'inset(0 0% 0 0%)',duration:1.5,ease:'expo.inOut'},at);
+    const img=el.querySelector('img,.dk-ph'); if(img) tl.fromTo(img,{scale:1.25},{scale:1,duration:2.4,ease:'power3.out'},at);
+    if(dv) tl.fromTo(dv,{scaleY:0},{scaleY:1,duration:.8,ease:'power3.out'},at-.2);
+    return .3; },
+  bignum(el,tl,at){ tl.from(el,{opacity:0,scale:.82,filter:'blur(20px)',duration:1.4,ease:'expo.out'},at); const w=el.parentNode;
+    const bars=w.querySelectorAll('.bn-cmp i'); if(bars.length) tl.from(bars,{scaleX:0,transformOrigin:'0 50%',stagger:.25,duration:1.1,ease:'power3.out'},at+1);
+    const ar=w.querySelector('.bn-d path'); if(ar) tl.fromTo(ar,{attr:{'stroke-dashoffset':1}},{attr:{'stroke-dashoffset':0},duration:.8,ease:'power2.out'},at+1.2);
+    return .4; },
+  glass(el,tl,at){ const c=[...el.children]; tl.from(c,{y:120,opacity:0,rotationX:22,rotationY:i=>(i-1)*10,filter:'blur(14px)',transformPerspective:1400,stagger:.16,duration:1.5,ease:'expo.out',clearProps:'transform,filter'},at); tl.add(()=>el.classList.add('fl'),at+1.6); return .4; },
+  net(el,tl,at){ const L=el.querySelectorAll('.nt-l'), c=el.querySelector('.nt-c'), N=el.querySelectorAll('.nt-n:not(.nt-c)');
+    if(c) tl.from(c,{scale:0,opacity:0,duration:1,ease:'back.out(1.7)'},at);
+    L.forEach((p,i)=>{ let len=1200; try{ len=p.getTotalLength(); }catch(_){} p.style.strokeDasharray=len; tl.fromTo(p,{strokeDashoffset:len},{strokeDashoffset:0,duration:.9,ease:'power2.out',onComplete:()=>{ p.style.strokeDasharray=''; p.style.strokeDashoffset=''; }},at+.4+i*.06); });
+    tl.from(N,{scale:0,opacity:0,stagger:.09,duration:.7,ease:'back.out(1.8)'},at+.6); tl.add(()=>el.classList.add('flow'),at+1.6); return .5; },
+  journey(el,tl,at){ const t=el.querySelector('.jy-t'), S=[...el.querySelectorAll('.jy-s')], dw=+el.dataset.dwell||1.8; if(!t||!S.length) return .2;
+    const W=el.clientWidth||1664, TW=t.scrollWidth||W, ov=Math.min(1,W/TW);
+    tl.fromTo(t,{x:(W-TW*ov)/2,scale:ov*.92,opacity:0},{x:(W-TW*ov)/2,scale:ov,opacity:1,duration:1.1,ease:'power3.out'},at);
+    tl.from(el.querySelector('.jy-line'),{scaleX:0,transformOrigin:'0 50%',duration:1.4,ease:'power2.inOut'},at+.2);
+    tl.from(S,{y:30,opacity:0,stagger:.1,duration:.7},at+.5);
+    if(TW>W*1.05){ let k=at+2.2; S.forEach((s,i)=>{ const cx=s.offsetLeft+s.offsetWidth/2; tl.to(t,{x:W/2-cx*1,scale:1,duration:1.2,ease:'power3.inOut'},k); tl.to(S,{opacity:j=>j===i?1:.35,duration:.6},k+.3); k+=1.2+dw; });
+      tl.to(t,{x:(W-TW*ov)/2,scale:ov,duration:1.4,ease:'power3.inOut'},k); tl.to(S,{opacity:1,duration:.6},k+.4); }
+    return .3; },
+  spot(el,tl,at){ const dk=el.querySelector('.sl-dark'), o={x:15,y:30,r:180};
+    const put=()=>{ dk.style.background=`radial-gradient(circle ${o.r}px at ${o.x}% ${o.y}%,transparent 0,transparent 55%,rgba(0,0,0,.93) 100%)`; }; put();
+    tl.to(o,{x:80,y:65,duration:1.6,ease:'sine.inOut',onUpdate:put},at).to(o,{x:30,y:55,duration:1.2,ease:'sine.inOut',onUpdate:put}).to(o,{x:50,y:50,r:1250,duration:1.6,ease:'power2.inOut',onUpdate:put});
+    return .4; },
+  ba(el,tl,at){ const end=+el.dataset.pos||50, o={p:100}; const put=()=>el.style.setProperty('--p',o.p+'%');
+    tl.fromTo(o,{p:100},{p:8,duration:1.4,ease:'power2.inOut',onUpdate:put},at+.3).to(o,{p:end,duration:1.1,ease:'power3.out',onUpdate:put});
+    let drag=false; const mv=e=>{ if(!drag) return; const r=el.getBoundingClientRect(); o.p=Math.max(2,Math.min(98,(e.clientX-r.left)/r.width*100)); put(); };
+    el.onpointerdown=e=>{ e.stopPropagation(); drag=true; try{ el.setPointerCapture(e.pointerId); }catch(_){} mv(e); }; el.onpointermove=mv; el.onpointerup=el.onpointercancel=e=>{ e.stopPropagation(); drag=false; }; el.onclick=e=>e.stopPropagation();
+    return .3; }
+});
+const TRANSITIONS={magico:'Movimento mágico (elementos viajam)',morph:'Morph (caixas se transformam no próximo slide)',deslizar:'Deslizar',fade:'Esmaecer',zoom:'Zoom',subir:'Subir',voo:'Voo pela tela infinita (estilo Prezi)',
+  dissolver:'Dissolver cruzado',desfoque:'Revelar com desfoque',perspectiva:'Empurrar em perspectiva',cortina:'Cortina em camadas',
+  vidro:'Máscara · Vidro diagonal',anel:'Máscara · Anel de energia',portal:'Máscara · Portal de profundidade',luz:'Máscara · Varredura de luz',raios:'Máscara · Florescer radial',
+  obturador:'Máscara · Obturador digital',pixels:'Máscara · Dissolver em pixels',glitch:'Máscara · Glitch',onda:'Máscara · Onda',tinta:'Máscara · Tinta orgânica',mascara:'Máscara · Personalizada (PNG/SVG do tema)',
+  nenhuma:'Corte seco'};
+const RV_DUR={vidro:1.5,anel:1.3,obturador:1.2,onda:1.5,portal:1.5,pixels:1.3,tinta:1.7,luz:1.3,cortina:1.5,glitch:1.0,dissolver:.9,desfoque:1.1,perspectiva:1.2,mascara:1.5,raios:1.4};
+const clamp01=v=>v<0?0:v>1?1:v, ease3=v=>v<.5?4*v*v*v:1-Math.pow(-2*v+2,3)/2;
 function build(sl,G,keep,o={}){
   const style=o.anim||'padrao';
   const tl=G.timeline({defaults:{ease:'expo.out',duration:1.1}}); let at=0;
@@ -853,7 +946,7 @@ function createPlayer(root,deck,opts={}){
     const sl=pre||fresh(n); sl.classList.add('on'); videos(sl,true);
     if(band) band.classList.toggle('on',headShown(deck,S(n)));
     backBtn.hidden=!(hid(n)&&backTo!=null);
-    if(G && !reduce && S(n).anim!=='nenhuma'){ G.set(sl,{clearProps:'all'}); tl=build(sl,G,loops,{anim:S(n).anim,speed:+S(n).speed||0}); { const ta=sl.querySelector('[data-textat]'); const at=ta?+ta.dataset.textat||0:0; if(delay||at) tl.delay((delay||0)+at); }
+    if(G && !reduce && (S(n).anim||deck.anim)!=='nenhuma'){ G.set(sl,{clearProps:'all'}); tl=build(sl,G,loops,{anim:S(n).anim||deck.anim,speed:+S(n).speed||+deck.speed||0}); { const ta=sl.querySelector('[data-textat]'); const at=ta?+ta.dataset.textat||0:0; if(delay||at) tl.delay((delay||0)+at); }
       sl.querySelectorAll('.dk-ico').forEach((ic,i)=>tl.fromTo(ic.querySelectorAll('path,circle'),{attr:{'stroke-dashoffset':1}},{attr:{'stroke-dashoffset':0},duration:1.4,stagger:.15,ease:'power2.inOut'},.45+i*.2)); }
     else if(G) loops=hubLoops(sl,G);
     loops.push(...start3D(sl,{still:reduce}));
@@ -870,6 +963,7 @@ function createPlayer(root,deck,opts={}){
     if(prev && anim && prev!==slides[n] && tr==='voo'){ busy=true; if(tl) tl.pause(); return fly(prev,cur,n); }
     if(prev && anim && prev!==slides[n] && tr==='morph'){ busy=true; if(tl) tl.pause(); if(morph(prev,n)) return; }
     if(prev && anim && prev!==slides[n] && tr==='magico'){ busy=true; if(tl) tl.pause(); if(magic(prev,n)) return; }
+    if(prev && anim && prev!==slides[n] && RV_DUR[tr]){ busy=true; if(tl) tl.pause(); return reveal(prev,n,tr,dir); }
     if(prev && anim && prev!==slides[n]){ busy=true; if(tl) tl.pause(); G.to(prev,Object.assign((EXIT[tr]||EXIT.fade)(dir),{duration:.45,ease:'power2.in',onComplete:done})); }
     else done();
   }
@@ -893,6 +987,56 @@ function createPlayer(root,deck,opts={}){
       .call(()=>tA.classList.remove('flat'),null,.05)
       .to(bIn,{opacity:0,duration:.45,ease:'power1.in'},T-.55)
       .call(()=>tB.classList.add('flat'),null,T-.35);
+    return true;
+  }
+  let rvTw=null;
+  /* ---------- transições com máscara real: o próximo slide aparece através de uma máscara animada ---------- */
+  function reveal(pv,n,kind,dir){
+    const W=1920,H=1080, mult={rapida:.7,lenta:1.45}[deck.trDur]||1, DUR=(RV_DUR[kind]||1.3)*mult;
+    if(kind==='mascara'&&!deck.trMask) kind='anel';
+    const nx=fresh(n); nx.classList.add('on'); kill(); enter(n,nx,DUR*.45); cur=n;
+    pv.style.zIndex=1; nx.style.zIndex=3; nx.classList.add('dk-rvbg'); if(kind==='perspectiva') pv.classList.add('dk-rvbg');
+    const fx=document.createElement('div'); fx.className='dk-rvfx'; stage.appendChild(fx);
+    const ms=v=>{ nx.style.webkitMaskImage=v; nx.style.maskImage=v; };
+    const clip=v=>{ nx.style.clipPath=v; };
+    const cs=getComputedStyle(nx), acc=cs.getPropertyValue('--accent').trim()||'#4f8cff', acc2=cs.getPropertyValue('--alert').trim()||'#ffb347';
+    let seed=7+n*13; const R=[...Array(1400)].map(()=>{ seed=(seed*16807)%2147483647; return seed/2147483647; });
+    const NONE='linear-gradient(transparent,transparent)';
+    let upd;
+    switch(kind){
+      case 'vidro': { const N=7, lag=.13, c=100/N, ang=dir>0?115:295;
+        upd=p=>{ const L=[], F=[]; for(let i=0;i<N;i++){ const q=ease3(clamp01(p*(1+lag*(N-1))-i*lag)); if(q<=0) continue; const a=i*c, b=a+(c+.6)*q; L.push(`linear-gradient(${ang}deg,transparent ${a}%,#000 ${a}%,#000 ${b}%,transparent ${b}%)`); if(q<1) F.push(`linear-gradient(${ang}deg,transparent ${b-1.6}%,rgba(255,255,255,.2) ${b-.25}%,rgba(255,255,255,.6) ${b}%,transparent ${b+.15}%)`,`linear-gradient(${ang}deg,transparent ${a}%,rgba(255,255,255,.06) ${a}%,rgba(255,255,255,.06) ${b}%,transparent ${b}%)`); }
+          ms(L.length?L.join(','):NONE); fx.style.background=F.join(',')||'none'; pv.style.filter=`blur(${p*6}px) brightness(${1-p*.25})`; }; break; }
+      case 'obturador': { const N=12, c=100/N;
+        upd=p=>{ const L=[], F=[]; for(let i=0;i<N;i++){ const lg=Math.abs(i-(N-1)/2)/N, q=ease3(clamp01((p-lg*.45)/.55)); if(q<=0) continue; const m=(i+.5)*c, h=(c/2+.4)*q; L.push(`linear-gradient(180deg,transparent ${m-h}%,#000 ${m-h}%,#000 ${m+h}%,transparent ${m+h}%)`); if(q<1) F.push(`linear-gradient(180deg,transparent ${m-h-.15}%,${acc} ${m-h}%,transparent ${m-h+.15}%)`,`linear-gradient(180deg,transparent ${m+h-.15}%,${acc} ${m+h}%,transparent ${m+h+.15}%)`); }
+          ms(L.length?L.join(','):NONE); fx.style.background=F.join(',')||'none'; }; break; }
+      case 'anel': case 'portal': case 'raios': { const MX=Math.hypot(W,H)/2+60;
+        upd=p=>{ const q=kind==='portal'?ease3(p):p*p*(3-2*p), r=q*MX, soft=kind==='portal'?160:3;
+          if(kind==='anel'){ ms(`radial-gradient(circle at 50% 50%,#000 ${Math.max(0,r-soft)}px,transparent ${r+1}px)`); fx.style.background=q<1?`radial-gradient(circle at 50% 50%,transparent ${r-3}px,#fff ${r}px,${acc} ${r+6}px,color-mix(in srgb,${acc} 35%,transparent) ${r+26}px,transparent ${r+70}px)`:'none'; pv.style.filter=`brightness(${1-q*.4})`; }
+          if(kind==='portal'){ ms(`radial-gradient(circle at 50% 50%,#000 ${Math.max(0,r*1.25-soft)}px,transparent ${r*1.25+1}px)`); nx.style.transform=`scale(${1.35-.35*q})`; pv.style.transform=`scale(${1-.22*q})`; pv.style.filter=`blur(${q*10}px) brightness(${1-q*.6})`; fx.style.background=q<1?`radial-gradient(circle at 50% 50%,transparent ${r-soft*.6}px,color-mix(in srgb,${acc} 30%,transparent) ${r-soft/4}px,transparent ${r+12}px)`:'none'; }
+          if(kind==='raios'){ const K=14, L=[]; for(let i=0;i<K;i++){ const w=(360/K+1)*clamp01(p*1.7-R[i]*.7); L.push(`conic-gradient(from ${i*360/K}deg at 50% 50%,#000 0deg,#000 ${w}deg,transparent ${w}deg)`); } L.push(`radial-gradient(circle at 50% 50%,#000 ${r*.7}px,transparent ${r*.7+2}px)`); ms(L.join(',')); } }; break; }
+      case 'onda': { upd=p=>{ const q=ease3(p), y0=H*(1-q*1.18)+40, A=70*(1-q)+8; const pts=[]; for(let x=0;x<=W;x+=40){ const y=y0+Math.sin(x/W*Math.PI*3+p*7)*A+Math.sin(x/W*Math.PI*7-p*5)*A*.35; pts.push(`${x}px ${(dir>0?y:H-y).toFixed(1)}px`); }
+          clip(`polygon(${dir>0?`0px ${H}px,${pts.join(',')},${W}px ${H}px`:`0px 0px,${pts.join(',')},${W}px 0px`})`); pv.style.transform=`translateY(${-dir*q*40}px)`; }; break; }
+      case 'pixels': { const C=48, Rw=27, cw=W/C, ch=H/Rw; upd=p=>{ let d=''; for(let j=0;j<Rw;j++) for(let i=0;i<C;i++){ const th=R[j*C+i]*.75+(dir>0?i/C:1-i/C)*.25; if(p*1.02>th) d+=`M${(i*cw).toFixed(1)} ${(j*ch).toFixed(1)}h${(cw+.6).toFixed(1)}v${(ch+.6).toFixed(1)}h${(-cw-.6).toFixed(1)}z`; } clip(d?`path('${d}')`:'inset(50%)'); }; break; }
+      case 'tinta': { const bl=[...Array(16)].map((_,i)=>({x:R[i*3]*W,y:R[i*3+1]*H,d:R[i*3+2]*.45,ph:R[i+60]*6}));
+        upd=p=>{ let d=''; bl.forEach(b=>{ const q=clamp01((p-b.d)/(1-b.d*.6)); if(q<=0) return; const r=Math.pow(q,1.4)*1400, V=28; for(let v=0;v<V;v++){ const a=v/V*Math.PI*2, rr=r*(1+.16*Math.sin(a*3+b.ph+p*4)+.08*Math.sin(a*7-b.ph)); d+=(v?'L':'M')+(b.x+Math.cos(a)*rr).toFixed(1)+' '+(b.y+Math.sin(a)*rr).toFixed(1); } d+='Z'; }); clip(d?`path('${d}')`:'inset(50%)'); }; break; }
+      case 'luz': { const ang=dir>0?100:280; fx.style.mixBlendMode='screen'; upd=p=>{ const e=p*130-15; ms(`linear-gradient(${ang}deg,#000 ${e}%,transparent ${e+14}%)`); fx.style.background=p<1?`linear-gradient(${ang}deg,transparent ${e}%,rgba(255,255,255,.45) ${e+6}%,color-mix(in srgb,${acc} 50%,transparent) ${e+9}%,transparent ${e+16}%)`:'none'; pv.style.filter=`brightness(${1+p*.3})`; }; break; }
+      case 'cortina': { const a=document.createElement('div'), b=document.createElement('div'); a.className=b.className='dk-rvpan'; a.style.background=`linear-gradient(90deg,color-mix(in srgb,${acc} 55%,var(--bg)),color-mix(in srgb,${acc} 30%,var(--bg)))`; b.style.background=`linear-gradient(90deg,color-mix(in srgb,var(--bg) 70%,#fff),var(--bg))`; fx.append(a,b);
+        upd=p=>{ const e=i=>ease3(clamp01(p*1.5-i*.25))*100, La=e(0), Lb=e(1), Ln=e(2); const side=(l,r)=>dir>0?`inset(0 ${100-r}% 0 ${l}%)`:`inset(0 ${l}% 0 ${100-r}%)`;
+          a.style.clipPath=side(Lb,La); b.style.clipPath=side(Ln,Lb); clip(dir>0?`inset(0 ${100-Ln}% 0 0)`:`inset(0 0 0 ${100-Ln}%)`); }; break; }
+      case 'glitch': { const N=18; upd=p=>{ let d=''; const t=Math.floor(p*24); for(let i=0;i<N;i++) if(p>.92||R[i*7+t%7]<p*1.1) d+=`M0 ${(i*H/N).toFixed(1)}h${W}v${(H/N+.5).toFixed(1)}h-${W}z`; clip(d?`path('${d}')`:'inset(50%)'); const j=p>.92?0:(1-p)*(R[t+200]-.5)*60; nx.style.transform=`translateX(${j}px)`; nx.style.filter=p>.92?'':`drop-shadow(${6*(1-p)}px 0 rgba(255,0,80,.55)) drop-shadow(${-6*(1-p)}px 0 rgba(0,220,255,.55))`; pv.style.transform=`translateX(${-j*.5}px)`; }; break; }
+      case 'dissolver': upd=p=>{ nx.style.opacity=ease3(p); }; break;
+      case 'desfoque': upd=p=>{ const q=ease3(p); nx.style.opacity=q; nx.style.filter=`blur(${(1-q)*28}px)`; nx.style.transform=`scale(${1.06-.06*q})`; pv.style.filter=`blur(${q*22}px)`; pv.style.opacity=1-q*.6; }; break;
+      case 'perspectiva': stage.style.perspective='2400px'; upd=p=>{ const q=ease3(p); pv.style.transform=`translateX(${-dir*q*55}%) rotateY(${dir*q*38}deg) scale(${1-q*.15})`; pv.style.filter=`brightness(${1-q*.5})`; nx.style.transform=`translateX(${dir*(1-q)*55}%) rotateY(${-dir*(1-q)*38}deg) scale(${.85+q*.15})`; }; break;
+      case 'mascara': { const src=deck.trMask; ['webkitMaskRepeat','maskRepeat'].forEach(k=>nx.style[k]='no-repeat'); ['webkitMaskPosition','maskPosition'].forEach(k=>nx.style[k]='center'); ms(`url("${src}")`);
+        upd=p=>{ const s=(Math.pow(ease3(p),2.2)*900).toFixed(1)+'%'; nx.style.webkitMaskSize=nx.style.maskSize=s; }; break; }
+      default: upd=p=>{ nx.style.opacity=p; };
+    }
+    upd(0); const st={p:0};
+    rvTw=G.to(st,{p:1,duration:DUR,ease:'none',onUpdate:()=>upd(st.p),onComplete:()=>{ rvTw=null;
+      ['webkitMaskImage','maskImage','clipPath','webkitMaskSize','maskSize','webkitMaskRepeat','maskRepeat','webkitMaskPosition','maskPosition','opacity','filter','transform'].forEach(k=>{ nx.style[k]=''; });
+      nx.classList.add('dk-rvout'); setTimeout(()=>{ nx.classList.remove('dk-rvbg','dk-rvout'); nx.style.zIndex=''; },560); pv.classList.remove('dk-rvbg');
+      fx.remove(); stage.style.perspective=''; pv.classList.remove('on'); videos(pv,false); G.set(pv,{clearProps:'all'}); busy=false; opts.onChange&&opts.onChange(n); }});
     return true;
   }
   /* ---------- morph: as caixas do slide atual se transformam nas do próximo (posição, tamanho, cantos e cor) ---------- */
@@ -943,6 +1087,9 @@ function createPlayer(root,deck,opts={}){
     const vis=el=>{ const r=el.getBoundingClientRect(); return r.width>2&&r.height>2; };
     const pairs=[], used=[];
     const add=(a,b)=>{ if(!a||!b||!vis(a)||!vis(b)) return; if(used.some(u=>u===a||u===b||u.contains(a)||u.contains(b)||a.contains(u)||b.contains(u))) return; used.push(a,b); pairs.push([a,b]); };
+    { const fw=n>cur, sh=(fw?S(cur):S(n)).share||{}, pick=(root,k)=>{ try{ return k==='logo'?root.querySelector('.dk-logo'):root.querySelector(`[data-f="${CSS.escape(k)}"]`); }catch(_){ return null; } };
+      Object.entries(sh).forEach(([fa,fb])=>{ if(!fb) return; const [x,y]=fw?[fa,fb]:[fb,fa]; add(pick(pv,x),pick(nx,y)); }); // vínculos feitos pelo usuário
+      add(pv.querySelector('.dk-logo'),nx.querySelector('.dk-logo')); }
     pv.querySelectorAll('[data-f]').forEach(a=>{ let b=null; try{ b=nx.querySelector(`[data-f="${CSS.escape(a.dataset.f)}"]`); }catch(_){} add(a,b); });  // mesmo papel
     const imgs=[...nx.querySelectorAll('img')]; pv.querySelectorAll('img').forEach(a=>add(a,imgs.find(x=>x.getAttribute('src')===a.getAttribute('src')&&!used.includes(x)))); // mesma imagem
     const cnt=[...nx.querySelectorAll('[data-count]')]; pv.querySelectorAll('[data-count]').forEach(a=>add(a,cnt.find(x=>x.dataset.count===a.dataset.count&&!used.includes(x)))); // mesmo número
@@ -996,7 +1143,7 @@ function renderStatic(root,deck,i){
   fit(); const ro=new ResizeObserver(fit); ro.observe(p); return ()=>ro.disconnect();
 }
 
-window.Deck={TEMPLATES,PRESETS,FONTS,BACKGROUNDS,SHAPES,CARDS,ANIMS,TRANSITIONS,createPlayer,renderStatic,themeOf,themeVars,ensureFonts,esc,fillDefaults,
-  setImageResolver(fn){resolveImage=fn;}, resolveImage:v=>resolveImage(v), ICONS,LAYOUTS,version:'2.2'};
+window.Deck={TEMPLATES,PRESETS,FONTS,DIRECTION,BACKGROUNDS,SHAPES,CARDS,ANIMS,TRANSITIONS,createPlayer,renderStatic,themeOf,themeVars,ensureFonts,esc,fillDefaults,
+  setImageResolver(fn){resolveImage=fn;}, slideHTML, resolveImage:v=>resolveImage(v), ICONS,LAYOUTS,version:'2.2'};
 })();
 

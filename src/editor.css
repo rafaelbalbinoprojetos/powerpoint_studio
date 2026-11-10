@@ -318,3 +318,8 @@ textarea{resize:vertical;min-height:62px;line-height:1.45}
 .tag-guide{margin:4px 0 10px;border:1px solid var(--ui-line);border-radius:10px;padding:8px 12px}
 .tag-guide summary{cursor:pointer;font-weight:600;font-size:13px;color:var(--ui-acc)}
 .tag-guide pre{max-height:34vh;overflow:auto;white-space:pre-wrap;font:12px/1.5 var(--ui-m);background:var(--ui-sunk,rgba(127,127,127,.08));padding:12px;border-radius:8px;margin:10px 0 8px;user-select:text}
+
+.share-box{margin:10px 0;border:1px solid var(--line,#dfe3ea);border-radius:10px;padding:8px 12px}
+.share-box summary{cursor:pointer;font-weight:600;font-size:13px}
+.share-row{display:grid;grid-template-columns:1fr 1.2fr;gap:8px;align-items:center;margin:6px 0;font-size:12px}
+.share-row span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted,#667)}

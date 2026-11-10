@@ -114,6 +114,24 @@ Para uma marca própria, mantenha o preset mais próximo e sobrescreva no `theme
 
 `value` em `numeros` anima quando é número no padrão brasileiro (`3.116.719,02`, `501`, `30`). Texto como `16/10` aparece sem contagem.
 
+### Estúdio Motion 2.0: transições, direção e modelos premium
+
+- `tr` também aceita transições que revelam o próximo slide por máscara: `vidro` (faixas diagonais de vidro), `anel` (anel de energia), `portal` (portal de profundidade), `luz` (varredura de luz), `raios` (florescer radial), `obturador` (persianas digitais), `pixels`, `glitch`, `onda`, `tinta` (manchas orgânicas), `mascara` (PNG/SVG do tema em `trMask`). Sem máscara: `dissolver`, `desfoque`, `perspectiva`, `cortina` (painéis em camadas). Use no máximo 2 ou 3 tipos por apresentação.
+- No deck: `trDur` = `rapida` ou `lenta`; `anim` e `speed` valem para todos os slides sem configuração própria; `motion` = `corporativo`, `cinematografico`, `dinamico`, `minimalista` ou `tecnologico` (só um rótulo do estilo; aplique também `tr`, `trDur`, `anim` e `speed` correspondentes).
+- `share` no slide: liga elementos ao próximo slide no `magico`, ex.: `{"title":"kicker","cards.0.title":"title","logo":"logo"}` (chaves = `data-f` deste slide, valores = do próximo). A logo já viaja sozinha.
+
+| Modelo | Quando usar | Campos |
+|---|---|---|
+| `heroi` | Abertura cinematográfica sobre foto | `image`, `kicker`, `title`, `lead`, `chips` (até 3), `light` |
+| `dividir` | Imagem e texto com divisor que revela | `image`, `kicker`, `title`, `lead`, `bullets`, `ratio` (`p40`,`p60`), `side` (`esq`) |
+| `numerao` | Um número que conta a história | `kicker`, `prefix`, `value`, `suffix`, `title`, `trend` (`baixa`,`neutra`), `delta`, `compareLabel`, `compareValue`, `lead` |
+| `vidros` | Pilares em cartões de vidro flutuando | `kicker`, `title`, `cards`: [{`label`,`title`,`text`}] (até 4) |
+| `rede` | Ecossistema, integrações, áreas conectadas | `kicker`, `title`, `center`, `nodes`: [{`label`,`text`,`hot`}] (até 8), `mesh` |
+| `jornada` | Roteiro com câmera viajando de marco em marco | `kicker`, `title`, `steps`: [{`when`,`title`,`text`}] (até 7), `dwell` (`rapido`,`lento`) |
+| `holofote` | Revelar produto ou tela no escuro | `image`, `kicker`, `title`, `points` (até 4) |
+| `antesdepois` | Comparar duas imagens com divisor arrastável | `kicker`, `title`, `before`, `after`, `beforeLabel`, `afterLabel`, `beforeValue`, `afterValue`, `pos` |
+| `combo` | Realizado em barras e projeção em linha | `kicker`, `title`, `lead`, `points`: [{`label`,`value`,`proj`}], `barName`, `lineName`, `showValues` |
+
 ## Cuidados
 
 - O Estúdio publicado precisa estar na versão 2 (código em github.com/rafaelbalbinoprojetos/powerpoint_studio, `index.html` gerado pelo `build.ps1`) para mostrar os modelos, temas e opções novos. Numa versão antiga, modelo desconhecido aparece como `destaque`.

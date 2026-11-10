@@ -181,3 +181,15 @@ Trilha sonora        aba Tema > Trilha sonora; M liga/desliga ao apresentar;
 Vídeo                botão "Enviar vídeo do computador", começar em N
                      segundos, texto entra no tempo certo, som do vídeo,
                      ao terminar: repetir, parar ou ir para o próximo slide
+
+ESTÚDIO MOTION 2.0
+- Transições por máscara (Vidro diagonal, Anel, Portal, Luz, Obturador, Pixels, Glitch, Onda, Tinta...):
+  escolha em "Transição ao chegar" (slide) ou na aba Tema; use "▶ Prévia da transição".
+- Máscara personalizada: aba Tema > Máscara personalizada > Enviar PNG/SVG; depois escolha
+  "Máscara · Personalizada".
+- Estilo de direção (aba Tema): Corporativo, Cinematográfico, Dinâmico, Minimalista, Tecnológico.
+- Elementos compartilhados: no painel do slide, ligue cada elemento ao do próximo slide;
+  ele viaja no "Movimento mágico". "▶ Prévia do movimento" mostra o efeito.
+- Modelos novos: Herói cinematográfico, Divisão revelada, Número em destaque, Vidro flutuante,
+  Rede de inteligência, Jornada com câmera, Holofote, Antes/depois, Barras + linha.
+- Detalhes técnicos e pendências: docs/ESTADO-2.0.md
