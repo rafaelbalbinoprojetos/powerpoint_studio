@@ -527,7 +527,7 @@ function showcaseDialog(){
     c.onclick=()=>{ m.close(); const id=uid(); decks[id]=build(x); curId=id; sel=0; touch(); renderAll(); setStatus('“'+x.name+'” criada',true); }; });
 }
 /* ---------- tags de modelo: {grafico}, {globo}, {cartoes}… (com ou sem acento) ---------- */
-const TAG_ALIAS={grafico:'grafico',graficos:'grafico',barras:'grafico',colunas:'grafico',barrash:'barrash',ranking:'barrash',barrashorizontais:'barrash',pizza:'pizza',rosca:'pizza',donut:'pizza',linha:'linha',area:'linha',evolucao:'linha',medidores:'medidores',metas:'medidores',medidor:'medidores',funil:'funil',matriz:'matriz',swot:'matriz',
+const TAG_ALIAS={combo:'combo',barraselinha:'combo',barraslinha:'combo',projecao:'combo',realizadoxprojecao:'combo',grafico:'grafico',graficos:'grafico',barras:'grafico',colunas:'grafico',barrash:'barrash',ranking:'barrash',barrashorizontais:'barrash',pizza:'pizza',rosca:'pizza',donut:'pizza',linha:'linha',area:'linha',evolucao:'linha',medidores:'medidores',metas:'medidores',medidor:'medidores',funil:'funil',matriz:'matriz',swot:'matriz',
   globo:'globo3d',globo3d:'globo3d',mapa:'globo3d',mundo:'globo3d',barras3d:'barras3d',grafico3d:'barras3d',particulas:'particulas3d',particulas3d:'particulas3d',tunel:'tunel3d',tunel3d:'tunel3d',logo:'logo3d',logo3d:'logo3d',
   cartoes:'cartoes',cartao:'cartoes',cards:'cartoes',card:'cartoes',numeros:'numeros',indicadores:'numeros',kpi:'numeros',kpis:'numeros',fluxo:'fluxo',etapas:'fluxo',processo:'fluxo',passos:'fluxo',
   linhadotempo:'agenda',agenda:'agenda',cronograma:'agenda',timeline:'agenda',comparacao:'comparacao',antesedepois:'comparacao',versus:'comparacao',tabela:'tabela',citacao:'citacao',frase:'citacao',depoimento:'citacao',
@@ -589,6 +589,8 @@ MODELOS E O QUE ESCREVER EM CADA ITEM
 {barrash}        - Rótulo: valor              ranking em barras horizontais
 {pizza}          - Fatia: valor               (até 8)      também {rosca}
 {linha}          - Jan: valor                 (até 12)     evolução no tempo
+{combo}          - Jan: realizado / projeção  (até 12)     barras = realizado, linha = projeção
+                 - Jun: / 280   (só projeção)   também {barras e linha} ou {projecao}
 {medidores}      - Meta: 0 a 100              (até 4)
 {funil}          - Etapa: valor               (até 6)
 {matriz}         - Quadrante: item, item      (4 linhas)   também {swot}
@@ -728,6 +730,7 @@ function toSlide(s,i,n){
     case 'cartoes': d.cards=P.map(p=>({label:'',title:p.a,text:p.b})); break;
     case 'agenda': d.events=P.map(p=>({when:p.a,title:p.b,text:''})); break;
     case 'tabela': d.rows=s.bullets.map(b=>b.replace(/\s*[:—–]\s+/,' | ')); break;
+    case 'combo': d.points=P.map(p=>{ const m=/^(.*?)\s*\/\s*(.*)$/.exec(p.b); return {label:p.a,value:m?m[1].trim():p.b,proj:m?m[2].trim():''}; }).slice(0,12); d.showValues=true; break;
     case 'grafico': case 'barras3d': case 'barrash': d.bars=P.map(p=>({label:p.a,value:p.b,hot:false})); break;
     case 'globo3d': d.points=s.bullets.map(b=>{ const m=/^(.+?)\s*[:–—]\s*(-?[\d.]+)\s*[,;]\s*(-?[\d.]+)/.exec(b); const nm=m?m[1].trim():b.replace(/[:–—(].*$/,'').trim(); const g=m?[+m[2],+m[3]]:geoOf(nm); return g?{label:nm,lat:String(g[0]),lon:String(g[1])}:null; }).filter(Boolean).slice(0,10); d.stats=[]; d.camera='tour'; break;
     case 'matriz': ['a','b','c','d'].forEach((q,qi)=>{ const p=P[qi]; if(p){ d[q+'Title']=p.a; d[q]=p.b.split(/\s*[,;]\s*/).filter(Boolean); } }); break;
