@@ -198,3 +198,7 @@ ESTÚDIO MOTION 2.0
   "Etapa: Sudeste — lidera com 41% (zoom)".
 - Janela do apresentador (P): etapas, progresso, ir para slide, reiniciar cena (R), pausar
   animação, tela preta (B).
+- Morph de gráfico: escolha a transição "Morph de gráfico" num slide de gráfico que vem depois
+  de outro com as mesmas categorias (ex.: barras -> pizza): as categorias viajam de um para o outro.
+- Detalhe ao clicar: nos itens do gráfico, "Abre o slide de detalhe". Na apresentação, clique na
+  barra/fatia; "Voltar" retorna. No texto: slide "(oculto)" com o mesmo nome da categoria.

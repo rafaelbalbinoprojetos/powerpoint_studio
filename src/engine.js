@@ -162,7 +162,7 @@ Object.assign(TEMPLATES,{
   render(d){ const col=(ti,it,cls,k)=>`<div class="dk-card dk-cmp-col ${cls}"><span class="dk-ix" data-f="${k}Title">${esc(ti)}</span>${arr(it).map((x,i)=>`<div class="dk-cmp-i" data-f="${k}.${i}"><i></i>${rich(x)}</div>`).join('')}</div>`;
     return `${head(d)}<div class="dk-cmp" data-a="cards">${col(d.leftTitle,d.left,'a','left')}${col(d.rightTitle,d.right,'b','right')}</div>`; }},
  grafico:{name:'Gráfico',desc:'Barras que crescem com os valores informados',
-  fields:[{k:'kicker',t:'text',l:'Rótulo'},{k:'title',t:'area',l:'Título'},{k:'lead',t:'area',l:'Subtítulo'},{k:'unit',t:'text',l:'Unidade (ex.: R$ mil, %)'},{k:'bars',t:'items',l:'Barras',max:8,sub:[{k:'label',t:'text',l:'Rótulo'},{k:'value',t:'text',l:'Valor'},{k:'hot',t:'bool',l:'Destacar barra'}]}],
+  fields:[{k:'kicker',t:'text',l:'Rótulo'},{k:'title',t:'area',l:'Título'},{k:'lead',t:'area',l:'Subtítulo'},{k:'unit',t:'text',l:'Unidade (ex.: R$ mil, %)'},{k:'bars',t:'items',l:'Barras',max:8,sub:[{k:'label',t:'text',l:'Rótulo'},{k:'value',t:'text',l:'Valor'},{k:'hot',t:'bool',l:'Destacar barra'},{k:'link',t:'slide',l:'Abre o slide de detalhe (clique)'}]}],
   sample:{kicker:'Evolução',title:'Custo evitado *por trimestre*',lead:'',unit:'R$ mil',bars:[{label:'T1',value:'120'},{label:'T2',value:'210'},{label:'T3',value:'260'},{label:'T4',value:'410',hot:true}]},
   render(d){ const b=arr(d.bars).slice(0,8); const vals=b.map(x=>(parseNum(x.value)||{n:0}).n); const mx=Math.max(1,...vals);
     return `${head(d)}<div class="dk-chart" data-a="bars" style="${cols(Math.max(1,b.length))}">${b.map((x,i)=>`<div class="dk-bar${x.hot?' hot':''}"><div class="dk-bar-v"><b${countAttr(x.value)}>${esc(x.value)}</b>${d.unit?`<small>${esc(d.unit)}</small>`:''}</div><div class="dk-bar-c"><i style="height:${Math.max(2,vals[i]/mx*100)}%"></i></div><span>${esc(x.label)}</span></div>`).join('')}</div>`; }},
@@ -317,18 +317,18 @@ const tableHTML=(header,rows,hot,cls='')=>{ const sp=s=>String(s||'').split('|')
   return `<table class="dk-table ${cls}">${h.length?`<thead><tr>${h.map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead>`:''}<tbody data-a="stagger">${arr(rows).map((r,i)=>`<tr${i+1===hot?' class="hot"':''}>${sp(r).map(c=>`<td>${rich(c)}</td>`).join('')}</tr>`).join('')}</tbody></table>`; };
 Object.assign(TEMPLATES,{
  pizza:{name:'Pizza / rosca',desc:'Gráfico de pizza ou rosca que se desenha, com legenda e porcentagens',
-  fields:[{k:'kicker',t:'text',l:'Rótulo'},{k:'title',t:'area',l:'Título'},{k:'lead',t:'area',l:'Subtítulo'},{k:'slices',t:'items',l:'Fatias',max:8,sub:[{k:'label',t:'text',l:'Rótulo'},{k:'value',t:'text',l:'Valor'}]},{k:'centerValue',t:'text',l:'Centro: valor (vazio = total)'},{k:'centerLabel',t:'text',l:'Centro: legenda'},{k:'full',t:'bool',l:'Pizza cheia (sem furo no meio)'},{k:'showPct',t:'bool',l:'Mostrar porcentagem na legenda'}],
+  fields:[{k:'kicker',t:'text',l:'Rótulo'},{k:'title',t:'area',l:'Título'},{k:'lead',t:'area',l:'Subtítulo'},{k:'slices',t:'items',l:'Fatias',max:8,sub:[{k:'label',t:'text',l:'Rótulo'},{k:'value',t:'text',l:'Valor'},{k:'link',t:'slide',l:'Abre o slide de detalhe (clique)'}]},{k:'centerValue',t:'text',l:'Centro: valor (vazio = total)'},{k:'centerLabel',t:'text',l:'Centro: legenda'},{k:'full',t:'bool',l:'Pizza cheia (sem furo no meio)'},{k:'showPct',t:'bool',l:'Mostrar porcentagem na legenda'}],
   sample:{kicker:'Distribuição',title:'Para onde vai o *orçamento*',lead:'',slices:[{label:'Manutenção',value:'420'},{label:'Peças',value:'310'},{label:'Serviços',value:'180'},{label:'Outros',value:'90'}],centerValue:'',centerLabel:'R$ mil no ano',full:false,showPct:true},
   render(d){ const s=arr(d.slices).slice(0,8); const D=donutSVG(s,{full:d.full}); const cv=d.centerValue||D.tot.toLocaleString('pt-BR');
     return `${head(d)}<div class="dk-pie"><div class="dk-donut" data-a="donut">${D.svg}${d.full?'':`<div class="dk-donut-c"><b${countAttr(cv)}>${esc(cv)}</b><small data-f="centerLabel">${esc(d.centerLabel)}</small></div>`}</div>
     <div class="dk-legend" data-a="stagger">${s.map((x,i)=>`<div class="dk-lg"><i style="background:${PALC[i%PALC.length]}"></i><span data-f="slices.${i}.label">${esc(x.label)}</span><b>${esc(x.value)}</b>${d.showPct?`<em>${fmtPct(D.vals[i]/(D.tot||1)*100)}</em>`:''}</div>`).join('')}</div></div>`; }},
  barrash:{name:'Barras horizontais',desc:'Ranking com barras deitadas crescendo e valores contando',
-  fields:[{k:'kicker',t:'text',l:'Rótulo'},{k:'title',t:'area',l:'Título'},{k:'lead',t:'area',l:'Subtítulo'},{k:'unit',t:'text',l:'Unidade (ex.: R$ mil, %)'},{k:'bars',t:'items',l:'Barras',max:8,sub:[{k:'label',t:'text',l:'Rótulo'},{k:'value',t:'text',l:'Valor'},{k:'hot',t:'bool',l:'Destacar'}]},{k:'sort',t:'bool',l:'Ordenar do maior para o menor'}],
+  fields:[{k:'kicker',t:'text',l:'Rótulo'},{k:'title',t:'area',l:'Título'},{k:'lead',t:'area',l:'Subtítulo'},{k:'unit',t:'text',l:'Unidade (ex.: R$ mil, %)'},{k:'bars',t:'items',l:'Barras',max:8,sub:[{k:'label',t:'text',l:'Rótulo'},{k:'value',t:'text',l:'Valor'},{k:'hot',t:'bool',l:'Destacar'},{k:'link',t:'slide',l:'Abre o slide de detalhe (clique)'}]},{k:'sort',t:'bool',l:'Ordenar do maior para o menor'}],
   sample:{kicker:'Ranking',title:'Economia *por área*',lead:'',unit:'R$ mil',sort:true,bars:[{label:'Funilaria',value:'410',hot:true},{label:'Pintura',value:'260'},{label:'Montagem',value:'180'},{label:'Logística',value:'140'},{label:'Qualidade',value:'95'}].map(x=>Object.assign({hot:false},x))},
   render(d){ let b=arr(d.bars).slice(0,8).map(x=>Object.assign({},x,{n:num(x.value)})); if(d.sort) b=b.slice().sort((p,q)=>q.n-p.n); const mx=Math.max(1,...b.map(x=>x.n));
     return `${head(d)}<div class="dk-hb" data-a="hbars">${b.map(x=>`<div class="hb-r${x.hot?' hot':''}"><span class="hb-l">${esc(x.label)}</span><div class="hb-t"><i class="hb-f" style="width:${Math.max(1.5,x.n/mx*100)}%"></i></div><span class="hb-v"><b${countAttr(x.value)}>${esc(x.value)}</b>${d.unit?` <small>${esc(d.unit)}</small>`:''}</span></div>`).join('')}</div>`; }},
  linha:{name:'Linha / área',desc:'Evolução no tempo: a linha se desenha, a área aparece e os pontos surgem',
-  fields:[{k:'kicker',t:'text',l:'Rótulo'},{k:'title',t:'area',l:'Título'},{k:'lead',t:'area',l:'Subtítulo'},{k:'points',t:'items',l:'Pontos',max:12,sub:[{k:'label',t:'text',l:'Rótulo (ex.: Jan)'},{k:'value',t:'text',l:'Valor'}]},{k:'target',t:'text',l:'Linha de meta (valor, opcional)'},{k:'targetLabel',t:'text',l:'Nome da meta'},{k:'showValues',t:'bool',l:'Mostrar valores nos pontos'}],
+  fields:[{k:'kicker',t:'text',l:'Rótulo'},{k:'title',t:'area',l:'Título'},{k:'lead',t:'area',l:'Subtítulo'},{k:'points',t:'items',l:'Pontos',max:12,sub:[{k:'label',t:'text',l:'Rótulo (ex.: Jan)'},{k:'value',t:'text',l:'Valor'},{k:'link',t:'slide',l:'Abre o slide de detalhe (clique)'}]},{k:'target',t:'text',l:'Linha de meta (valor, opcional)'},{k:'targetLabel',t:'text',l:'Nome da meta'},{k:'showValues',t:'bool',l:'Mostrar valores nos pontos'}],
   sample:{kicker:'Evolução',title:'Economia *mês a mês*',lead:'',target:'300',targetLabel:'Meta',showValues:true,points:[{label:'Abr',value:'120'},{label:'Mai',value:'180'},{label:'Jun',value:'165'},{label:'Jul',value:'260'},{label:'Ago',value:'330'},{label:'Set',value:'410'}]},
   render(d){ const p=arr(d.points).slice(0,12); const W=1600,H=520,pl=20,pr=20,pt=50,pb=60; const vals=p.map(x=>num(x.value)); const tg=d.target?num(d.target):null;
     const mx=Math.max(1,...vals,tg||0)*1.12; const X=i=>pl+(p.length>1?i*(W-pl-pr)/(p.length-1):(W-pl-pr)/2), Y=v=>pt+(1-v/mx)*(H-pt-pb);
@@ -341,7 +341,7 @@ Object.assign(TEMPLATES,{
       ${tg!=null?`<span class="ln-tl" style="top:${Y(tg)/H*100}%">${esc(d.targetLabel||'Meta')} · ${esc(d.target)}</span>`:''}
       <div class="ln-x">${p.map((x,i)=>`<span style="left:${X(i)/W*100}%">${esc(x.label)}</span>`).join('')}</div></div>`; }},
  combo:{name:'Barras + linha',desc:'Barras com o realizado e uma linha com a projeção, no mesmo gráfico',
-  fields:[{k:'kicker',t:'text',l:'Rótulo'},{k:'title',t:'area',l:'Título'},{k:'lead',t:'area',l:'Subtítulo'},{k:'points',t:'items',l:'Períodos',max:12,sub:[{k:'label',t:'text',l:'Rótulo (ex.: Jan)'},{k:'value',t:'text',l:'Realizado (barra; vazio = sem barra)'},{k:'proj',t:'text',l:'Projeção (linha; vazio = sem ponto)'}]},{k:'barName',t:'text',l:'Nome das barras (legenda)'},{k:'lineName',t:'text',l:'Nome da linha (legenda)'},{k:'showValues',t:'bool',l:'Mostrar valores'}],
+  fields:[{k:'kicker',t:'text',l:'Rótulo'},{k:'title',t:'area',l:'Título'},{k:'lead',t:'area',l:'Subtítulo'},{k:'points',t:'items',l:'Períodos',max:12,sub:[{k:'label',t:'text',l:'Rótulo (ex.: Jan)'},{k:'value',t:'text',l:'Realizado (barra; vazio = sem barra)'},{k:'proj',t:'text',l:'Projeção (linha; vazio = sem ponto)'},{k:'link',t:'slide',l:'Abre o slide de detalhe (clique)'}]},{k:'barName',t:'text',l:'Nome das barras (legenda)'},{k:'lineName',t:'text',l:'Nome da linha (legenda)'},{k:'showValues',t:'bool',l:'Mostrar valores'}],
   sample:{kicker:'Receita',title:'Realizado *x projeção*',lead:'',barName:'Realizado',lineName:'Projeção',showValues:true,points:[{label:'Jan',value:'120',proj:'110'},{label:'Fev',value:'150',proj:'140'},{label:'Mar',value:'170',proj:'175'},{label:'Abr',value:'210',proj:'205'},{label:'Mai',value:'',proj:'240'},{label:'Jun',value:'',proj:'280'}]},
   render(d){ const p=arr(d.points).slice(0,12), n=Math.max(1,p.length); const W=1600,H=520,pt=60,pb=60;
     const has=v=>String(v==null?'':v).trim()!==''; const bv=p.map(x=>has(x.value)?num(x.value):null), lv=p.map(x=>has(x.proj)?num(x.proj):null);
@@ -359,7 +359,7 @@ Object.assign(TEMPLATES,{
   render(d){ const g=arr(d.gauges).slice(0,4); const r=120, C=2*Math.PI*r;
     return `${head(d)}<div class="dk-gauges" style="${cols(Math.max(1,g.length))}" data-a="gauges">${g.map((x,i)=>{ const v=Math.max(0,Math.min(100,num(x.value))); return `<div class="dk-gauge"><div class="g-ring"><svg viewBox="0 0 300 300"><circle cx="150" cy="150" r="${r}" class="g-bg"/><circle cx="150" cy="150" r="${r}" class="g-arc" style="stroke:${PALC[i%4]}" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${(C*(1-v/100)).toFixed(1)}" data-c="${C.toFixed(1)}" transform="rotate(-90 150 150)"/></svg><div class="g-v"><b${countAttr(String(v))}>${v}</b><small>%</small></div></div><small class="g-l" data-f="gauges.${i}.label">${esc(x.label)}</small><p data-f="gauges.${i}.text">${rich(x.text)}</p></div>`; }).join('')}</div>`; }},
  funil:{name:'Funil',desc:'Etapas que encolhem, com a conversão entre elas',
-  fields:[{k:'kicker',t:'text',l:'Rótulo'},{k:'title',t:'area',l:'Título'},{k:'lead',t:'area',l:'Subtítulo'},{k:'stages',t:'items',l:'Etapas',max:6,sub:[{k:'label',t:'text',l:'Etapa'},{k:'value',t:'text',l:'Valor'},{k:'text',t:'text',l:'Detalhe (opcional)'}]},{k:'showRate',t:'bool',l:'Mostrar conversão entre etapas'}],
+  fields:[{k:'kicker',t:'text',l:'Rótulo'},{k:'title',t:'area',l:'Título'},{k:'lead',t:'area',l:'Subtítulo'},{k:'stages',t:'items',l:'Etapas',max:6,sub:[{k:'label',t:'text',l:'Etapa'},{k:'value',t:'text',l:'Valor'},{k:'text',t:'text',l:'Detalhe (opcional)'},{k:'link',t:'slide',l:'Abre o slide de detalhe (clique)'}]},{k:'showRate',t:'bool',l:'Mostrar conversão entre etapas'}],
   sample:{kicker:'Funil de vendas',title:'Da visita ao *contrato*',lead:'',showRate:true,stages:[{label:'Visitas',value:'12.400',text:''},{label:'Cadastros',value:'3.100',text:''},{label:'Demonstrações',value:'620',text:''},{label:'Propostas',value:'210',text:''},{label:'Contratos',value:'84',text:''}]},
   render(d){ const s=arr(d.stages).slice(0,6), v=s.map(x=>num(x.value)), mx=Math.max(1,...v);
     return `${head(d)}<div class="dk-fn" data-a="funnel">${s.map((x,i)=>`${i&&d.showRate?`<div class="fn-rate">${v[i-1]?fmtPct(v[i]/v[i-1]*100):''}</div>`:''}<div class="fn-s" style="--w:${(30+70*Math.pow(v[i]/mx,.4)).toFixed(1)}%;--c:${PALC[i%PALC.length]}"><span class="fn-l" data-f="stages.${i}.label">${esc(x.label)}</span><b${countAttr(x.value)}>${esc(x.value)}</b>${x.text?`<small>${esc(x.text)}</small>`:''}</div>`).join('')}</div>`; }},
@@ -714,7 +714,7 @@ Object.assign(FX,{
     el.onpointerdown=e=>{ e.stopPropagation(); drag=true; try{ el.setPointerCapture(e.pointerId); }catch(_){} mv(e); }; el.onpointermove=mv; el.onpointerup=el.onpointercancel=e=>{ e.stopPropagation(); drag=false; }; el.onclick=e=>e.stopPropagation();
     return .3; }
 });
-const TRANSITIONS={magico:'Movimento mágico (elementos viajam)',morph:'Morph (caixas se transformam no próximo slide)',deslizar:'Deslizar',fade:'Esmaecer',zoom:'Zoom',subir:'Subir',voo:'Voo pela tela infinita (estilo Prezi)',
+const TRANSITIONS={magico:'Movimento mágico (elementos viajam)',grafico:'Morph de gráfico (categorias viajam: barras ↔ pizza ↔ linha)',morph:'Morph (caixas se transformam no próximo slide)',deslizar:'Deslizar',fade:'Esmaecer',zoom:'Zoom',subir:'Subir',voo:'Voo pela tela infinita (estilo Prezi)',
   dissolver:'Dissolver cruzado',desfoque:'Revelar com desfoque',perspectiva:'Empurrar em perspectiva',cortina:'Cortina em camadas',
   vidro:'Máscara · Vidro diagonal',anel:'Máscara · Anel de energia',portal:'Máscara · Portal de profundidade',luz:'Máscara · Varredura de luz',raios:'Máscara · Florescer radial',
   obturador:'Máscara · Obturador digital',pixels:'Máscara · Dissolver em pixels',glitch:'Máscara · Glitch',onda:'Máscara · Onda',tinta:'Máscara · Tinta orgânica',mascara:'Máscara · Personalizada (PNG/SVG do tema)',
@@ -945,6 +945,29 @@ function createPlayer(root,deck,opts={}){
   const CAT={grafico:'.dk-chart>.dk-bar',barras3d:'',barrash:'.dk-hb>.hb-r',pizza:['.dk-lg','.dk-donut-svg .seg'],linha:['.dk-line .ln-d','.ln-x span'],combo:['.cb-b','.cb-d','.ln-x span'],funil:'.fn-s',medidores:'.dk-gauge',numeros:'.dk-stat',cartoes:'.dk-card',numerao:''};
   function cats(sl,t){ const sel=CAT[t]; if(!sel) return null; const L=Array.isArray(sel)?sel:[sel]; const groups=[];
     L.forEach(q=>sl.querySelectorAll(q).forEach((el,k)=>{ const i=el.dataset.i!=null?+el.dataset.i:k; (groups[i]=groups[i]||[]).push(el); })); return groups; }
+  /* itens do gráfico: rótulos e links de detalhe (drill-down) */
+  const ITEMS=d=>(d&&(d.bars||d.slices||d.stages||d.points||d.gauges||d.stats||d.cards))||[];
+  const labOf=n=>ITEMS(S(n).d).map(x=>String(x.label||x.title||'').replace(/[*`]/g,'').trim().toLowerCase());
+  function drill(sl,n){ const g=cats(sl,S(n).t); if(!g) return; ITEMS(S(n).d).forEach((x,i)=>{ if(!x||!x.link||!g[i]) return; g[i].forEach(el=>{ el.dataset.go=x.link; el.classList.add('dk-drill'); }); }); }
+  /* morph de gráfico: cada categoria viaja do gráfico atual para a mesma categoria do próximo (barras → pizza, linha, funil…) */
+  const COL={grafico:'.dk-bar-c i',barrash:'.hb-f',pizza:'.dk-lg i',linha:'.dk-line .ln-d',combo:'.cb-b',funil:'.fn-s',medidores:'.g-ring',numeros:'.dk-stat',cartoes:'.dk-card'};
+  function chartMorph(pv,n){ const ta=S(cur).t, tb=S(n).t; if(!COL[ta]||!COL[tb]) return false;
+    const nx=fresh(n); nx.classList.add('on');
+    const sr=stage.getBoundingClientRect(), sc=sr.width/1920||1, R=el=>{ const r=el.getBoundingClientRect(); return {x:(r.left-sr.left)/sc,y:(r.top-sr.top)/sc,w:Math.max(2,r.width/sc),h:Math.max(2,r.height/sc)}; };
+    const grp=(root,t)=>{ const o=[]; root.querySelectorAll(COL[t]).forEach((el,k)=>{ const i=el.dataset.i!=null?+el.dataset.i:k; if(!o[i]) o[i]=el; }); return o; };
+    const A=grp(pv,ta), B=grp(nx,tb), la=labOf(cur), lb=labOf(n);
+    const look=el=>{ const cs=getComputedStyle(el); let bg=cs.backgroundImage!=='none'?cs.backgroundImage:cs.backgroundColor; if((!bg||bg==='rgba(0, 0, 0, 0)')&&cs.borderTopColor) bg=cs.borderTopColor; return {bg,br:cs.borderRadius}; };
+    const pairs=[]; A.forEach((a,i)=>{ if(!a) return; let j=la[i]?lb.indexOf(la[i]):-1; if(j<0&&!la.some(Boolean)) j=i; if(j<0&&lb.length===la.length) j=i; const b=j>=0?B[j]:null; if(b) pairs.push([a,b]); });
+    if(!pairs.length){ nx.classList.remove('on'); return false; }
+    const ra=pairs.map(p=>R(p[0])), rb=pairs.map(p=>R(p[1])), ka=pairs.map(p=>look(p[0])), kb=pairs.map(p=>look(p[1]));
+    const ov=document.createElement('div'); ov.className='dk-cm-ov'; stage.appendChild(ov);
+    kill(); enter(n,nx,.75); cur=n;
+    const mt=G.timeline({onComplete:()=>{ ov.remove(); pv.classList.remove('on'); videos(pv,false); G.set(pv,{clearProps:'all'}); busy=false; opts.onChange&&opts.onChange(n); }});
+    G.set(nx,{opacity:0}); mt.to(nx,{opacity:1,duration:.6,ease:'power1.out'},.45).to(pv,{opacity:0,duration:.45,ease:'power1.out'},0);
+    pairs.forEach((p,k)=>{ const g=document.createElement('div'); g.className='dk-cm-g'; const a=ra[k], b=rb[k];
+      Object.assign(g.style,{left:a.x+'px',top:a.y+'px',width:a.w+'px',height:a.h+'px',borderRadius:ka[k].br,background:ka[k].bg}); const g2=document.createElement('i'); g2.style.background=kb[k].bg; g.appendChild(g2); ov.appendChild(g);
+      mt.to(g,{left:b.x,top:b.y,width:b.w,height:b.h,borderRadius:kb[k].br,duration:1,ease:'power3.inOut'},k*.05).fromTo(g2,{opacity:0},{opacity:1,duration:.6},.3+k*.05).to(g,{opacity:0,duration:.35},1.05+k*.05); });
+    return true; }
   function storyOf(n){ const st=S(n).story; return Array.isArray(st)&&st.length&&CAT[S(n).t]!=null?st:null; }
   function applyStep(n,k,instant){ const sl=slides[n], st=storyOf(n); if(!sl||!st) return; const g=cats(sl,S(n).t)||[]; const cur_=k>0?st[k-1]:null;
     sl.querySelectorAll('.st-call').forEach(e=>e.remove()); sl.classList.toggle('dk-story',k>0);
@@ -975,7 +998,7 @@ function createPlayer(root,deck,opts={}){
       sl.querySelectorAll('.dk-ico').forEach((ic,i)=>tl.fromTo(ic.querySelectorAll('path,circle'),{attr:{'stroke-dashoffset':1}},{attr:{'stroke-dashoffset':0},duration:1.4,stagger:.15,ease:'power2.inOut'},.45+i*.2)); }
     else if(G) loops=hubLoops(sl,G);
     loops.push(...start3D(sl,{still:reduce}));
-    step=0; if(stepTw){ stepTw.kill(); stepTw=null; } opts.onStep&&opts.onStep(0,(storyOf(n)||[]).length);
+    drill(sl,n); step=0; if(stepTw){ stepTw.kill(); stepTw=null; } opts.onStep&&opts.onStep(0,(storyOf(n)||[]).length);
     pgTxt(n); arm(n);
   }
   const EXIT={deslizar:d=>({opacity:0,x:-d*80,scale:.97,filter:'blur(10px)'}),fade:()=>({opacity:0}),zoom:()=>({opacity:0,scale:1.12,filter:'blur(14px)'}),subir:d=>({opacity:0,y:-d*90,filter:'blur(8px)'})};
@@ -989,6 +1012,7 @@ function createPlayer(root,deck,opts={}){
     if(prev && anim && prev!==slides[n] && tr==='voo'){ busy=true; if(tl) tl.pause(); return fly(prev,cur,n); }
     if(prev && anim && prev!==slides[n] && tr==='morph'){ busy=true; if(tl) tl.pause(); if(morph(prev,n)) return; }
     if(prev && anim && prev!==slides[n] && tr==='magico'){ busy=true; if(tl) tl.pause(); if(magic(prev,n)) return; }
+    if(prev && anim && prev!==slides[n] && tr==='grafico'){ busy=true; if(tl) tl.pause(); if(chartMorph(prev,n)) return; busy=false; return reveal(prev,n,'dissolver',dir); }
     if(prev && anim && prev!==slides[n] && RV_DUR[tr]){ busy=true; if(tl) tl.pause(); return reveal(prev,n,tr,dir); }
     if(prev && anim && prev!==slides[n]){ busy=true; if(tl) tl.pause(); G.to(prev,Object.assign((EXIT[tr]||EXIT.fade)(dir),{duration:.45,ease:'power2.in',onComplete:done})); }
     else done();

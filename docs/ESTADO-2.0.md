@@ -74,6 +74,16 @@ Avaliação do "Prompt Master 2.0" contra o sistema real, e o que foi feito.
    - botões Reiniciar cena, Pausar animação e Tela preta (atalhos R e B);
    - o "Próximo" avisa quando ainda há etapas no slide.
 
+## Fase 3
+
+9. **Morph de gráfico** (transição `grafico`).
+   - As categorias viajam do gráfico atual para a mesma categoria do próximo, casadas pelo nome. Funciona entre barras, barras horizontais, pizza, linha, barras + linha, funil, medidores, números e cartões.
+   - Se não houver categorias em comum, a transição vira um dissolver.
+10. **Drill-down.**
+   - Itens de barras, barras horizontais, pizza, funil, linha e barras + linha ganharam o campo "Abre o slide de detalhe".
+   - Ao apresentar, a categoria fica clicável (↗), abre o slide e o botão Voltar retorna ao gráfico.
+   - No texto: um slide `(oculto)` com o mesmo nome da categoria é ligado automaticamente.
+
 ## Testes executados (navegador headless, Chromium)
 
 - As 14 transições foram executadas no editor, com captura no meio do efeito. Todas revelaram o próximo slide pela forma esperada e limparam máscaras e camadas ao terminar.
@@ -96,7 +106,6 @@ Avaliação do "Prompt Master 2.0" contra o sistema real, e o que foi feito.
 - Background Composer em camadas.
 - Exploded View com GLB/GLTF.
 - Geographic Story com rotas entre cidades.
-- Transformar um gráfico em outro (chart morph) e drill-down para um slide de detalhe.
 - AI Scene Director.
 - Fontes embutidas na exportação.
 - Exportação em vídeo MP4.

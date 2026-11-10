@@ -637,6 +637,8 @@ MODELOS E O QUE ESCREVER EM CADA ITEM
 {combo}          - Jan: realizado / projeção  (até 12)     barras = realizado, linha = projeção
                  - Jun: / 280   (só projeção)   também {barras e linha} ou {projecao}
 {medidores}      - Meta: 0 a 100              (até 4)
+Detalhe ao clicar (gráficos): crie um slide (oculto) com o mesmo nome da categoria, ex.: "Sudeste {tabela} (oculto)".
+  Ao apresentar, clicar na barra/fatia abre o detalhe e o botão Voltar retorna ao gráfico.
 Etapas (gráficos, pizza, linha, funil, números, cartões): depois dos itens, uma linha por etapa
                  Etapa: Sudeste — lidera com 41% das vendas (zoom)
                  Etapa: Crescemos em todas as regiões        (sem rótulo = conclusão)
@@ -756,6 +758,8 @@ function parseScript(txt){
   const slides=out.map((s,i)=>toSlide(s,i,out.length));
   // OnePage: bloco cujo título (ou rótulo) bate com o título de um slide oculto vira link para ele
   const key=v=>plain(v).toLowerCase();
+  /* gráficos: categoria cujo nome bate com o título de um slide oculto abre esse slide (drill-down) */
+  slides.forEach(s=>{ const f=dataField(T[s.t]); if(!f||!f.sub.some(x=>x.k==='link')) return; (s.d[f.k]||[]).forEach(it=>{ if(it.link) return; const hit=slides.find(x=>x.hidden&&x!==s&&(key(x.d.title)===key(it.label)||key(x.d.title).startsWith(key(it.label)+' '))); if(hit) it.link=hit.id; }); });
   slides.forEach(s=>{ if(s.t!=='onepage') return; (s.d.blocks||[]).forEach(b=>{ if(b.link) return; const hit=slides.find(x=>x.hidden&&x!==s&&(key(x.d.title)===key(b.title)||key(x.d.title)===key(b.label))); if(hit) b.link=hit.id; }); });
   return slides;
 }

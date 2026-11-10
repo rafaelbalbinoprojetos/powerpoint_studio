@@ -630,3 +630,11 @@
 .st-call.mid::before{display:none}
 .st-call em,.st-call b{color:var(--accent);font-style:normal}
 .st-call .hl{color:var(--accent)}
+
+/* morph de gráfico e drill-down */
+.dk-cm-ov{position:absolute;inset:0;z-index:6;pointer-events:none}
+.dk-cm-g{position:absolute;overflow:hidden;box-shadow:0 10px 40px -10px rgba(0,0,0,.5)}
+.dk-cm-g i{position:absolute;inset:0;border-radius:inherit}
+.dk-drill{cursor:pointer}
+.dk-drill:hover{filter:brightness(1.25)}
+.dk-bar.dk-drill::after,.hb-r.dk-drill .hb-l::after,.dk-lg.dk-drill span::after,.fn-s.dk-drill .fn-l::after{content:" ↗";font-size:.8em;opacity:.6}
