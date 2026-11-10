@@ -1001,6 +1001,13 @@ details.cgrp>summary:hover{color:var(--ui-fg)}
 details.cgrp[open]>summary{border-bottom:1px solid var(--ui-line,#e3e6ec)}
 .cgrp-b{padding:6px 12px 12px}
 .cgrp-b>.f:first-child{margin-top:4px}
+
+.sty-row{margin:4px 0 8px}
+
+.find-res{max-height:320px;overflow:auto;margin:10px 0;display:grid;gap:6px}
+.find-hit{display:flex;gap:10px;align-items:flex-start;text-align:left;padding:8px 10px;border:1px solid var(--ui-line);border-radius:8px;background:var(--ui-panel);color:var(--ui-fg);cursor:pointer;font:inherit;font-size:13px}
+.find-hit:hover{border-color:#4f8cff}
+.find-hit b{min-width:22px;color:#4f8cff}
 </style>
 
 </head>
@@ -1090,7 +1097,9 @@ const CARDS={vidro:'Vidro',solido:'Sólido',contorno:'Contorno'};
 const FONTS=['Lexend','Manrope','Sora','Outfit','Plus Jakarta Sans','DM Sans','Inter','Space Grotesk','Archivo','Bricolage Grotesque','Fraunces','Playfair Display','Space Mono','IBM Plex Sans','Rubik','Montserrat','Poppins'];
 const BACKGROUNDS={fibras:'Fibras de dados',grade:'Grade em perspectiva',particulas:'Constelação',poeira:'Poeira estelar 3D',galaxia:'Galáxia de partículas',vagalumes:'Vaga-lumes',fluxo:'Fluxo de partículas',aurora:'Aurora',malha:'Malha de cor',topografia:'Topografia',pontos:'Pontos em onda',luz:'Feixes de luz',bokeh:'Bokeh',liso:'Liso com brilho'};
 const fontsLoaded=new Set();
+function fontURL(list){ return 'https://fonts.googleapis.com/css2?'+[...new Set([...list,'JetBrains Mono'])].filter(Boolean).map(f=>'family='+encodeURIComponent(f).replace(/%20/g,'+')+(f==='Fraunces'||f==='Playfair Display'?':wght@400;500;600;700':f==='Space Mono'?':wght@400;700':':wght@300;400;500;600;700')).join('&')+'&display=swap'; }
 function ensureFonts(list, doc=document){
+  if(window.DK_FONTS_EMBEDDED) return; // exportado com fontes embutidas: funciona offline
   const need=[...new Set([...list,'JetBrains Mono'])].filter(f=>f&&!fontsLoaded.has(f));
   if(!need.length) return;
   need.forEach(f=>fontsLoaded.add(f));
@@ -2259,7 +2268,7 @@ function renderStatic(root,deck,i){
   fit(); const ro=new ResizeObserver(fit); ro.observe(p); return ()=>ro.disconnect();
 }
 
-window.Deck={TEMPLATES,PRESETS,FONTS,DIRECTION,BACKGROUNDS,SHAPES,CARDS,ANIMS,TRANSITIONS,createPlayer,renderStatic,themeOf,themeVars,ensureFonts,esc,fillDefaults,
+window.Deck={TEMPLATES,PRESETS,FONTS,DIRECTION,BACKGROUNDS,SHAPES,CARDS,ANIMS,TRANSITIONS,createPlayer,renderStatic,themeOf,themeVars,ensureFonts,fontURL,esc,fillDefaults,
   setImageResolver(fn){resolveImage=fn;}, slideHTML, resolveImage:v=>resolveImage(v), ICONS,LAYOUTS,version:'2.2'};
 })();
 
@@ -2343,6 +2352,30 @@ function paintStory(s){ if(!STORY_T.includes(s.t)) return; const labs=storyLabel
       r.querySelector('[data-x]').onclick=()=>{ s.story.splice(+r.dataset.j,1); if(!s.story.length) delete s.story; touch(); draw(); box.open=true; }; });
     const pv=box.querySelector('[data-pv]'); if(pv) pv.onclick=()=>{ if(!player) return; player.update(sel,deck()); player.go(sel,1,true); const n=s.story.length; for(let k=1;k<=n+1;k++) setTimeout(()=>{ if(k<=n) player.next(); else player.go(sel,1,true); },1800+k*2300-2300); }; };
   draw(); const after=document.querySelector('#pane .share-box')||($('#o-trp')&&$('#o-trp').closest('.f2')); if(after) after.after(box); else $('#pane').appendChild(box); }
+/* buscar e substituir em todos os slides (textos, itens e notas) */
+function findDialog(){ const d=deck(); const m=modal(`<h3>Buscar e substituir</h3><p class="sub">Procura em títulos, textos, itens e notas de todos os slides.</p>
+  <div class="f2"><div class="f"><label for="fq">Buscar</label><input id="fq" type="text" autocomplete="off"></div><div class="f"><label for="fr">Substituir por</label><input id="fr" type="text" autocomplete="off"></div></div>
+  <label class="chk"><input type="checkbox" id="fc"> Diferenciar maiúsculas e minúsculas</label> <label class="chk"><input type="checkbox" id="fw"> Palavra inteira</label>
+  <div class="find-res" id="fres"></div><div class="row"><button class="btn" data-c>Fechar</button><button class="btn pri" data-ok disabled>Substituir tudo</button></div>`,'wide');
+  const q=m.el.querySelector('#fq'), rr=m.el.querySelector('#fr'), res=m.el.querySelector('#fres'), ok=m.el.querySelector('[data-ok]');
+  const rx=()=>{ const v=q.value; if(!v) return null; const esc2=v.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'); const w=m.el.querySelector('#fw').checked; return new RegExp((w?'(?<![\\p{L}\\d])':'')+esc2+(w?'(?![\\p{L}\\d])':''),'gu'+(m.el.querySelector('#fc').checked?'':'i')); };
+  const walk=(o,fn,path)=>{ if(typeof o==='string') return fn(o,path); if(Array.isArray(o)) o.forEach((x,i)=>{ const r=walk(x,fn,path+'.'+i); if(r!==undefined) o[i]=r; }); else if(o&&typeof o==='object') Object.keys(o).forEach(k=>{ if(k==='image'||k==='src'||k==='link'||k==='photo') return; const r=walk(o[k],fn,path?path+'.'+k:k); if(r!==undefined) o[k]=r; }); };
+  const scan=()=>{ const r=rx(); res.innerHTML=''; ok.disabled=true; if(!r) return; let n=0; const rows=[];
+    d.slides.forEach((s,i)=>{ const hit=[]; walk(s.d,(str)=>{ const mm=str.match(r); if(mm){ n+=mm.length; hit.push(str); } }, ''); if(s.notes&&s.notes.match(r)){ n+=s.notes.match(r).length; hit.push('Notas: '+s.notes); }
+      if(hit.length) rows.push('<button class="find-hit" data-i="'+i+'"><b>'+(i+1)+'</b><span>'+hit.slice(0,2).map(h=>{ const t=String(h); const k=t.search(r); return esc((k>30?'…':'')+t.slice(Math.max(0,k-30),k+60)); }).join(' · ')+'</span></button>'); });
+    res.innerHTML=n?'<p class="sub">'+n+' ocorrência'+(n>1?'s':'')+' em '+rows.length+' slide'+(rows.length>1?'s':'')+'</p>'+rows.join(''):'<p class="sub">Nada encontrado.</p>'; ok.disabled=!n;
+    res.querySelectorAll('.find-hit').forEach(b=>b.onclick=()=>{ select(+b.dataset.i); }); };
+  [q,m.el.querySelector('#fc'),m.el.querySelector('#fw')].forEach(x=>x.oninput=x.onchange=scan);
+  ok.onclick=()=>{ const r=rx(); if(!r) return; snap&&snap(); let n=0; d.slides.forEach(s=>{ walk(s.d,str=>{ const nv=str.replace(r,()=>{ n++; return rr.value; }); return nv!==str?nv:undefined; },''); if(s.notes) s.notes=s.notes.replace(r,()=>{ n++; return rr.value; }); });
+    touch(); renderAll(); setStatus(n+' substituição'+(n>1?'ões':'')+' feita'+(n>1?'s':'')+' (Ctrl+Z desfaz)',true); scan(); };
+  m.el.querySelector('[data-c]').onclick=m.close; setTimeout(()=>q.focus(),50); }
+/* copiar e colar estilo entre slides */
+const STY_KEYS=['anim','speed','tr','lay','head','dur'];
+let styleClip=null; try{ styleClip=JSON.parse(localStorage.getItem(LS+'-style')||'null'); }catch(_){}
+function copyStyle(){ const s=deck().slides[sel]; if(!s) return; styleClip={t:s.t}; STY_KEYS.forEach(k=>{ if(s[k]!==undefined) styleClip[k]=s[k]; }); try{ localStorage.setItem(LS+'-style',JSON.stringify(styleClip)); }catch(_){} setStatus('Estilo copiado (animação, velocidade, transição'+(s.lay?', layout':'')+')',true); renderPane(); }
+function pasteStyle(all){ if(!styleClip) return setStatus('Copie o estilo de um slide primeiro'); const d=deck(); const list=all?d.slides:[d.slides[sel]]; snap&&snap();
+  list.forEach(s=>{ if(!s) return; STY_KEYS.forEach(k=>{ if(k==='lay'&&s.t!==styleClip.t) return; if(styleClip[k]!==undefined) s[k]=styleClip[k]; else delete s[k]; }); });
+  touch(); renderAll(); setStatus(all?'Estilo aplicado a todos os slides':'Estilo colado',true); }
 /* máscara personalizada: PNG (canal alpha) ou SVG higienizado, guardado como data URL dentro da apresentação */
 function cleanSVG(txt){ const doc=new DOMParser().parseFromString(txt,'image/svg+xml'); const root=doc.documentElement; if(!root||root.nodeName.toLowerCase()!=='svg'||doc.querySelector('parsererror')) return null;
   root.querySelectorAll('script,foreignObject,iframe,object,embed,use[href^="http"],image[href^="http"]').forEach(x=>x.remove());
@@ -2604,6 +2637,7 @@ function renderPane(){
   $('#o-anim').onchange=e=>{ if(e.target.value==='padrao') delete s.anim; else s.anim=e.target.value; animCh(); };
   $('#o-speed').onchange=e=>{ const v=+e.target.value; if(v===1) delete s.speed; else s.speed=v; animCh(); };
   paintShare(s); paintStory(s);
+  { const sb=document.createElement('div'); sb.className='btnrow sty-row'; sb.innerHTML='<button class="btn sm" type="button" data-sc title="Ctrl+Alt+C">⧉ Copiar estilo</button><button class="btn sm" type="button" data-stp'+(styleClip?'':' disabled')+' title="Ctrl+Alt+V">Colar estilo</button><button class="btn sm" type="button" data-sa'+(styleClip?'':' disabled')+'>Colar em todos</button>'; const so=pane.querySelector('.slideopts .sec'); if(so) so.after(sb); sb.querySelector('[data-sc]').onclick=copyStyle; sb.querySelector('[data-stp]').onclick=()=>pasteStyle(false); sb.querySelector('[data-sa]').onclick=()=>{ if(confirm('Aplicar este estilo (animação, velocidade, transição e layout) a todos os slides?')) pasteStyle(true); }; }
   $('#o-trp').onclick=()=>{ if(!player) return; if(sel<1){ setStatus('A prévia mostra a chegada a partir do slide anterior: escolha o 2º slide ou depois'); return; } player.go(sel-1,-1,true); setTimeout(()=>player.go(sel,1),350); };
   $('#o-tr').onchange=e=>{ if(!e.target.value) delete s.tr; else s.tr=e.target.value; touch(); if(player) player.update(sel,deck()); };
   $('#o-dur').oninput=e=>{ const v=parseFloat(e.target.value); if(v>0) s.dur=v; else delete s.dur; touch(); };
@@ -2783,7 +2817,7 @@ function gallery(kind){
 $('#deckMenu').onclick=()=>{
   const m=modal(`<h3>Apresentações</h3><p class="sub">${mode==='db'?'Salvas na sua conta, disponíveis em qualquer aparelho.':'Salvas só neste navegador.'}</p><div class="menu">
   <button class="btn" data-a="new">+ Nova apresentação</button><button class="btn" data-a="vitrine">Começar de uma apresentação pronta</button><button class="btn" data-a="texto">Criar a partir de um texto corrido (relatório, e-mail, ata)</button><button class="btn" data-a="script">Criar a partir de um roteiro (texto)</button><button class="btn" data-a="dup">Duplicar esta apresentação</button>
-  <div class="sec">Qualidade</div><button class="btn" data-a="review">Revisar apresentação (nota de qualidade)</button>
+  <div class="sec">Qualidade</div><button class="btn" data-a="review">Revisar apresentação (nota de qualidade)</button><button class="btn" data-a="find">Buscar e substituir em todos os slides (Ctrl+Shift+F)</button>
   <div class="sec">Apresentar</div><button class="btn" data-a="ensaio">Ensaiar com cronômetro (tempo por slide e relatório)</button><button class="btn" data-a="stage">Modo palco (tela de espera com contagem regressiva)</button>
   <div class="sec">Exportar</div><button class="btn" data-a="pdf">Salvar em PDF (um slide por página)</button><button class="btn" data-a="rec">Gravar vídeo (narração, trilha, horizontal ou vertical)</button>
   <div class="sec">Backup</div><button class="btn" data-a="versoes">Histórico de versões (voltar no tempo)</button><button class="btn" data-a="bk">Baixar backup de todas (.json)</button><button class="btn" data-a="im">Importar backup (.json)</button>
@@ -2797,7 +2831,7 @@ $('#deckMenu').onclick=()=>{
     }catch(e){ setStatus('Arquivo de backup inválido'); } };
     inp.click(); });
   on('new',()=>{ const id=uid(); decks[id]=starter(); curId=id; sel=0; touch(); renderAll(); });
-  on('versoes',versionsDialog); on('script',()=>scriptDialog()); on('texto',textDialog);
+  on('versoes',versionsDialog); on('script',()=>scriptDialog()); on('texto',textDialog); on('find',findDialog);
   on('vitrine',showcaseDialog);
   on('pdf',exportPDF);
   on('rec',recordVideo);
@@ -3133,6 +3167,8 @@ addEventListener('keydown',e=>{
   if(mod&&!typing&&k==='z'){ e.preventDefault(); e.shiftKey?redo():undo(); return; }
   if(mod&&!typing&&k==='y'){ e.preventDefault(); redo(); return; }
   if(typing) return;
+  if((e.ctrlKey||e.metaKey)&&e.shiftKey&&(e.key==='f'||e.key==='F')){ e.preventDefault(); return findDialog(); }
+  if((e.ctrlKey||e.metaKey)&&e.altKey&&(e.key==='c'||e.key==='C')){ e.preventDefault(); return copyStyle(); } if((e.ctrlKey||e.metaKey)&&e.altKey&&(e.key==='v'||e.key==='V')){ e.preventDefault(); return pasteStyle(false); }
   if(e.key==='ArrowRight') select(sel+1); if(e.key==='ArrowLeft') select(sel-1); if(e.key==='Home') select(0); if(e.key==='End') select(deck().slides.length-1);
 });
 addEventListener('beforeunload',()=>{ if(dirty&&mode!=='db') localSave(); });
@@ -3373,6 +3409,12 @@ const fileBase=d=>(d.name||'apresentacao').normalize('NFD').replace(/[̀-ͯ]/g,'
 /* embute imagens de campos do slide e de itens (ex.: fotos da equipe) */
 async function inlineFields(fields,obj){ for(const f of fields){ if(f.t==='image'&&obj[f.k]) obj[f.k]=await inline(obj[f.k]); else if(f.t==='items') for(const it of (obj[f.k]||[])) await inlineFields(f.sub,it); } }
 const srcOf=(id,url)=>{ const el=document.getElementById(id); return el?Promise.resolve(el.textContent):fetch(url).then(r=>r.text()); };
+/* baixa as fontes do tema (só alfabetos latinos) e devolve @font-face com os arquivos embutidos */
+async function embedFonts(d){ try{ const t=D.themeOf(d); const r=await fetch(D.fontURL([t.fontDisplay,t.fontBody])); if(!r.ok) return '';
+    const css=await r.text(); let blocks=css.split(/(?=\/\* )/).filter(b=>/^\/\* (latin|latin-ext) \*\//.test(b)); if(!blocks.length) blocks=[css];
+    const cache={}; let out=''; for(const b of blocks){ let nb=b; const urls=[...b.matchAll(/url\((https:[^)]+)\)/g)].map(m=>m[1]);
+      for(const u of urls){ if(!cache[u]){ const fr=await fetch(u); if(!fr.ok) throw new Error('font'); cache[u]=await blobToData(await fr.blob()); } nb=nb.split(u).join(cache[u]); } out+=nb; }
+    return out; }catch(_){ return ''; } }
 async function exportHTML(){
   setStatus('Preparando arquivo…');
   try{
@@ -3380,9 +3422,10 @@ async function exportHTML(){
     d.theme=d.theme||{}; if(d.theme.logo) d.theme.logo=await inline(d.theme.logo); if(d.header&&d.header.image) d.header.image=await inline(d.header.image);
     for(const s of d.slides){ const tp=T[s.t]; if(tp) await inlineFields(tp.fields,s.d||{}); }
     const [js,css]=await Promise.all([srcOf('dk-js','engine.js'),srcOf('dk-css','engine.css')]);
+    setStatus('Embutindo as fontes…'); const fontCSS=await embedFonts(d);
     const gs=document.getElementById('gsap-js');
     const gsapTag=gs?'<script>'+gs.textContent.replace(/<\/script/gi,'<\\/script')+'<\/script>':'<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"><\/script>';
-    const html=`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(d.name||'Apresentação')}</title><style>html,body{height:100%;margin:0;background:#000}#app{position:fixed;inset:0}${css}</style>${gsapTag}</head><body><div id="app"></div><script>${js.replace(/<\/script/gi,'<\\/script')}<\/script><script>
+    const html=`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(d.name||'Apresentação')}</title><style>html,body{height:100%;margin:0;background:#000}#app{position:fixed;inset:0}${fontCSS}${css}</style>${gsapTag}</head><body><div id="app"></div>${fontCSS?'<script>window.DK_FONTS_EMBEDDED=true<\/script>':''}<script>${js.replace(/<\/script/gi,'<\\/script')}<\/script><script>
 const DECK=${JSON.stringify(d).replace(/</g,'\\u003c')};
 const pl=Deck.createPlayer(document.getElementById('app'),DECK,{start:0,autoplay:true,links:true});
 addEventListener('keydown',e=>{if(['ArrowRight','PageDown',' ','Enter'].includes(e.key)){e.preventDefault();pl.next();}else if(['ArrowLeft','PageUp','Backspace'].includes(e.key)){e.preventDefault();pl.prev();}else if(e.key==='Home'){pl.go(0);}else if(e.key==='End'){pl.go(pl.count-1);}else if(e.key==='f'||e.key==='F'){document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen();}});
@@ -3390,7 +3433,7 @@ document.getElementById('app').addEventListener('click',e=>{e.clientX>innerWidth
 let sx=null;addEventListener('touchstart',e=>{sx=e.touches[0].clientX},{passive:true});addEventListener('touchend',e=>{if(sx==null)return;const dx=e.changedTouches[0].clientX-sx;if(Math.abs(dx)>40)dx<0?pl.next():pl.prev();sx=null},{passive:true});
 <\/script></body></html>`;
     await saveFile(fileBase(d)+'.html',html,'text/html');
-    setStatus('Arquivo exportado',true);
+    setStatus(fontCSS?'Arquivo exportado (fontes embutidas: funciona offline)':'Arquivo exportado (sem internet agora: as fontes não foram embutidas)',true);
   }catch(e){ setStatus(e&&e.code==='declined'?'Exportação cancelada':'Não consegui exportar'); }
 }
 $('#exportBtn').onclick=exportHTML;

@@ -206,3 +206,8 @@ ESTÚDIO MOTION 2.0
   apresentador) ou teclas Home/End.
 - Painel da direita em seções recolhíveis (abas Conteúdo e Tema); "Abrir tudo"/"Recolher tudo".
   O editor lembra quais seções você deixou abertas.
+- Exportar agora embute as fontes do tema (se houver internet na hora de exportar): o HTML abre
+  offline com a tipografia certa. O arquivo fica ~1 MB maior.
+- Copiar/colar estilo: aba Conteúdo > Animação deste slide > "Copiar estilo" / "Colar estilo" /
+  "Colar em todos" (Ctrl+Alt+C / Ctrl+Alt+V). Leva animação, velocidade, transição e layout.
+- Buscar e substituir em todos os slides: Mais > Buscar e substituir (Ctrl+Shift+F).

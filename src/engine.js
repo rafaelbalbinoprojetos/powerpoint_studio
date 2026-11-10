@@ -24,7 +24,9 @@ const CARDS={vidro:'Vidro',solido:'Sólido',contorno:'Contorno'};
 const FONTS=['Lexend','Manrope','Sora','Outfit','Plus Jakarta Sans','DM Sans','Inter','Space Grotesk','Archivo','Bricolage Grotesque','Fraunces','Playfair Display','Space Mono','IBM Plex Sans','Rubik','Montserrat','Poppins'];
 const BACKGROUNDS={fibras:'Fibras de dados',grade:'Grade em perspectiva',particulas:'Constelação',poeira:'Poeira estelar 3D',galaxia:'Galáxia de partículas',vagalumes:'Vaga-lumes',fluxo:'Fluxo de partículas',aurora:'Aurora',malha:'Malha de cor',topografia:'Topografia',pontos:'Pontos em onda',luz:'Feixes de luz',bokeh:'Bokeh',liso:'Liso com brilho'};
 const fontsLoaded=new Set();
+function fontURL(list){ return 'https://fonts.googleapis.com/css2?'+[...new Set([...list,'JetBrains Mono'])].filter(Boolean).map(f=>'family='+encodeURIComponent(f).replace(/%20/g,'+')+(f==='Fraunces'||f==='Playfair Display'?':wght@400;500;600;700':f==='Space Mono'?':wght@400;700':':wght@300;400;500;600;700')).join('&')+'&display=swap'; }
 function ensureFonts(list, doc=document){
+  if(window.DK_FONTS_EMBEDDED) return; // exportado com fontes embutidas: funciona offline
   const need=[...new Set([...list,'JetBrains Mono'])].filter(f=>f&&!fontsLoaded.has(f));
   if(!need.length) return;
   need.forEach(f=>fontsLoaded.add(f));
@@ -1193,7 +1195,7 @@ function renderStatic(root,deck,i){
   fit(); const ro=new ResizeObserver(fit); ro.observe(p); return ()=>ro.disconnect();
 }
 
-window.Deck={TEMPLATES,PRESETS,FONTS,DIRECTION,BACKGROUNDS,SHAPES,CARDS,ANIMS,TRANSITIONS,createPlayer,renderStatic,themeOf,themeVars,ensureFonts,esc,fillDefaults,
+window.Deck={TEMPLATES,PRESETS,FONTS,DIRECTION,BACKGROUNDS,SHAPES,CARDS,ANIMS,TRANSITIONS,createPlayer,renderStatic,themeOf,themeVars,ensureFonts,fontURL,esc,fillDefaults,
   setImageResolver(fn){resolveImage=fn;}, slideHTML, resolveImage:v=>resolveImage(v), ICONS,LAYOUTS,version:'2.2'};
 })();
 
