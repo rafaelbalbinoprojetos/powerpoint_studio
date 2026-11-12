@@ -211,7 +211,7 @@ ESTÚDIO MOTION 2.0
 - Copiar/colar estilo: aba Conteúdo > Animação deste slide > "Copiar estilo" / "Colar estilo" /
   "Colar em todos" (Ctrl+Alt+C / Ctrl+Alt+V). Leva animação, velocidade, transição e layout.
 - Buscar e substituir em todos os slides: Mais > Buscar e substituir (Ctrl+Shift+F).
-- Controle pelo celular: ao apresentar, botão 📱 na barra. Aparece um QR code e um código de 6
+- Controle pelo celular: botão "📱 Celular" no topo (ao lado de Apresentar), ou "📱 Celular" na barra / tecla K ao apresentar. Aparece um QR code e um código de 6
   letras. No celular: Próximo/Anterior, deslizar nas notas, primeiro/último, tela preta, reiniciar
   cena, ponteiro (arraste o dedo) e cronômetro. Precisa de internet nos dois aparelhos.
   A página do celular fica em https://rafaelbalbinoprojetos.github.io/powerpoint_studio/remote/ (GitHub Pages).

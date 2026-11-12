@@ -365,3 +365,7 @@ details.cgrp[open]>summary{border-bottom:1px solid var(--ui-line,#e3e6ec)}
 .show .bar [data-rm].on{color:#2fd39a}
 .rm-dot{position:absolute;z-index:40;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;background:#ff3b5c;box-shadow:0 0 0 6px rgba(255,59,92,.25),0 0 30px #ff3b5c;pointer-events:none;opacity:0;transition:opacity .2s}
 .rm-dot.on{opacity:1}
+
+.show .bar .rm-btn{width:auto!important;padding:0 12px;font-size:13px;font-weight:600;color:#fff;background:rgba(79,140,255,.25);border-color:rgba(79,140,255,.6)}
+.rm-box{bottom:50%;right:50%;transform:translate(50%,50%)}
+.rm-box .btn{background:rgba(255,255,255,.1);color:#eef2fb;border-color:rgba(255,255,255,.25)}
