@@ -211,3 +211,8 @@ ESTÚDIO MOTION 2.0
 - Copiar/colar estilo: aba Conteúdo > Animação deste slide > "Copiar estilo" / "Colar estilo" /
   "Colar em todos" (Ctrl+Alt+C / Ctrl+Alt+V). Leva animação, velocidade, transição e layout.
 - Buscar e substituir em todos os slides: Mais > Buscar e substituir (Ctrl+Shift+F).
+- Controle pelo celular: ao apresentar, botão 📱 na barra. Aparece um QR code e um código de 6
+  letras. No celular: Próximo/Anterior, deslizar nas notas, primeiro/último, tela preta, reiniciar
+  cena, ponteiro (arraste o dedo) e cronômetro. Precisa de internet nos dois aparelhos.
+  A página do celular está em remote/index.html e precisa estar publicada (ver docs).
+- Gravar vídeo: agora pode usar a trilha sonora da apresentação automaticamente.

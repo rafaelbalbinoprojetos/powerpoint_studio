@@ -354,3 +354,14 @@ details.cgrp[open]>summary{border-bottom:1px solid var(--ui-line,#e3e6ec)}
 .find-hit{display:flex;gap:10px;align-items:flex-start;text-align:left;padding:8px 10px;border:1px solid var(--ui-line);border-radius:8px;background:var(--ui-panel);color:var(--ui-fg);cursor:pointer;font:inherit;font-size:13px}
 .find-hit:hover{border-color:#4f8cff}
 .find-hit b{min-width:22px;color:#4f8cff}
+
+/* controle pelo celular */
+.rm-box{position:absolute;right:20px;bottom:84px;z-index:50;width:300px;padding:18px;border-radius:16px;background:rgba(12,16,30,.94);border:1px solid rgba(255,255,255,.12);color:#eef2fb;text-align:center;box-shadow:0 30px 80px -20px rgba(0,0,0,.7);backdrop-filter:blur(10px)}
+.rm-box b{display:block;margin-bottom:8px}
+.rm-box p{font-size:12px;opacity:.75;margin:8px 0}
+.rm-qr{background:#fff;border-radius:10px;padding:6px;width:200px;margin:4px auto}
+.rm-qr svg{display:block;width:100%;height:auto}
+.rm-code{font:700 26px ui-monospace,Consolas,monospace;letter-spacing:.2em;color:#4f8cff}
+.show .bar [data-rm].on{color:#2fd39a}
+.rm-dot{position:absolute;z-index:40;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;background:#ff3b5c;box-shadow:0 0 0 6px rgba(255,59,92,.25),0 0 30px #ff3b5c;pointer-events:none;opacity:0;transition:opacity .2s}
+.rm-dot.on{opacity:1}

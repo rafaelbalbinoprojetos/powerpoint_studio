@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#0b1020">
+<title>Controle · Estúdio Motion</title>
+<style>
+:root{--bg:#0b1020;--card:#141b30;--line:#26304d;--fg:#eef2fb;--dim:#8a95b3;--acc:#4f8cff;--warn:#ffb347;--ok:#2fd39a}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overscroll-behavior:none}
+body{display:flex;flex-direction:column;padding:max(12px,env(safe-area-inset-top)) 14px max(14px,env(safe-area-inset-bottom))}
+header{display:flex;align-items:center;gap:10px}
+header b{font-size:15px;letter-spacing:.02em}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--warn);box-shadow:0 0 10px var(--warn)}
+.dot.on{background:var(--ok);box-shadow:0 0 10px var(--ok)}
+#clock{margin-left:auto;font:600 22px ui-monospace,Menlo,Consolas,monospace;font-variant-numeric:tabular-nums}
+.pos{display:flex;align-items:baseline;gap:10px;margin:14px 0 4px}
+.pos #n{font-size:13px;color:var(--dim);letter-spacing:.1em;text-transform:uppercase}
+.pos #step{font-size:13px;color:var(--warn);font-weight:600}
+#title{font-size:22px;font-weight:700;margin:0 0 4px}
+#next{font-size:13px;color:var(--dim);margin-bottom:10px}
+.bar{height:4px;border-radius:2px;background:var(--line);overflow:hidden;margin-bottom:12px}.bar i{display:block;height:100%;width:0;background:var(--acc);transition:width .3s}
+#notes{flex:1;min-height:80px;overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;font-size:19px;line-height:1.5;white-space:pre-wrap}
+#notes.empty{color:var(--dim);font-size:15px}
+#pad{margin-top:12px;height:120px;border:1px dashed var(--line);border-radius:14px;display:grid;place-items:center;color:var(--dim);font-size:13px;touch-action:none;user-select:none}
+#pad.on{border-color:#ff4d6d;color:#ff4d6d;background:rgba(255,77,109,.06)}
+.nav{display:grid;grid-template-columns:1fr 2fr;gap:10px;margin-top:12px}
+.nav button{height:84px;border-radius:18px;border:0;font-size:22px;font-weight:700;color:#fff;background:var(--card);border:1px solid var(--line)}
+.nav .nx{background:var(--acc);border-color:var(--acc)}
+.nav button:active{transform:scale(.97)}
+.tools{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px}
+.tools button{height:46px;border-radius:12px;border:1px solid var(--line);background:transparent;color:var(--fg);font-size:14px}
+.pair{flex:1;display:flex;flex-direction:column;justify-content:center;gap:14px;text-align:center}
+.pair input{font:600 28px ui-monospace,monospace;text-align:center;letter-spacing:.2em;padding:14px;border-radius:14px;border:1px solid var(--line);background:var(--card);color:var(--fg);text-transform:uppercase}
+.pair button{height:56px;border-radius:14px;border:0;background:var(--acc);color:#fff;font-size:18px;font-weight:700}
+.pair p{color:var(--dim);margin:0}
+#msg{color:var(--warn);min-height:20px;font-size:14px}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<header><span class="dot" id="dot"></span><b>Estúdio Motion · Controle</b><span id="clock">00:00</span></header>
+
+<section class="pair" id="pairV">
+  <p>Digite o código que aparece na tela da apresentação<br>(ou leia o QR code com a câmera).</p>
+  <input id="code" maxlength="6" autocomplete="off" inputmode="text" placeholder="ABC123">
+  <button id="go">Conectar</button>
+  <div id="msg"></div>
+</section>
+
+<section id="ctlV" hidden style="flex:1;display:flex;flex-direction:column;min-height:0">
+  <div class="pos"><span id="n">–</span><span id="step"></span></div>
+  <h1 id="title">–</h1>
+  <div id="next"></div>
+  <div class="bar"><i id="prog"></i></div>
+  <div id="notes" class="empty">Sem notas.</div>
+  <div id="pad">Arraste o dedo aqui para o ponteiro no telão</div>
+  <div class="nav"><button id="pv" aria-label="Anterior">‹</button><button id="nx" class="nx" aria-label="Próximo">Próximo ›</button></div>
+  <div class="tools"><button id="first">⏮</button><button id="last">⏭</button><button id="black">■ Preta</button><button id="replay">↻ Cena</button></div>
+</section>
+
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script>
+(function(){
+  "use strict";
+  const $=s=>document.querySelector(s);
+  let conn=null, slides=[], n=0, k=0, kn=0, t0=Date.now(), peer=null, tries=0;
+  const vib=ms=>{ try{ navigator.vibrate&&navigator.vibrate(ms); }catch(_){} };
+  const send=m=>{ if(conn&&conn.open) conn.send(m); };
+  const paint=()=>{ const s=slides[n]||{}; $('#n').textContent='Slide '+(n+1)+' de '+(slides.length||'?'); $('#title').textContent=s.title||'–';
+    $('#step').textContent=kn?'Etapa '+k+' de '+kn:''; let j=n+1; while(slides[j]&&slides[j].hidden) j++;
+    $('#next').textContent=kn&&k<kn?'Próximo: etapa '+(k+1)+' de '+kn:(slides[j]?'Próximo: '+slides[j].title:'Último slide');
+    $('#notes').textContent=s.notes||'Sem notas para este slide.'; $('#notes').classList.toggle('empty',!s.notes);
+    $('#prog').style.width=(slides.length?(n+1)/slides.length*100:0)+'%'; };
+  function connect(id){ id=String(id||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,''); if(id.length<4){ $('#msg').textContent='Código inválido'; return; }
+    $('#msg').textContent='Conectando…'; if(peer) try{ peer.destroy(); }catch(_){}
+    peer=new Peer(); peer.on('error',e=>{ $('#msg').textContent='Não consegui conectar ('+(e.type||'erro')+'). Confira o código e a internet.'; $('#pairV').hidden=false; $('#ctlV').hidden=true; $('#dot').classList.remove('on'); });
+    peer.on('open',()=>{ conn=peer.connect('em-'+id,{reliable:true});
+      conn.on('open',()=>{ $('#dot').classList.add('on'); $('#pairV').hidden=true; $('#ctlV').hidden=false; tries=0; t0=Date.now(); vib(40); send({type:'hello'}); try{ history.replaceState(null,'','#'+id); }catch(_){} });
+      conn.on('data',m=>{ if(!m||!m.type) return;
+        if(m.type==='deck'){ slides=m.slides||[]; n=m.n||0; k=0; kn=(slides[n]&&slides[n].steps)||0; if(m.t0) t0=Date.now()-m.t0; paint(); }
+        else if(m.type==='index'){ if(m.n!==n) vib(25); n=m.n; k=0; kn=(slides[n]&&slides[n].steps)||0; paint(); }
+        else if(m.type==='step'){ k=m.k; kn=m.n; paint(); }
+        else if(m.type==='end'){ $('#title').textContent='Apresentação encerrada'; $('#dot').classList.remove('on'); } });
+      conn.on('close',()=>{ $('#dot').classList.remove('on'); if(tries++<5) setTimeout(()=>connect(id),1500); else { $('#pairV').hidden=false; $('#ctlV').hidden=true; $('#msg').textContent='Conexão perdida.'; } }); }); }
+  $('#go').onclick=()=>connect($('#code').value); $('#code').onkeydown=e=>{ if(e.key==='Enter') connect($('#code').value); };
+  $('#nx').onclick=()=>{ vib(15); send({type:'next'}); }; $('#pv').onclick=()=>{ vib(15); send({type:'prev'}); };
+  $('#first').onclick=()=>send({type:'first'}); $('#last').onclick=()=>send({type:'last'}); $('#black').onclick=()=>send({type:'black'}); $('#replay').onclick=()=>send({type:'replay'});
+  /* deslizar na área de notas troca o slide */
+  let sx=null; $('#notes').addEventListener('touchstart',e=>{ sx=e.touches[0].clientX; },{passive:true});
+  $('#notes').addEventListener('touchend',e=>{ if(sx==null) return; const dx=e.changedTouches[0].clientX-sx; if(Math.abs(dx)>60){ vib(15); send({type:dx<0?'next':'prev'}); } sx=null; },{passive:true});
+  /* ponteiro: a área do pad representa a tela inteira */
+  const pad=$('#pad'); let lastT=0;
+  const ptr=(e,on)=>{ const r=pad.getBoundingClientRect(), p=e.touches?e.touches[0]||e.changedTouches[0]:e; const x=Math.max(0,Math.min(1,(p.clientX-r.left)/r.width)), y=Math.max(0,Math.min(1,(p.clientY-r.top)/r.height)); const now=Date.now(); if(on&&now-lastT<30) return; lastT=now; send({type:'ptr',x,y,on}); };
+  pad.addEventListener('pointerdown',e=>{ pad.classList.add('on'); pad.setPointerCapture(e.pointerId); ptr(e,true); });
+  pad.addEventListener('pointermove',e=>{ if(pad.classList.contains('on')) ptr(e,true); });
+  const up=e=>{ pad.classList.remove('on'); ptr(e,false); }; pad.addEventListener('pointerup',up); pad.addEventListener('pointercancel',up);
+  setInterval(()=>{ const s=Math.floor((Date.now()-t0)/1000); $('#clock').textContent=String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0'); },500);
+  /* evita a tela apagar enquanto apresenta */
+  let wl=null; const lock=async()=>{ try{ if('wakeLock' in navigator) wl=await navigator.wakeLock.request('screen'); }catch(_){} }; document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') lock(); }); lock();
+  const h=location.hash.slice(1); if(h){ $('#code').value=h; connect(h); }
+})();
+</script>
+</body>

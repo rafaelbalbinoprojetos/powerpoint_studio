@@ -92,6 +92,8 @@ function findDialog(){ const d=deck(); const m=modal(`<h3>Buscar e substituir</h
   ok.onclick=()=>{ const r=rx(); if(!r) return; snap&&snap(); let n=0; d.slides.forEach(s=>{ walk(s.d,str=>{ const nv=str.replace(r,()=>{ n++; return rr.value; }); return nv!==str?nv:undefined; },''); if(s.notes) s.notes=s.notes.replace(r,()=>{ n++; return rr.value; }); });
     touch(); renderAll(); setStatus(n+' substituição'+(n>1?'ões':'')+' feita'+(n>1?'s':'')+' (Ctrl+Z desfaz)',true); scan(); };
   m.el.querySelector('[data-c]').onclick=m.close; setTimeout(()=>q.focus(),50); }
+/* página do controle pelo celular (pasta remote/ publicada) */
+const REMOTE_URL=(()=>{ try{ return localStorage.getItem('em-remote-url')||''; }catch(_){ return ''; } })()||'https://rafaelbalbinoprojetos.github.io/estudio-motion-controle/';
 /* copiar e colar estilo entre slides */
 const STY_KEYS=['anim','speed','tr','lay','head','dur'];
 let styleClip=null; try{ styleClip=JSON.parse(localStorage.getItem(LS+'-style')||'null'); }catch(_){}
@@ -984,10 +986,11 @@ function present(start,o={}){
   const d=o.deck||deck(); if(!d.slides.length) return;
   const th=D.themeOf(d);
   const hostHTML=o.vertical?`<div class="vframe" style='${D.themeVars(th)}'><div class="vf-top"><span class="vf-k"></span><b class="vf-t"></b></div><div class="host vf-host"></div><div class="vf-bot"><span class="vf-brand">${esc(d.footerText||d.name||'')}</span><div class="vf-pg"><i></i></div></div></div>`:'<div class="host"></div>';
-  const w=document.createElement('div'); w.className='show'+(o.recording?' rec':'')+(o.vertical?' vert':''); w.innerHTML=`${hostHTML}<div class="bar"><button data-x aria-label="Sair">✕</button><button data-first aria-label="Primeiro slide" title="Primeiro slide (Home)">⏮</button><button data-p aria-label="Anterior">‹</button><div class="pg"><i></i></div><span class="n"></span><button data-n aria-label="Próximo">›</button><button data-last aria-label="Último slide" title="Último slide (End)">⏭</button><button data-v aria-label="Janela do apresentador" title="Janela do apresentador (P)">🗒</button><button data-tool="laser" aria-label="Ponteiro laser" title="Ponteiro laser (L)">●</button><button data-tool="zoom" aria-label="Zoom" title="Zoom: clique para aproximar (Z)">⌕</button><button data-tool="voice" aria-label="Comando por voz" title="Comando por voz (V)">🎙</button><button data-tool="cc" aria-label="Legendas ao vivo" title="Legendas ao vivo (C)">CC</button><button data-tool="a11y" aria-label="Alto contraste" title="Alto contraste (A)">◐</button><button data-tool="help" aria-label="Atalhos" title="Atalhos (?)">?</button><button data-f aria-label="Tela cheia">⤢</button></div><canvas class="laser" aria-hidden="true"></canvas><div class="voice-chip" hidden></div>`;
+  const w=document.createElement('div'); w.className='show'+(o.recording?' rec':'')+(o.vertical?' vert':''); w.innerHTML=`${hostHTML}<div class="bar"><button data-x aria-label="Sair">✕</button><button data-first aria-label="Primeiro slide" title="Primeiro slide (Home)">⏮</button><button data-p aria-label="Anterior">‹</button><div class="pg"><i></i></div><span class="n"></span><button data-n aria-label="Próximo">›</button><button data-last aria-label="Último slide" title="Último slide (End)">⏭</button><button data-v aria-label="Janela do apresentador" title="Janela do apresentador (P)">🗒</button><button data-rm aria-label="Controle pelo celular" title="Controle pelo celular">📱</button><button data-tool="laser" aria-label="Ponteiro laser" title="Ponteiro laser (L)">●</button><button data-tool="zoom" aria-label="Zoom" title="Zoom: clique para aproximar (Z)">⌕</button><button data-tool="voice" aria-label="Comando por voz" title="Comando por voz (V)">🎙</button><button data-tool="cc" aria-label="Legendas ao vivo" title="Legendas ao vivo (C)">CC</button><button data-tool="a11y" aria-label="Alto contraste" title="Alto contraste (A)">◐</button><button data-tool="help" aria-label="Atalhos" title="Atalhos (?)">?</button><button data-f aria-label="Tela cheia">⤢</button></div><canvas class="laser" aria-hidden="true"></canvas><div class="voice-chip" hidden></div>`;
   document.body.appendChild(w);
   let pop=null;
-  const tell=msg=>{ try{ if(pop&&!pop.closed) pop.postMessage(Object.assign({em:1},msg),'*'); }catch(_){} };
+  let rmConns=[];
+  const tell=msg=>{ try{ if(pop&&!pop.closed) pop.postMessage(Object.assign({em:1},msg),'*'); }catch(_){} if(msg.type!=='deck') rmConns.forEach(c=>{ try{ c.open&&c.send(msg); }catch(_){} }); };
   const R=o.rehearse?rehearsal(d,o.rehearse,w):null;
   const upd=n=>{ if(R) R.go(n); w.querySelector('.n').textContent=(n+1)+' / '+d.slides.length; w.querySelector('.pg i').style.width=((n+1)/d.slides.length*100)+'%'; tell({type:'index',n});
     if(o.vertical){ const s=d.slides[n]||{}, sd=s.d||{}; const vt=w.querySelector('.vf-t'), vk=w.querySelector('.vf-k'); vk.textContent=sd.kicker||''; vt.innerHTML=esc(plain(sd.title||sd.quote||sd.word||'')).replace(/\n/g,'<br>'); w.querySelector('.vf-pg i').style.width=((n+1)/d.slides.length*100)+'%';
@@ -1015,6 +1018,30 @@ function present(start,o={}){
     else if(m.type==='next') pl.next(); else if(m.type==='prev') pl.prev(); else if(m.type==='go') pl.go(+m.n); else if(m.type==='first'||m.type==='last'){ let j=m.type==='first'?0:d.slides.length-1; const st=m.type==='first'?1:-1; while(d.slides[j]&&d.slides[j].hidden) j+=st; if(d.slides[j]) pl.go(j); }
     else if(m.type==='replay') pl.replay(); else if(m.type==='black') black(); else if(m.type==='pause'){ const g=window.gsap&&gsap.globalTimeline; if(g){ g.paused(!g.paused()); tell({type:'paused',v:g.paused()}); } } };
   addEventListener('message',onMsg);
+  /* ---------- controle pelo celular (ponte WebRTC pela internet) ---------- */
+  let rmPeer=null, rmBox=null, rmDot=null; const rmT0=Date.now();
+  const rmFrame=()=>o.vertical?w.querySelector('.vframe'):w.querySelector('.host');
+  const rmSlides=()=>d.slides.map(s=>({title:plain((s.d&&(s.d.title||s.d.quote||s.d.kicker||s.d.word))||(T[s.t]||{}).name||'').slice(0,90),notes:s.notes||'',hidden:!!s.hidden,steps:(s.story||[]).length}));
+  const rmCmd=m=>{ if(!m||!m.type) return; const vis=st=>{ let j=st>0?0:d.slides.length-1; while(d.slides[j]&&d.slides[j].hidden) j+=st; return j; };
+    const tryGo=(j,k=0)=>{ if(pl.index===j||k>12) return; pl.go(j); setTimeout(()=>tryGo(j,k+1),350); }; // durante uma transição o comando é repetido até chegar
+    if(m.type==='next') pl.next(); else if(m.type==='prev') pl.prev(); else if(m.type==='first') tryGo(vis(1)); else if(m.type==='last') tryGo(vis(-1)); else if(m.type==='go') tryGo(+m.n);
+    else if(m.type==='black') black(); else if(m.type==='replay') pl.replay();
+    else if(m.type==='ptr'){ const f=rmFrame(); if(!rmDot){ rmDot=document.createElement('i'); rmDot.className='rm-dot'; } if(rmDot.parentNode!==f) f.appendChild(rmDot); rmDot.style.left=(m.x*100)+'%'; rmDot.style.top=(m.y*100)+'%'; rmDot.classList.toggle('on',!!m.on); } };
+  const loadJS=src=>new Promise((res,rej)=>{ if([...document.scripts].some(s=>s.src===src)) return res(); const s=document.createElement('script'); s.src=src; s.onload=res; s.onerror=rej; document.head.appendChild(s); });
+  const remoteOpen=async()=>{ if(rmBox){ rmBox.hidden=!rmBox.hidden; return; }
+    rmBox=document.createElement('div'); rmBox.className='rm-box'; rmBox.innerHTML='<b>Controle pelo celular</b><p>Preparando…</p>'; w.appendChild(rmBox);
+    rmBox.addEventListener('click',ev=>ev.stopPropagation());
+    try{ await Promise.all([loadJS('https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js'),loadJS('https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js')]); }
+    catch(_){ rmBox.innerHTML='<b>Controle pelo celular</b><p>Sem internet: o controle pelo celular precisa de conexão nos dois aparelhos.</p><button class="btn sm" data-rx>Fechar</button>'; rmBox.querySelector('[data-rx]').onclick=()=>{ rmBox.remove(); rmBox=null; }; return; }
+    const code=Array.from(crypto.getRandomValues(new Uint8Array(6)),v=>'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[v%32]).join('');
+    rmPeer=new Peer('em-'+code);
+    rmPeer.on('error',err=>{ rmBox.querySelector('p').textContent='Não consegui abrir a ponte ('+(err.type||'erro')+'). Tente de novo.'; });
+    rmPeer.on('open',()=>{ const url=REMOTE_URL+'#'+code; let svg=''; try{ const q=qrcode(0,'M'); q.addData(url); q.make(); svg=q.createSvgTag({cellSize:5,margin:2,scalable:true}); }catch(_){}
+      rmBox.innerHTML='<b>Controle pelo celular</b><div class="rm-qr">'+svg+'</div><p>Aponte a câmera do celular para o QR code<br>ou abra <u>'+esc(REMOTE_URL.replace(/^https?:\/\//,''))+'</u> e digite:</p><div class="rm-code">'+code+'</div><p class="rm-st">Aguardando o celular…</p><button class="btn sm" data-rx>Esconder</button>';
+      rmBox.querySelector('[data-rx]').onclick=()=>{ rmBox.hidden=true; }; });
+    rmPeer.on('connection',c=>{ c.on('open',()=>{ rmConns.push(c); c.send({type:'deck',slides:rmSlides(),n:pl.index,t0:Date.now()-rmT0}); const st=rmBox&&rmBox.querySelector('.rm-st'); if(st) st.textContent='Celular conectado ✓'; setTimeout(()=>{ if(rmBox) rmBox.hidden=true; },1200); w.querySelector('.bar [data-rm]').classList.add('on'); });
+      c.on('data',rmCmd); c.on('close',()=>{ rmConns=rmConns.filter(x=>x!==c); if(!rmConns.length) w.querySelector('.bar [data-rm]').classList.remove('on'); }); }); };
+  w.querySelector('.bar [data-rm]').onclick=ev=>{ ev.stopPropagation(); remoteOpen(); };
   const openPresenter=()=>{ if(pop&&!pop.closed){ pop.focus(); return; } pop=open(location.pathname+location.search+'#presenter','estudio-motion-apresentador','width=1100,height=720'); if(!pop) setStatus('O navegador bloqueou a janela do apresentador'); };
   /* ---------- ferramentas do apresentador: laser, zoom, voz e atalhos ---------- */
   const host=w.querySelector('.host'), lc=w.querySelector('.laser'), lx=lc.getContext('2d'), chip=w.querySelector('.voice-chip');
@@ -1067,7 +1094,7 @@ function present(start,o={}){
   toolBtn('cc').onclick=e=>{ e.stopPropagation(); setCC(!ccOn); };
   toolBtn('a11y').onclick=e=>{ e.stopPropagation(); setA11y(); };
   let closed=false;
-  const close=()=>{ if(closed) return; closed=true; if(music) music.stop(); if(R) setTimeout(()=>R.finish(),50); clearInterval(stageT); voiceOn=false; ccOn=false; syncRec(); clearTimeout(ccT); setLaser(false); removeEventListener('resize',sizeL); tell({type:'end'}); pl.destroy(); w.remove(); removeEventListener('keydown',key); removeEventListener('message',onMsg); try{ if(document.fullscreenElement) document.exitFullscreen(); }catch(_){} if(location.hash.startsWith('#play-')) try{ history.replaceState(null,'',location.pathname+location.search); }catch(_){} o.onClose&&o.onClose(); };
+  const close=()=>{ if(closed) return; closed=true; if(music) music.stop(); if(R) setTimeout(()=>R.finish(),50); clearInterval(stageT); voiceOn=false; ccOn=false; syncRec(); clearTimeout(ccT); setLaser(false); removeEventListener('resize',sizeL); tell({type:'end'}); try{ rmPeer&&rmPeer.destroy(); }catch(_){} pl.destroy(); w.remove(); removeEventListener('keydown',key); removeEventListener('message',onMsg); try{ if(document.fullscreenElement) document.exitFullscreen(); }catch(_){} if(location.hash.startsWith('#play-')) try{ history.replaceState(null,'',location.pathname+location.search); }catch(_){} o.onClose&&o.onClose(); };
   const key=e=>{ const k=e.key.toLowerCase();
     if(e.key==='Escape'){ if(help) return toggleHelp(); if(w.classList.contains('blackout')) return black(); if(zoomed||zoomMode) return setZoom(false); return close(); }
     if(e.key==='F5'&&!e.ctrlKey&&!e.metaKey){ e.preventDefault(); return fs(); }
@@ -1186,12 +1213,14 @@ async function recordVideo(){
     <div class="f"><label>Formato</label><div class="seg"><label><input type="radio" name="rf" value="h" checked> Horizontal 16:9 (YouTube, apresentações)</label><label><input type="radio" name="rf" value="v"> Vertical 9:16 (Reels, Stories, TikTok)</label></div></div>
     <div class="f"><label>Avanço dos slides</label><div class="seg"><label><input type="radio" name="ra" value="auto" checked> Automático (${secs}s por slide, ou o tempo de cada slide)</label><label><input type="radio" name="ra" value="man"> Eu avanço com as setas enquanto narro (Esc termina)</label></div></div>
     <label class="chk"><input type="checkbox" id="rMic"> Gravar minha narração pelo microfone</label>
-    <div class="f"><label for="rMus">Trilha sonora (opcional, .mp3 ou .wav)</label><input type="file" id="rMus" accept="audio/*"><span class="hint">A música abaixa sozinha enquanto você fala.</span></div>
+    ${d.music?'<label class="chk"><input type="checkbox" id="rDm" checked> Usar a trilha da apresentação ('+esc(d.music.name||'música')+')</label>':''}
+    <div class="f"><label for="rMus">${d.music?'Ou outra trilha':'Trilha sonora'} (opcional, .mp3 ou .wav)</label><input type="file" id="rMus" accept="audio/*"><span class="hint">A música abaixa sozinha enquanto você fala.</span></div>
     <div class="f"><label for="rVol">Volume da trilha</label><input type="range" id="rVol" min="0" max="100" value="35"></div>
     <div class="row"><button class="btn" data-c>Cancelar</button><button class="btn pri" data-ok>Começar</button></div>`,'confirm');
     m.el.querySelector('[data-c]').onclick=()=>{ m.close(); res(null); };
-    m.el.querySelector('[data-ok]').onclick=()=>{ const q=s=>m.el.querySelector(s); const c={vertical:q('[name=rf]:checked').value==='v',manual:q('[name=ra]:checked').value==='man',mic:q('#rMic').checked,music:q('#rMus').files[0]||null,vol:+q('#rVol').value/100}; m.close(); res(c); }; });
+    m.el.querySelector('[data-ok]').onclick=()=>{ const q=s=>m.el.querySelector(s); const c={vertical:q('[name=rf]:checked').value==='v',manual:q('[name=ra]:checked').value==='man',mic:q('#rMic').checked,music:q('#rMus').files[0]||null,deckMusic:!!(q('#rDm')&&q('#rDm').checked),vol:+q('#rVol').value/100}; m.close(); res(c); }; });
   if(!cfg) return;
+  if(!cfg.music&&cfg.deckMusic&&d.music){ try{ cfg.music=d.music.src?await (await fetch(D.resolveImage(d.music.src))).blob():await IDB.get('music-'+curId); }catch(_){ cfg.music=null; } if(!cfg.music) setStatus('Não achei a trilha da apresentação: gravando sem ela'); }
   let stream; try{ stream=await navigator.mediaDevices.getDisplayMedia({video:{frameRate:30,displaySurface:'browser'},audio:false,preferCurrentTab:true,selfBrowserSurface:'include'}); }catch(e){ setStatus('Gravação cancelada'); return; }
   /* áudio: microfone + trilha com "ducking" automático */
   let actx=null, mic=null, duckT=null, musicEl=null; const audioTracks=[];
