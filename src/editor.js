@@ -93,7 +93,7 @@ function findDialog(){ const d=deck(); const m=modal(`<h3>Buscar e substituir</h
     touch(); renderAll(); setStatus(n+' substituição'+(n>1?'ões':'')+' feita'+(n>1?'s':'')+' (Ctrl+Z desfaz)',true); scan(); };
   m.el.querySelector('[data-c]').onclick=m.close; setTimeout(()=>q.focus(),50); }
 /* página do controle pelo celular (pasta remote/ publicada) */
-const REMOTE_URL=(()=>{ try{ return localStorage.getItem('em-remote-url')||''; }catch(_){ return ''; } })()||'https://rafaelbalbinoprojetos.github.io/estudio-motion-controle/';
+const REMOTE_URL=(()=>{ try{ return localStorage.getItem('em-remote-url')||''; }catch(_){ return ''; } })()||'https://rafaelbalbinoprojetos.github.io/powerpoint_studio/remote/';
 /* copiar e colar estilo entre slides */
 const STY_KEYS=['anim','speed','tr','lay','head','dur'];
 let styleClip=null; try{ styleClip=JSON.parse(localStorage.getItem(LS+'-style')||'null'); }catch(_){}

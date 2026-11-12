@@ -214,5 +214,5 @@ ESTÚDIO MOTION 2.0
 - Controle pelo celular: ao apresentar, botão 📱 na barra. Aparece um QR code e um código de 6
   letras. No celular: Próximo/Anterior, deslizar nas notas, primeiro/último, tela preta, reiniciar
   cena, ponteiro (arraste o dedo) e cronômetro. Precisa de internet nos dois aparelhos.
-  A página do celular está em remote/index.html e precisa estar publicada (ver docs).
+  A página do celular fica em https://rafaelbalbinoprojetos.github.io/powerpoint_studio/remote/ (GitHub Pages).
 - Gravar vídeo: agora pode usar a trilha sonora da apresentação automaticamente.
