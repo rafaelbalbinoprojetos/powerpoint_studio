@@ -680,6 +680,8 @@ MODELOS E O QUE ESCREVER EM CADA ITEM
 {combo}          - Jan: realizado / projeção  (até 12)     barras = realizado, linha = projeção
                  - Jun: / 280   (só projeção)   também {barras e linha} ou {projecao}
 {medidores}      - Meta: 0 a 100              (até 4)
+Cores de status: termine o item com (alerta), (atenção) ou (ok) para o cartão ficar vermelho, laranja ou verde.
+  No texto: !!palavra!! vermelho · ??palavra?? laranja · ++palavra++ verde (como *palavra* na cor de destaque).
 Detalhe ao clicar (gráficos): crie um slide (oculto) com o mesmo nome da categoria, ex.: "Sudeste {tabela} (oculto)".
   Ao apresentar, clicar na barra/fatia abre o detalhe e o botão Voltar retorna ao gráfico.
 Etapas (gráficos, pizza, linha, funil, números, cartões): depois dos itens, uma linha por etapa
@@ -807,6 +809,7 @@ function parseScript(txt){
   return slides;
 }
 function toSlide(s,i,n){
+  const tones=[]; s.bullets=s.bullets.map((b,j)=>{ const m=/\s*\((alerta|cr[ií]tico|aten[cç][aã]o|aviso|ok|conforme|conformidade)\)\s*$/i.exec(b); if(!m) return b; const w=m[1].toLowerCase(); tones[j]=/^(alerta|cr)/.test(w)?'alerta':/^(aten|aviso)/.test(w)?'atencao':'ok'; return b.slice(0,m.index); });
   const pair=b=>{ const m=/^(.+?)\s*(?::|—|–|\s-\s)\s*(.+)$/.exec(b); return m?{a:m[1].trim(),b:m[2].trim()}:{a:b,b:''}; };
   const P=s.bullets.map(pair), allPairs=s.bullets.length>0&&P.every(p=>p.b);
   const numeric=allPairs&&P.every(p=>/^(R\$\s*)?[\d.,]+\s*(%|mil|mi|bi|k|x)?$/i.test(p.a));
@@ -859,6 +862,7 @@ function toSlide(s,i,n){
       if(it){ const subs=it.sub.filter(f=>f.t==='text'||f.t==='area'); d[it.k]=P.map(p=>{ const o={}; it.sub.forEach(f=>o[f.k]=f.t==='bool'?false:''); if(subs[0]) o[subs[0].k]=p.a; if(subs[1]) o[subs[1].k]=p.b; return o; }); }
       else if(li) d[li.k]=s.bullets; }
   }
+  if(tones.length){ const k=Object.keys(d).find(x=>Array.isArray(d[x])&&d[x].length&&typeof d[x][0]==='object'); if(k) d[k].forEach((it,j)=>{ if(tones[j]) it.tone=tones[j]; }); }
   const sl=D.fillDefaults({id:uid(),t,d});
   if(s.story&&s.story.length&&STORY_T.includes(t)){ const labs=storyLabels(sl).map(x=>plain(x).toLowerCase()); sl.story=s.story.map(x=>{ const zoom=/\(zoom\)\s*$/i.test(x); x=x.replace(/\s*\(zoom\)\s*$/i,''); const p=/^(.+?)\s+[—–-]\s+(.+)$/.exec(x); const i=p?labs.indexOf(plain(p[1]).toLowerCase()):-1; return {i,text:i>=0?p[2]:x,zoom}; }); }
   if(s.notes.length) sl.notes=s.notes.join('\n'); if(s.hidden) sl.hidden=true; return sl;

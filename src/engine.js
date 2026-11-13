@@ -2,7 +2,7 @@
 (function(){
 "use strict";
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const rich=s=>esc(s).replace(/`([^`]+)`/g,'<span class="dk-code">$1</span>').replace(/\*([^*]+)\*/g,'<span class="hl">$1</span>').replace(/\n/g,'<br>');
+const rich=s=>esc(s).replace(/`([^`]+)`/g,'<span class="dk-code">$1</span>').replace(/!!([^!\n]+)!!/g,'<span class="hl tx-alerta">$1</span>').replace(/\?\?([^?\n]+)\?\?/g,'<span class="hl tx-atencao">$1</span>').replace(/\+\+([^+\n]+)\+\+/g,'<span class="hl tx-ok">$1</span>').replace(/\*([^*]+)\*/g,'<span class="hl">$1</span>').replace(/\n/g,'<br>');
 const arr=v=>Array.isArray(v)?v:[];
 let resolveImage=v=>{ if(!v) return ''; v=String(v); if(v.startsWith('asset:')) return '/_blob/'+v.slice(6); return v; };
 const im=v=>esc(resolveImage(v));
@@ -648,11 +648,18 @@ const LAYOUTS={
   encerramento:{'':'Padrão',centro:'Centralizado'},
   video:{'':'Embaixo à esquerda',centro:'Centralizado'}
 };
+/* cor de status por item: regras geradas para o próprio slide (funciona no editor, miniaturas, apresentação e exportação) */
+const TONE_VAR={alerta:'var(--bad)',atencao:'var(--alert)',ok:'var(--ok)'};
+const TONE_BOX='.dk-card,.gl-c,.dk-node,.dk-stat,.dk-ev,.nt-n,.op-b,.pn-k,.dk-kpi,.dk-step';
+function toneCSS(s,i){ const d=s.d||{}; let css=''; Object.keys(d).forEach(k=>{ const a=d[k]; if(!Array.isArray(a)) return; a.forEach((x,j)=>{ if(!x||!TONE_VAR[x.tone]) return;
+    css+=`.dk-slide[data-tn="${i}"] :is(${TONE_BOX}):has([data-f^="${k}.${j}."]){--tc:${TONE_VAR[x.tone]};--accent:var(--tc);--glow:color-mix(in srgb,var(--tc) 45%,transparent);border-color:color-mix(in srgb,var(--tc) 70%,transparent)!important;background-image:linear-gradient(150deg,color-mix(in srgb,var(--tc) 16%,transparent),transparent 65%)!important;box-shadow:0 0 0 1px color-mix(in srgb,var(--tc) 35%,transparent),0 20px 50px -24px var(--tc)!important}`
+      +`.dk-slide[data-tn="${i}"] :is(${TONE_BOX}):not(.dk-ev):has([data-f^="${k}.${j}."])::before{content:"";position:absolute;top:18px;right:18px;width:12px;height:12px;border-radius:50%;background:var(--tc);box-shadow:0 0 14px var(--tc);z-index:2}`; }); });
+  return css?'<style>'+css+'</style>':''; }
 function slideHTML(deck,i,t){
   const s=deck.slides[i]; const T=TEMPLATES[s&&s.t]||TEMPLATES.destaque;
   let inner=''; try{ inner=T.render(Object.assign({},s.d||{}),t); }catch(e){ inner=`<p class="dk-lead">Erro neste slide: ${esc(e.message)}</p>`; }
   const lay=s.lay&&LAYOUTS[s.t]&&LAYOUTS[s.t][s.lay]?' dk-lay-'+esc(s.lay):'';
-  return `<section class="dk-slide dk-t-${esc(s.t)}${lay}${headShown(deck,s)?' with-head':''}" data-i="${i}" aria-label="Slide ${i+1}">${inner}</section>`;
+  return `<section class="dk-slide dk-t-${esc(s.t)}${lay}${headShown(deck,s)?' with-head':''}" data-i="${i}" data-tn="${i}" aria-label="Slide ${i+1}">${toneCSS(s,i)}${inner}</section>`;
 }
 function footHTML(deck,t,i){
   if(deck.footer===false) return '';
@@ -1195,6 +1202,9 @@ function renderStatic(root,deck,i){
   fit(); const ro=new ResizeObserver(fit); ro.observe(p); return ()=>ro.disconnect();
 }
 
+;(()=>{ const TONE={k:'tone',t:'select',l:'Cor de status',opts:{'':'Padrão',alerta:'🔴 Alerta',atencao:'🟠 Atenção',ok:'🟢 Conformidade'}};
+  const OK={cartoes:'cards',numeros:'stats',fluxo:'steps',vidros:'cards',painel:'kpis',onepage:'blocks',agenda:'events',rede:'nodes'};
+  Object.entries(OK).forEach(([t,k])=>{ const tp=TEMPLATES[t]; if(!tp) return; tp.fields.forEach(f=>{ if(f.t==='items'&&f.k===k&&!f.sub.some(x=>x.k==='tone')) f.sub.push(TONE); }); }); })();
 window.Deck={TEMPLATES,PRESETS,FONTS,DIRECTION,BACKGROUNDS,SHAPES,CARDS,ANIMS,TRANSITIONS,createPlayer,renderStatic,themeOf,themeVars,ensureFonts,fontURL,esc,fillDefaults,
   setImageResolver(fn){resolveImage=fn;}, slideHTML, resolveImage:v=>resolveImage(v), ICONS,LAYOUTS,version:'2.2'};
 })();

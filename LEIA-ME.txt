@@ -216,3 +216,7 @@ ESTÚDIO MOTION 2.0
   cena, ponteiro (arraste o dedo) e cronômetro. Precisa de internet nos dois aparelhos.
   A página do celular fica em https://rafaelbalbinoprojetos.github.io/powerpoint_studio/remote/ (GitHub Pages).
 - Gravar vídeo: agora pode usar a trilha sonora da apresentação automaticamente.
+- Cores de status: nos cartões, números, fluxo, linha do tempo, vidros, rede, painel e OnePage,
+  campo "Cor de status" em cada item: 🔴 Alerta, 🟠 Atenção, 🟢 Conformidade.
+  No texto: !!palavra!! vermelho, ??palavra?? laranja, ++palavra++ verde.
+  Ao criar por texto: termine o item com (alerta), (atenção) ou (ok).

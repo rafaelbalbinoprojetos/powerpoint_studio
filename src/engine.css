@@ -638,3 +638,8 @@
 .dk-drill{cursor:pointer}
 .dk-drill:hover{filter:brightness(1.25)}
 .dk-bar.dk-drill::after,.hb-r.dk-drill .hb-l::after,.dk-lg.dk-drill span::after,.fn-s.dk-drill .fn-l::after{content:" ↗";font-size:.8em;opacity:.6}
+
+/* cores de status no texto: !!alerta!!  ??atenção??  ++conformidade++ */
+.hl.tx-alerta{color:var(--bad);--glow:color-mix(in srgb,var(--bad) 45%,transparent);-webkit-text-fill-color:var(--bad)}
+.hl.tx-atencao{color:var(--alert);--glow:color-mix(in srgb,var(--alert) 45%,transparent);-webkit-text-fill-color:var(--alert)}
+.hl.tx-ok{color:var(--ok);--glow:color-mix(in srgb,var(--ok) 45%,transparent);-webkit-text-fill-color:var(--ok)}

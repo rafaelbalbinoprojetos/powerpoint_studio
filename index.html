@@ -650,6 +650,11 @@
 .dk-drill{cursor:pointer}
 .dk-drill:hover{filter:brightness(1.25)}
 .dk-bar.dk-drill::after,.hb-r.dk-drill .hb-l::after,.dk-lg.dk-drill span::after,.fn-s.dk-drill .fn-l::after{content:" ↗";font-size:.8em;opacity:.6}
+
+/* cores de status no texto: !!alerta!!  ??atenção??  ++conformidade++ */
+.hl.tx-alerta{color:var(--bad);--glow:color-mix(in srgb,var(--bad) 45%,transparent);-webkit-text-fill-color:var(--bad)}
+.hl.tx-atencao{color:var(--alert);--glow:color-mix(in srgb,var(--alert) 45%,transparent);-webkit-text-fill-color:var(--alert)}
+.hl.tx-ok{color:var(--ok);--glow:color-mix(in srgb,var(--ok) 45%,transparent);-webkit-text-fill-color:var(--ok)}
 </style>
 <style>
 /* Layout: mesa de montagem — lista de slides | palco | inspetor; empilha no celular */
@@ -1090,7 +1095,7 @@ details.cgrp[open]>summary{border-bottom:1px solid var(--ui-line,#e3e6ec)}
 (function(){
 "use strict";
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const rich=s=>esc(s).replace(/`([^`]+)`/g,'<span class="dk-code">$1</span>').replace(/\*([^*]+)\*/g,'<span class="hl">$1</span>').replace(/\n/g,'<br>');
+const rich=s=>esc(s).replace(/`([^`]+)`/g,'<span class="dk-code">$1</span>').replace(/!!([^!\n]+)!!/g,'<span class="hl tx-alerta">$1</span>').replace(/\?\?([^?\n]+)\?\?/g,'<span class="hl tx-atencao">$1</span>').replace(/\+\+([^+\n]+)\+\+/g,'<span class="hl tx-ok">$1</span>').replace(/\*([^*]+)\*/g,'<span class="hl">$1</span>').replace(/\n/g,'<br>');
 const arr=v=>Array.isArray(v)?v:[];
 let resolveImage=v=>{ if(!v) return ''; v=String(v); if(v.startsWith('asset:')) return '/_blob/'+v.slice(6); return v; };
 const im=v=>esc(resolveImage(v));
@@ -1736,11 +1741,18 @@ const LAYOUTS={
   encerramento:{'':'Padrão',centro:'Centralizado'},
   video:{'':'Embaixo à esquerda',centro:'Centralizado'}
 };
+/* cor de status por item: regras geradas para o próprio slide (funciona no editor, miniaturas, apresentação e exportação) */
+const TONE_VAR={alerta:'var(--bad)',atencao:'var(--alert)',ok:'var(--ok)'};
+const TONE_BOX='.dk-card,.gl-c,.dk-node,.dk-stat,.dk-ev,.nt-n,.op-b,.pn-k,.dk-kpi,.dk-step';
+function toneCSS(s,i){ const d=s.d||{}; let css=''; Object.keys(d).forEach(k=>{ const a=d[k]; if(!Array.isArray(a)) return; a.forEach((x,j)=>{ if(!x||!TONE_VAR[x.tone]) return;
+    css+=`.dk-slide[data-tn="${i}"] :is(${TONE_BOX}):has([data-f^="${k}.${j}."]){--tc:${TONE_VAR[x.tone]};--accent:var(--tc);--glow:color-mix(in srgb,var(--tc) 45%,transparent);border-color:color-mix(in srgb,var(--tc) 70%,transparent)!important;background-image:linear-gradient(150deg,color-mix(in srgb,var(--tc) 16%,transparent),transparent 65%)!important;box-shadow:0 0 0 1px color-mix(in srgb,var(--tc) 35%,transparent),0 20px 50px -24px var(--tc)!important}`
+      +`.dk-slide[data-tn="${i}"] :is(${TONE_BOX}):not(.dk-ev):has([data-f^="${k}.${j}."])::before{content:"";position:absolute;top:18px;right:18px;width:12px;height:12px;border-radius:50%;background:var(--tc);box-shadow:0 0 14px var(--tc);z-index:2}`; }); });
+  return css?'<style>'+css+'</style>':''; }
 function slideHTML(deck,i,t){
   const s=deck.slides[i]; const T=TEMPLATES[s&&s.t]||TEMPLATES.destaque;
   let inner=''; try{ inner=T.render(Object.assign({},s.d||{}),t); }catch(e){ inner=`<p class="dk-lead">Erro neste slide: ${esc(e.message)}</p>`; }
   const lay=s.lay&&LAYOUTS[s.t]&&LAYOUTS[s.t][s.lay]?' dk-lay-'+esc(s.lay):'';
-  return `<section class="dk-slide dk-t-${esc(s.t)}${lay}${headShown(deck,s)?' with-head':''}" data-i="${i}" aria-label="Slide ${i+1}">${inner}</section>`;
+  return `<section class="dk-slide dk-t-${esc(s.t)}${lay}${headShown(deck,s)?' with-head':''}" data-i="${i}" data-tn="${i}" aria-label="Slide ${i+1}">${toneCSS(s,i)}${inner}</section>`;
 }
 function footHTML(deck,t,i){
   if(deck.footer===false) return '';
@@ -2283,6 +2295,9 @@ function renderStatic(root,deck,i){
   fit(); const ro=new ResizeObserver(fit); ro.observe(p); return ()=>ro.disconnect();
 }
 
+;(()=>{ const TONE={k:'tone',t:'select',l:'Cor de status',opts:{'':'Padrão',alerta:'🔴 Alerta',atencao:'🟠 Atenção',ok:'🟢 Conformidade'}};
+  const OK={cartoes:'cards',numeros:'stats',fluxo:'steps',vidros:'cards',painel:'kpis',onepage:'blocks',agenda:'events',rede:'nodes'};
+  Object.entries(OK).forEach(([t,k])=>{ const tp=TEMPLATES[t]; if(!tp) return; tp.fields.forEach(f=>{ if(f.t==='items'&&f.k===k&&!f.sub.some(x=>x.k==='tone')) f.sub.push(TONE); }); }); })();
 window.Deck={TEMPLATES,PRESETS,FONTS,DIRECTION,BACKGROUNDS,SHAPES,CARDS,ANIMS,TRANSITIONS,createPlayer,renderStatic,themeOf,themeVars,ensureFonts,fontURL,esc,fillDefaults,
   setImageResolver(fn){resolveImage=fn;}, slideHTML, resolveImage:v=>resolveImage(v), ICONS,LAYOUTS,version:'2.2'};
 })();
@@ -2972,6 +2987,8 @@ MODELOS E O QUE ESCREVER EM CADA ITEM
 {combo}          - Jan: realizado / projeção  (até 12)     barras = realizado, linha = projeção
                  - Jun: / 280   (só projeção)   também {barras e linha} ou {projecao}
 {medidores}      - Meta: 0 a 100              (até 4)
+Cores de status: termine o item com (alerta), (atenção) ou (ok) para o cartão ficar vermelho, laranja ou verde.
+  No texto: !!palavra!! vermelho · ??palavra?? laranja · ++palavra++ verde (como *palavra* na cor de destaque).
 Detalhe ao clicar (gráficos): crie um slide (oculto) com o mesmo nome da categoria, ex.: "Sudeste {tabela} (oculto)".
   Ao apresentar, clicar na barra/fatia abre o detalhe e o botão Voltar retorna ao gráfico.
 Etapas (gráficos, pizza, linha, funil, números, cartões): depois dos itens, uma linha por etapa
@@ -3099,6 +3116,7 @@ function parseScript(txt){
   return slides;
 }
 function toSlide(s,i,n){
+  const tones=[]; s.bullets=s.bullets.map((b,j)=>{ const m=/\s*\((alerta|cr[ií]tico|aten[cç][aã]o|aviso|ok|conforme|conformidade)\)\s*$/i.exec(b); if(!m) return b; const w=m[1].toLowerCase(); tones[j]=/^(alerta|cr)/.test(w)?'alerta':/^(aten|aviso)/.test(w)?'atencao':'ok'; return b.slice(0,m.index); });
   const pair=b=>{ const m=/^(.+?)\s*(?::|—|–|\s-\s)\s*(.+)$/.exec(b); return m?{a:m[1].trim(),b:m[2].trim()}:{a:b,b:''}; };
   const P=s.bullets.map(pair), allPairs=s.bullets.length>0&&P.every(p=>p.b);
   const numeric=allPairs&&P.every(p=>/^(R\$\s*)?[\d.,]+\s*(%|mil|mi|bi|k|x)?$/i.test(p.a));
@@ -3151,6 +3169,7 @@ function toSlide(s,i,n){
       if(it){ const subs=it.sub.filter(f=>f.t==='text'||f.t==='area'); d[it.k]=P.map(p=>{ const o={}; it.sub.forEach(f=>o[f.k]=f.t==='bool'?false:''); if(subs[0]) o[subs[0].k]=p.a; if(subs[1]) o[subs[1].k]=p.b; return o; }); }
       else if(li) d[li.k]=s.bullets; }
   }
+  if(tones.length){ const k=Object.keys(d).find(x=>Array.isArray(d[x])&&d[x].length&&typeof d[x][0]==='object'); if(k) d[k].forEach((it,j)=>{ if(tones[j]) it.tone=tones[j]; }); }
   const sl=D.fillDefaults({id:uid(),t,d});
   if(s.story&&s.story.length&&STORY_T.includes(t)){ const labs=storyLabels(sl).map(x=>plain(x).toLowerCase()); sl.story=s.story.map(x=>{ const zoom=/\(zoom\)\s*$/i.test(x); x=x.replace(/\s*\(zoom\)\s*$/i,''); const p=/^(.+?)\s+[—–-]\s+(.+)$/.exec(x); const i=p?labs.indexOf(plain(p[1]).toLowerCase()):-1; return {i,text:i>=0?p[2]:x,zoom}; }); }
   if(s.notes.length) sl.notes=s.notes.join('\n'); if(s.hidden) sl.hidden=true; return sl;
