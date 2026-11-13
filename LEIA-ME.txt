@@ -225,3 +225,15 @@ ESTÚDIO MOTION 2.0
   Copiar endereço da imagem). O sistema confere os links e avisa se algum não carregar.
   O guia "Como marcar" mostra o formato ideal de cada imagem (16:9, 4:5, quadrada, PNG).
 - Apresentação nova (texto/roteiro) começa com tema limpo, sem logo da apresentação anterior.
+- Status automático pela META: em Gráfico, Barras horizontais e Barras + linha, campo "Meta" (e
+  "É bom quando o valor é" maior/menor). Cada barra fica verde (bateu), laranja (até 10% longe) ou
+  vermelha. Em Números, cada indicador tem "Meta". No roteiro: linha "Meta: 300" ou "Meta: ≤ 5".
+- Tabela: palavras como Ok, Em risco, Atrasado, Concluído pintam a célula sozinhas. Também dá para
+  colorir uma coluna numérica pela meta. Colar do Excel/Planilhas na lista de linhas: as colunas viram
+  "|" e a 1ª linha vira cabeçalho (se ele estiver vazio).
+- Imagens: Ctrl+V de uma imagem (print ou copiada do navegador), arrastar uma imagem de outra aba,
+  botão "Link" no campo de imagem, e enquadramento: clique na miniatura para o ponto de foco + zoom.
+- Tema a partir da logo: Tema > Marca > "🎨 Criar tema a partir da logo".
+- Destaque ao vivo: ao apresentar, tecla D (ou ✦ na barra) e clique num cartão, barra ou número.
+- Novas apresentações prontas: Status report semanal, Resultados com metas, Plano de projeto,
+  Governança de reservas (Mais > Começar de uma apresentação pronta).

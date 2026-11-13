@@ -2,7 +2,7 @@
 (function(){
 "use strict";
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const rich=s=>esc(s).replace(/`([^`]+)`/g,'<span class="dk-code">$1</span>').replace(/!!([^!\n]+)!!/g,'<span class="hl tx-alerta">$1</span>').replace(/\?\?([^?\n]+)\?\?/g,'<span class="hl tx-atencao">$1</span>').replace(/\+\+([^+\n]+)\+\+/g,'<span class="hl tx-ok">$1</span>').replace(/\*([^*]+)\*/g,'<span class="hl">$1</span>').replace(/\n/g,'<br>');
+const rich=s=>esc(s).replace(/`([^`]+)`/g,'<span class="dk-code">$1</span>').replace(/!!([^!\n]+)!!/g,'<span class="hl tx-alerta">$1</span>').replace(/\?\?([^?\n]+)\?\?/g,'<span class="hl tx-atencao">$1</span>').replace(/\+\+([^+\n]+)\+\+/g,'<span class="hl tx-ok">$1</span>').replace(/\*([^*]+)\*/g,'<span class="hl">$1</span>').replace(/(<span class="hl[^"]*">[^<]*)<\/span>([,.;:!?)]+)/g,'$1$2</span>').replace(/\n/g,'<br>');
 const arr=v=>Array.isArray(v)?v:[];
 let resolveImage=v=>{ if(!v) return ''; v=String(v); if(v.startsWith('asset:')) return '/_blob/'+v.slice(6); return v; };
 const im=v=>esc(resolveImage(v));
@@ -166,8 +166,8 @@ Object.assign(TEMPLATES,{
  grafico:{name:'Gráfico',desc:'Barras que crescem com os valores informados',
   fields:[{k:'kicker',t:'text',l:'Rótulo'},{k:'title',t:'area',l:'Título'},{k:'lead',t:'area',l:'Subtítulo'},{k:'unit',t:'text',l:'Unidade (ex.: R$ mil, %)'},{k:'bars',t:'items',l:'Barras',max:8,sub:[{k:'label',t:'text',l:'Rótulo'},{k:'value',t:'text',l:'Valor'},{k:'hot',t:'bool',l:'Destacar barra'},{k:'link',t:'slide',l:'Abre o slide de detalhe (clique)'}]}],
   sample:{kicker:'Evolução',title:'Custo evitado *por trimestre*',lead:'',unit:'R$ mil',bars:[{label:'T1',value:'120'},{label:'T2',value:'210'},{label:'T3',value:'260'},{label:'T4',value:'410',hot:true}]},
-  render(d){ const b=arr(d.bars).slice(0,8); const vals=b.map(x=>(parseNum(x.value)||{n:0}).n); const mx=Math.max(1,...vals);
-    return `${head(d)}<div class="dk-chart" data-a="bars" style="${cols(Math.max(1,b.length))}">${b.map((x,i)=>`<div class="dk-bar${x.hot?' hot':''}"><div class="dk-bar-v"><b${countAttr(x.value)}>${esc(x.value)}</b>${d.unit?`<small>${esc(d.unit)}</small>`:''}</div><div class="dk-bar-c"><i style="height:${Math.max(2,vals[i]/mx*100)}%"></i></div><span>${esc(x.label)}</span></div>`).join('')}</div>`; }},
+  render(d){ const b=arr(d.bars).slice(0,8); const vals=b.map(x=>(parseNum(x.value)||{n:0}).n); const gl=d.goal?(parseNum(d.goal)||{n:0}).n:0; const mx=Math.max(1,...vals,gl*1.05);
+    return `${head(d)}${d.goal?`<div class="dk-goal-chip">Meta · ${esc(d.goal)}${d.unit?' '+esc(d.unit):''}</div>`:''}<div class="dk-chart" data-a="bars" style="${cols(Math.max(1,b.length))}">${b.map((x,i)=>`<div class="dk-bar${x.hot?' hot':''}${toneCls(d,x.value)}"><div class="dk-bar-v"><b${countAttr(x.value)}>${esc(x.value)}</b>${d.unit?`<small>${esc(d.unit)}</small>`:''}</div><div class="dk-bar-c"><i style="height:${Math.max(2,vals[i]/mx*100)}%"></i>${gl?`<b class="dk-goal" style="bottom:${gl/mx*100}%"></b>`:''}</div><span>${esc(x.label)}</span></div>`).join('')}</div>`; }},
  citacao:{name:'Citação',desc:'Uma frase marcante com autor e foto',
   fields:[{k:'quote',t:'area',l:'Citação'},{k:'author',t:'text',l:'Autor'},{k:'role',t:'text',l:'Cargo ou contexto'},{k:'image',t:'image',l:'Foto do autor (opcional)'}],
   sample:{quote:'Pela primeira vez, a gente *decide olhando o mesmo número*.',author:'Nome da pessoa',role:'Gerente de área',image:''},
@@ -181,7 +181,7 @@ Object.assign(TEMPLATES,{
   fields:[{k:'kicker',t:'text',l:'Rótulo'},{k:'title',t:'area',l:'Título'},{k:'header',t:'text',l:'Cabeçalho (separe colunas com | )'},{k:'rows',t:'list',l:'Linhas (uma por linha, colunas com | )'},{k:'hotRow',t:'text',l:'Destacar linha nº (opcional)'}],
   sample:{kicker:'Comparativo',title:'Indicadores *por área*',header:'Área | Reservas | Economia',rows:['Funilaria | 312 | R$ 410 mil','Pintura | 208 | R$ 260 mil','Montagem | 145 | R$ 180 mil'],hotRow:'1'},
   render(d){ const sp=s=>String(s||'').split('|').map(x=>x.trim()); const h=sp(d.header).filter(Boolean); const hot=parseInt(d.hotRow,10);
-    return `${head(d)}<table class="dk-table">${h.length?`<thead><tr>${h.map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead>`:''}<tbody data-a="stagger">${arr(d.rows).map((r,i)=>`<tr${i+1===hot?' class="hot"':''}>${sp(r).map(c=>`<td>${rich(c)}</td>`).join('')}</tr>`).join('')}</tbody></table>`; }},
+    return `${head(d)}<table class="dk-table">${h.length?`<thead><tr>${h.map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead>`:''}<tbody data-a="stagger">${arr(d.rows).map((r,i)=>`<tr${i+1===hot?' class="hot"':''}>${sp(r).map((c,ci)=>{ const tn=(+d.goalCol===ci+1&&d.goal?statusOf(c,d.goal,d.goalDir):'')||(d.noStatus?'':wordStatus(c)); return `<td${tn?` class="tone-${tn} st-cell"`:''}>${rich(c)}</td>`; }).join('')}</tr>`).join('')}</tbody></table>`; }},
  video:{name:'Vídeo',desc:'Vídeo em tela cheia (em loop, sem som) com título por cima',
   fields:[{k:'src',t:'text',l:'Endereço do vídeo (.mp4 ou .webm) ou use “Enviar vídeo”'},{k:'kicker',t:'text',l:'Rótulo'},{k:'title',t:'area',l:'Título'},{k:'lead',t:'area',l:'Texto de apoio'},{k:'dim',t:'bool',l:'Escurecer o vídeo para o texto aparecer'},{k:'start',t:'text',l:'Começar o vídeo em (segundos)'},{k:'textAt',t:'text',l:'Texto entra aos (segundos; vazio = junto com o vídeo)'},{k:'sound',t:'bool',l:'Tocar o som do vídeo'},{k:'loop',t:'select',l:'Ao terminar',opts:{'':'Repetir',parar:'Parar no último quadro',proximo:'Ir para o próximo slide'}}],
   sample:{src:'',kicker:'Na prática',title:'Veja *funcionando*',lead:'',dim:true},
@@ -328,7 +328,7 @@ Object.assign(TEMPLATES,{
   fields:[{k:'kicker',t:'text',l:'Rótulo'},{k:'title',t:'area',l:'Título'},{k:'lead',t:'area',l:'Subtítulo'},{k:'unit',t:'text',l:'Unidade (ex.: R$ mil, %)'},{k:'bars',t:'items',l:'Barras',max:8,sub:[{k:'label',t:'text',l:'Rótulo'},{k:'value',t:'text',l:'Valor'},{k:'hot',t:'bool',l:'Destacar'},{k:'link',t:'slide',l:'Abre o slide de detalhe (clique)'}]},{k:'sort',t:'bool',l:'Ordenar do maior para o menor'}],
   sample:{kicker:'Ranking',title:'Economia *por área*',lead:'',unit:'R$ mil',sort:true,bars:[{label:'Funilaria',value:'410',hot:true},{label:'Pintura',value:'260'},{label:'Montagem',value:'180'},{label:'Logística',value:'140'},{label:'Qualidade',value:'95'}].map(x=>Object.assign({hot:false},x))},
   render(d){ let b=arr(d.bars).slice(0,8).map(x=>Object.assign({},x,{n:num(x.value)})); if(d.sort) b=b.slice().sort((p,q)=>q.n-p.n); const mx=Math.max(1,...b.map(x=>x.n));
-    return `${head(d)}<div class="dk-hb" data-a="hbars">${b.map(x=>`<div class="hb-r${x.hot?' hot':''}"><span class="hb-l">${esc(x.label)}</span><div class="hb-t"><i class="hb-f" style="width:${Math.max(1.5,x.n/mx*100)}%"></i></div><span class="hb-v"><b${countAttr(x.value)}>${esc(x.value)}</b>${d.unit?` <small>${esc(d.unit)}</small>`:''}</span></div>`).join('')}</div>`; }},
+    return `${head(d)}<div class="dk-hb" data-a="hbars">${b.map(x=>`<div class="hb-r${x.hot?' hot':''}${toneCls(d,x.value)}"><span class="hb-l">${esc(x.label)}</span><div class="hb-t"><i class="hb-f" style="width:${Math.max(1.5,x.n/mx*100)}%"></i></div><span class="hb-v"><b${countAttr(x.value)}>${esc(x.value)}</b>${d.unit?` <small>${esc(d.unit)}</small>`:''}</span></div>`).join('')}</div>`; }},
  linha:{name:'Linha / área',desc:'Evolução no tempo: a linha se desenha, a área aparece e os pontos surgem',
   fields:[{k:'kicker',t:'text',l:'Rótulo'},{k:'title',t:'area',l:'Título'},{k:'lead',t:'area',l:'Subtítulo'},{k:'points',t:'items',l:'Pontos',max:12,sub:[{k:'label',t:'text',l:'Rótulo (ex.: Jan)'},{k:'value',t:'text',l:'Valor'},{k:'link',t:'slide',l:'Abre o slide de detalhe (clique)'}]},{k:'target',t:'text',l:'Linha de meta (valor, opcional)'},{k:'targetLabel',t:'text',l:'Nome da meta'},{k:'showValues',t:'bool',l:'Mostrar valores nos pontos'}],
   sample:{kicker:'Evolução',title:'Economia *mês a mês*',lead:'',target:'300',targetLabel:'Meta',showValues:true,points:[{label:'Abr',value:'120'},{label:'Mai',value:'180'},{label:'Jun',value:'165'},{label:'Jul',value:'260'},{label:'Ago',value:'330'},{label:'Set',value:'410'}]},
@@ -351,7 +351,7 @@ Object.assign(TEMPLATES,{
     const pts=lv.map((v,i)=>v==null?null:[X(i),Y(v),i]).filter(Boolean); const path=pts.map((q,j)=>(j?'L':'M')+q[0].toFixed(1)+','+q[1].toFixed(1)).join(' ');
     const grid=[0,.25,.5,.75,1].map(f=>`<line x1="0" x2="${W}" y1="${pt+f*(H-pt-pb)}" y2="${pt+f*(H-pt-pb)}" class="ln-g"/>`).join('');
     return `${head(d)}<div class="cb-leg"><span><i class="b"></i>${esc(d.barName||'Realizado')}</span><span><i class="l"></i>${esc(d.lineName||'Projeção')}</span></div><div class="dk-line dk-combo" data-a="combo">
-      ${bv.map((v,i)=>v==null?'':`<div class="cb-b" data-i="${i}" style="left:${(X(i)-cw*.3)/W*100}%;width:${cw*.6/W*100}%;top:${Y(v)/H*100}%;bottom:${pb/H*100}%">${d.showValues?`<b>${esc(p[i].value)}</b>`:''}</div>`).join('')}
+      ${bv.map((v,i)=>v==null?'':`<div class="cb-b${toneCls(d,p[i].value)}" data-i="${i}" style="left:${(X(i)-cw*.3)/W*100}%;width:${cw*.6/W*100}%;top:${Y(v)/H*100}%;bottom:${pb/H*100}%">${d.showValues?`<b>${esc(p[i].value)}</b>`:''}</div>`).join('')}
       <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">${grid}<path d="${path}" class="ln-p cb-p" pathLength="1"/></svg>
       ${pts.map(q=>`<div class="ln-d cb-d" data-i="${q[2]}" style="left:${q[0]/W*100}%;top:${q[1]/H*100}%">${d.showValues&&bv[q[2]]==null?`<b>${esc(p[q[2]].proj)}</b>`:''}</div>`).join('')}
       <div class="ln-x">${p.map((x,i)=>`<span style="left:${X(i)/W*100}%">${esc(x.label)}</span>`).join('')}</div></div>`; }},
@@ -649,17 +649,29 @@ const LAYOUTS={
   video:{'':'Embaixo à esquerda',centro:'Centralizado'}
 };
 /* cor de status por item: regras geradas para o próprio slide (funciona no editor, miniaturas, apresentação e exportação) */
+/* status pela meta: ok = bateu, atencao = até 10% longe, alerta = mais longe */
+function statusOf(v,goal,dir){ const p=parseNum(v), g=parseNum(goal); if(!p||!g||!isFinite(p.n)||!isFinite(g.n)) return ''; const n=p.n, m=g.n;
+  const ok=dir==='menor'?n<=m:n>=m; if(ok) return 'ok'; const gap=Math.abs(n-m)/(Math.abs(m)||1); return gap<=.1?'atencao':'alerta'; }
+const toneCls=(d,v,own)=>{ const t=own||(d&&d.goal?statusOf(v,d.goal,d.goalDir):''); return t?' tone-'+t:''; };
+/* tabela: palavras de status pintam a célula */
+const STATUS_WORDS=[[/^(ok|conforme|conformidade|concluíd[oa]|no prazo|aprovad[oa]|sim|✓|✔|verde|atingid[oa]|em dia)$/i,'ok'],[/^(atenção|em risco|risco|parcial|pendente|em andamento|amarelo|laranja|alerta amarelo|aguardando)$/i,'atencao'],[/^(crític[oa]|atrasad[oa]|vencid[oa]|não conforme|reprovad[oa]|não|✗|✘|vermelho|bloquead[oa]|fora do prazo)$/i,'alerta']];
+const wordStatus=c=>{ const t=String(c||'').replace(/[*!?+]/g,'').trim(); for(const [re,k] of STATUS_WORDS) if(re.test(t)) return k; return ''; };
 const TONE_VAR={alerta:'var(--bad)',atencao:'var(--alert)',ok:'var(--ok)'};
 const TONE_BOX='.dk-card,.gl-c,.dk-node,.dk-stat,.dk-ev,.nt-n,.op-b,.pn-k,.dk-kpi,.dk-step';
-function toneCSS(s,i){ const d=s.d||{}; let css=''; Object.keys(d).forEach(k=>{ const a=d[k]; if(!Array.isArray(a)) return; a.forEach((x,j)=>{ if(!x||!TONE_VAR[x.tone]) return;
+function toneCSS(s,i){ const d=s.d||{}; let css=''; Object.keys(d).forEach(k=>{ const a=d[k]; if(!Array.isArray(a)) return; a.forEach((x,j)=>{ if(!x||typeof x!=='object') return; const tn=x.tone||(x.goal?statusOf(x.value,x.goal,d.goalDir):''); if(!TONE_VAR[tn]) return; x={tone:tn};
     css+=`.dk-slide[data-tn="${i}"] :is(${TONE_BOX}):has([data-f^="${k}.${j}."]){--tc:${TONE_VAR[x.tone]};--accent:var(--tc);--glow:color-mix(in srgb,var(--tc) 45%,transparent);border-color:color-mix(in srgb,var(--tc) 70%,transparent)!important;background-image:linear-gradient(150deg,color-mix(in srgb,var(--tc) 16%,transparent),transparent 65%)!important;box-shadow:0 0 0 1px color-mix(in srgb,var(--tc) 35%,transparent),0 20px 50px -24px var(--tc)!important}`
       +`.dk-slide[data-tn="${i}"] :is(${TONE_BOX}):not(.dk-ev):has([data-f^="${k}.${j}."])::before{content:"";position:absolute;top:18px;right:18px;width:12px;height:12px;border-radius:50%;background:var(--tc);box-shadow:0 0 14px var(--tc);z-index:2}`; }); });
   return css?'<style>'+css+'</style>':''; }
+function frameCSS(s,i){ let css=''; const walk=o=>{ if(!o||typeof o!=='object') return; if(Array.isArray(o)) return o.forEach(walk);
+    Object.keys(o).forEach(k=>{ const v=o[k]; if(typeof v==='string'&&v&&(o[k+'Pos']||+o[k+'Zoom']>1)){ const src=String(resolveImage(v)); const tail=src.slice(-80).replace(/["\\\n]/g,''); if(!tail) return;
+        css+=`.dk-slide[data-tn="${i}"] img[src$="${tail}"]{${o[k+'Pos']?'object-position:'+String(o[k+'Pos']).replace(/[^0-9.% ]/g,'')+';':''}${+o[k+'Zoom']>1?'scale:'+Math.min(3,+o[k+'Zoom'])+';transform-origin:'+(String(o[k+'Pos']||'50% 50%').replace(/[^0-9.% ]/g,''))+';':''}}`; }
+      else if(v&&typeof v==='object') walk(v); }); };
+  walk(s.d||{}); return css?'<style>'+css+'</style>':''; }
 function slideHTML(deck,i,t){
   const s=deck.slides[i]; const T=TEMPLATES[s&&s.t]||TEMPLATES.destaque;
   let inner=''; try{ inner=T.render(Object.assign({},s.d||{}),t); }catch(e){ inner=`<p class="dk-lead">Erro neste slide: ${esc(e.message)}</p>`; }
   const lay=s.lay&&LAYOUTS[s.t]&&LAYOUTS[s.t][s.lay]?' dk-lay-'+esc(s.lay):'';
-  return `<section class="dk-slide dk-t-${esc(s.t)}${lay}${headShown(deck,s)?' with-head':''}" data-i="${i}" data-tn="${i}" aria-label="Slide ${i+1}">${toneCSS(s,i)}${inner}</section>`;
+  return `<section class="dk-slide dk-t-${esc(s.t)}${lay}${headShown(deck,s)?' with-head':''}" data-i="${i}" data-tn="${i}" aria-label="Slide ${i+1}">${toneCSS(s,i)}${frameCSS(s,i)}${inner}</section>`;
 }
 function footHTML(deck,t,i){
   if(deck.footer===false) return '';
@@ -1205,7 +1217,11 @@ function renderStatic(root,deck,i){
 ;(()=>{ const TONE={k:'tone',t:'select',l:'Cor de status',opts:{'':'Padrão',alerta:'🔴 Alerta',atencao:'🟠 Atenção',ok:'🟢 Conformidade'}};
   const OK={cartoes:'cards',numeros:'stats',fluxo:'steps',vidros:'cards',painel:'kpis',onepage:'blocks',agenda:'events',rede:'nodes'};
   Object.entries(OK).forEach(([t,k])=>{ const tp=TEMPLATES[t]; if(!tp) return; tp.fields.forEach(f=>{ if(f.t==='items'&&f.k===k&&!f.sub.some(x=>x.k==='tone')) f.sub.push(TONE); }); }); })();
-window.Deck={TEMPLATES,PRESETS,FONTS,DIRECTION,BACKGROUNDS,SHAPES,CARDS,ANIMS,TRANSITIONS,createPlayer,renderStatic,themeOf,themeVars,ensureFonts,fontURL,esc,fillDefaults,
+;(()=>{ const GOAL={k:'goal',t:'text',l:'Meta (pinta verde / laranja / vermelho)'}, DIR={k:'goalDir',t:'select',l:'É bom quando o valor é',opts:{'':'Maior ou igual à meta','menor':'Menor ou igual à meta'}};
+  ['grafico','barrash','combo'].forEach(t=>{ const f=TEMPLATES[t].fields; if(!f.some(x=>x.k==='goal')) f.push(GOAL,DIR); });
+  const st=TEMPLATES.numeros.fields.find(f=>f.k==='stats'); if(st&&!st.sub.some(x=>x.k==='goal')) st.sub.push({k:'goal',t:'text',l:'Meta (opcional: pinta o status)'}); if(!TEMPLATES.numeros.fields.some(x=>x.k==='goalDir')) TEMPLATES.numeros.fields.push(DIR);
+  const tb=TEMPLATES.tabela.fields; if(!tb.some(x=>x.k==='goal')) tb.push({k:'goalCol',t:'text',l:'Colorir a coluna nº (compara com a meta)'},GOAL,DIR,{k:'noStatus',t:'bool',l:'Não colorir palavras de status (ok, atrasado, em risco…)'}); })();
+window.Deck={TEMPLATES,PRESETS,FONTS,DIRECTION,BACKGROUNDS,SHAPES,CARDS,ANIMS,TRANSITIONS,createPlayer,renderStatic,themeOf,themeVars,ensureFonts,fontURL,statusOf,esc,fillDefaults,
   setImageResolver(fn){resolveImage=fn;}, slideHTML, resolveImage:v=>resolveImage(v), ICONS,LAYOUTS,version:'2.2'};
 })();
 

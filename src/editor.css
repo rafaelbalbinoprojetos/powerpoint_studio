@@ -369,3 +369,12 @@ details.cgrp[open]>summary{border-bottom:1px solid var(--ui-line,#e3e6ec)}
 .show .bar .rm-btn{width:auto!important;padding:0 12px;font-size:13px;font-weight:600;color:#fff;background:rgba(79,140,255,.25);border-color:rgba(79,140,255,.6)}
 .rm-box{bottom:50%;right:50%;transform:translate(50%,50%)}
 .rm-box .btn{background:rgba(255,255,255,.1);color:#eef2fb;border-color:rgba(255,255,255,.25)}
+
+/* enquadramento de imagem */
+.imgf .pic{position:relative}
+.imgf .fpt{position:absolute;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 2px #4f8cff,0 2px 8px rgba(0,0,0,.4);pointer-events:none}
+.imgf .frame{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:6px;font-size:11px;color:var(--ui-dim)}
+.imgf .frame label{display:flex;gap:6px;align-items:center}
+.imgf .frame input[type=range]{width:110px}
+.show .bar [data-spot].on{color:#ffb547;box-shadow:0 0 0 2px #ffb547 inset}
+.show.dk-spot-on .host{cursor:pointer}
