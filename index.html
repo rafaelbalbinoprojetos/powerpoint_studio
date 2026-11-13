@@ -2401,6 +2401,21 @@ function findDialog(){ const d=deck(); const m=modal(`<h3>Buscar e substituir</h
   m.el.querySelector('[data-c]').onclick=m.close; setTimeout(()=>q.focus(),50); }
 /* página do controle pelo celular (pasta remote/ publicada) */
 const REMOTE_URL=(()=>{ try{ return localStorage.getItem('em-remote-url')||''; }catch(_){ return ''; } })()||'https://rafaelbalbinoprojetos.github.io/powerpoint_studio/remote/';
+/* linhas de imagem aceitas no roteiro e no texto */
+const IMG_LINE=/^(imagem|image|img|foto|fundo|background|figura|antes|depois|tela|logo|logotipo)\s*:\s*(\S+)\s*$/i;
+const imgKind=w=>{ w=w.toLowerCase(); return w==='background'?'fundo':w==='image'||w==='img'?'imagem':w==='logotipo'?'logo':w; };
+function adoptLogo(dk){ const s=dk.slides.find(x=>x.__logo); if(s) dk.theme=Object.assign({},dk.theme,{logo:s.__logo}); dk.slides.forEach(x=>{ delete x.__logo; }); }
+/* confere se cada link de imagem é mesmo uma imagem; se for uma página, tenta achar a imagem principal dela (og:image) */
+async function checkImages(dk){ const bad=[]; const isImg=u=>new Promise(r=>{ const im=new Image(); im.onload=()=>r(im.naturalWidth>0); im.onerror=()=>r(false); im.referrerPolicy='no-referrer'; im.src=u; setTimeout(()=>r(false),9000); });
+  const og=async u=>{ try{ const r=await fetch(u); if(!r.ok) return ''; const h=await r.text(); const m=/<meta[^>]+(?:property|name)=["'](?:og:image|twitter:image)["'][^>]+content=["']([^"']+)/i.exec(h)||/<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["'](?:og:image|twitter:image)/i.exec(h); return m?new URL(m[1],u).href:''; }catch(_){ return ''; } };
+  const jobs=[]; const visit=(o,i,setter)=>{ if(typeof o==='string'&&/^https?:\/\//i.test(o)) jobs.push({u:o,i,setter}); };
+  dk.slides.forEach((s,i)=>{ const tp=T[s.t]; if(!tp) return; tp.fields.forEach(f=>{ if(f.t==='image') visit(s.d[f.k],i,v=>{ s.d[f.k]=v; }); else if(f.t==='items') (s.d[f.k]||[]).forEach(it=>f.sub.forEach(x=>{ if(x.t==='image') visit(it[x.k],i,v=>{ it[x.k]=v; }); })); }); });
+  if(dk.theme&&/^https?:/i.test(dk.theme.logo||'')) jobs.push({u:dk.theme.logo,i:-1,setter:v=>{ dk.theme.logo=v; }});
+  if(!jobs.length) return; setStatus('Conferindo '+jobs.length+' imagem(ns)…');
+  await Promise.all(jobs.map(async j=>{ if(await isImg(j.u)) return; const alt=await og(j.u); if(alt&&await isImg(alt)){ j.setter(alt); return; } bad.push(j); }));
+  if(dk===deck()){ touch(); renderAll(); }
+  if(bad.length){ const m=modal('<h3>Algumas imagens não carregaram</h3><p class="sub">O link precisa ser do <b>arquivo da imagem</b>, não da página onde ela aparece. No navegador, clique com o botão direito na imagem › <b>Copiar endereço da imagem</b> e cole no lugar. Também dá para enviar a imagem pelo botão “Enviar imagem” do slide.</p><div class="find-res">'+bad.map(b=>'<div class="find-hit"><b>'+(b.i<0?'Logo':b.i+1)+'</b><span>'+esc(b.u)+'</span></div>').join('')+'</div><div class="row"><button class="btn pri" data-c>Entendi</button></div>','wide'); m.el.querySelector('[data-c]').onclick=m.close; setStatus(bad.length+' imagem(ns) não carregaram'); }
+  else setStatus('Imagens carregadas',true); }
 /* copiar e colar estilo entre slides */
 const STY_KEYS=['anim','speed','tr','lay','head','dur'];
 let styleClip=null; try{ styleClip=JSON.parse(localStorage.getItem(LS+'-style')||'null'); }catch(_){}
@@ -2900,9 +2915,9 @@ function scriptDialog(init){
   m.el.querySelector('[data-c]').onclick=m.close;
   const run=asNew=>{ const slides=varyLayouts(parseScript(ta.value||'')); if(!slides.length){ ta.value=ta.value||SCRIPT_HELP; return; }
     m.close();
-    if(asNew){ const id=uid(); const title=String(slides[0].d.title||'Nova apresentação').replace(/[*`\n]/g,' ').trim(); decks[id]={name:title,theme:clone(deck().theme||{preset:'eletrico'}),footerText:'',updatedAt:Date.now(),slides}; curId=id; sel=0; }
+    if(asNew){ const id=uid(); const title=String(slides[0].d.title||'Nova apresentação').replace(/[*`\n]/g,' ').trim(); decks[id]={name:title,theme:{preset:'eletrico'},footerText:'',updatedAt:Date.now(),slides}; curId=id; sel=0; }
     else { const d=deck(); d.slides.push(...slides.map(s=>s.t==='capa'?Object.assign(s,{t:'destaque',d:D.fillDefaults({t:'destaque',d:{kicker:s.d.kicker,title:s.d.title,lead:s.d.lead}}).d}):s)); sel=d.slides.length-slides.length; }
-    touch(); renderAll(); setStatus(slides.length+' slides criados',true); };
+    adoptLogo(deck()); touch(); renderAll(); setStatus(slides.length+' slides criados',true); checkImages(deck()); };
   m.el.querySelector('[data-new]').onclick=()=>run(true);
   m.el.querySelector('[data-add]').onclick=()=>run(false);
 }
@@ -2987,6 +3002,21 @@ MODELOS E O QUE ESCREVER EM CADA ITEM
 {combo}          - Jan: realizado / projeção  (até 12)     barras = realizado, linha = projeção
                  - Jun: / 280   (só projeção)   também {barras e linha} ou {projecao}
 {medidores}      - Meta: 0 a 100              (até 4)
+IMAGENS: em qualquer slide, uma linha por imagem com o LINK DO ARQUIVO da imagem
+  (botão direito na imagem › "Copiar endereço da imagem"; links de página não servem):
+                 Imagem: https://site.com/foto.jpg   imagem principal do slide
+                 Fundo: https://site.com/fundo.jpg   imagem de fundo (modelos com fundo)
+                 Figura: https://site.com/pessoa.png figura recortada na frente (PNG transparente)
+                 Antes: … / Depois: …               no {antesdepois}
+                 Foto: …                             uma por pessoa no {equipe}, na ordem
+                 Logo: https://site.com/logo.png     logo da apresentação (vale para todos os slides)
+  Formato ideal de cada imagem:
+    Tela cheia 16:9 (1920×1080, horizontal) .. {heroi} {revelar} {paralaxe} fundo, {galeria3d}, {mergulho}
+    Horizontal 3:2 (1600×1070) ............... {imagem} {holofote} {antesdepois} (as duas do mesmo tamanho)
+    Vertical 4:5 (1080×1350) ................. {dividir} {destaque} imagem lateral
+    Quadrada 1:1 (800×800, rosto no centro) .. {equipe} fotos, {citacao} foto do autor
+    PNG transparente ......................... {capa} {encerramento} {paralaxe} figura, Logo (800×300, horizontal)
+  O sistema confere cada link ao criar e avisa se algum não carregar.
 Cores de status: termine o item com (alerta), (atenção) ou (ok) para o cartão ficar vermelho, laranja ou verde.
   No texto: !!palavra!! vermelho · ??palavra?? laranja · ++palavra++ verde (como *palavra* na cor de destaque).
 Detalhe ao clicar (gráficos): crie um slide (oculto) com o mesmo nome da categoria, ex.: "Sudeste {tabela} (oculto)".
@@ -3045,7 +3075,7 @@ function textToScript(txt){
   const flush=()=>{ if(para.length){ (cur||(cur={head:'',items:[],paras:[]},blocks.push(cur),cur)).paras.push(para.join(' ')); para=[]; } };
   lines.forEach(l=>{ if(!l){ flush(); return; }
     if(/^([-*•]|\d+[.)])\s+/.test(l)){ flush(); if(!cur){ cur={head:'',items:[],paras:[]}; blocks.push(cur); } cur.items.push(l.replace(/^([-*•]|\d+[.)])\s+/,'')); return; }
-    if(/^etapas*:/i.test(l)){ flush(); if(cur) (cur.steps=cur.steps||[]).push(l); return; }
+    if(/^etapa\s*:/i.test(l)||IMG_LINE.test(l)){ flush(); if(!cur){ cur={head:'',items:[],paras:[]}; blocks.push(cur); } (cur.steps=cur.steps||[]).push(l); return; }
     const tg=TAG_RE.exec(l), hid=/\((?:oculto|oculta)\)\s*$/i.test(l.replace(TAG_RE,''));
     if(tg&&tagOf(tg[1])||isHead(l)){ flush(); let h=l.replace(/^#+\s*/,''); let tag=null; if(tg&&tagOf(tg[1])){ tag=tagOf(tg[1]); h=h.replace(TAG_RE,''); } h=h.replace(/\s*\((?:oculto|oculta)\)\s*$/i,'').replace(/:$/,'').trim(); const m2=TAG_RE.exec(h); if(!tag&&m2&&tagOf(m2[1])){ tag=tagOf(m2[1]); h=h.replace(TAG_RE,''); } cur={head:h,tag,hidden:hid||/\((?:oculto|oculta)\)/i.test(l),items:[],paras:[]}; blocks.push(cur); return; }
     para.push(l); });
@@ -3092,7 +3122,7 @@ function textDialog(){
   m.el.querySelector('[data-c]').onclick=m.close;
   m.el.querySelector('[data-edit]').onclick=()=>{ const sc=textToScript(ta.value); if(!sc) return ta.focus(); m.close(); scriptDialog(sc); };
   m.el.querySelector('[data-ok]').onclick=()=>{ const sc=textToScript(ta.value); if(!sc) return ta.focus(); const slides=varyLayouts(parseScript(sc)); m.close();
-    const id=uid(); const title=String(slides[0].d.title||'Nova apresentação').replace(/[*`\n]/g,' ').replace(/\s+/g,' ').trim(); decks[id]={name:title,theme:clone(deck().theme||{preset:'eletrico'}),footerText:title,updatedAt:Date.now(),slides}; curId=id; sel=0; touch(); renderAll(); setStatus(slides.length+' slides criados a partir do texto',true); };
+    const id=uid(); const title=String(slides[0].d.title||'Nova apresentação').replace(/[*`\n]/g,' ').replace(/\s+/g,' ').trim(); decks[id]={name:title,theme:{preset:'eletrico'},footerText:title,updatedAt:Date.now(),slides}; curId=id; sel=0; adoptLogo(decks[id]); touch(); renderAll(); setStatus(slides.length+' slides criados a partir do texto',true); checkImages(decks[id]); };
 }
 function parseScript(txt){
   const out=[]; let cur=null; const blank=title=>({title,tpl:null,kicker:'',lead:[],bullets:[],notes:[]});
@@ -3102,6 +3132,7 @@ function parseScript(txt){
     if(!cur){ cur=blank(l); return; }
     if((m=/^notas?\s*:\s*(.*)$/i.exec(l))){ cur.notes.push(m[1]); return; }
     if((m=/^etapa\s*:\s*(.*)$/i.exec(l))){ (cur.story=cur.story||[]).push(m[1]); return; }
+    if((m=IMG_LINE.exec(l))){ (cur.imgs=cur.imgs||[]).push({kind:imgKind(m[1]),url:m[2]}); return; }
     if((m=/^\[(.+)\]$/.exec(l))){ cur.kicker=m[1]; return; }
     if((m=/^(?:[-*•]|\d+[.)])\s+(.+)$/.exec(l))){ cur.bullets.push(m[1]); return; }
     cur.lead.push(l.replace(/^>\s*/,''));
@@ -3116,6 +3147,7 @@ function parseScript(txt){
   return slides;
 }
 function toSlide(s,i,n){
+  const IMGS=s.imgs||[];
   const tones=[]; s.bullets=s.bullets.map((b,j)=>{ const m=/\s*\((alerta|cr[ií]tico|aten[cç][aã]o|aviso|ok|conforme|conformidade)\)\s*$/i.exec(b); if(!m) return b; const w=m[1].toLowerCase(); tones[j]=/^(alerta|cr)/.test(w)?'alerta':/^(aten|aviso)/.test(w)?'atencao':'ok'; return b.slice(0,m.index); });
   const pair=b=>{ const m=/^(.+?)\s*(?::|—|–|\s-\s)\s*(.+)$/.exec(b); return m?{a:m[1].trim(),b:m[2].trim()}:{a:b,b:''}; };
   const P=s.bullets.map(pair), allPairs=s.bullets.length>0&&P.every(p=>p.b);
@@ -3169,8 +3201,14 @@ function toSlide(s,i,n){
       if(it){ const subs=it.sub.filter(f=>f.t==='text'||f.t==='area'); d[it.k]=P.map(p=>{ const o={}; it.sub.forEach(f=>o[f.k]=f.t==='bool'?false:''); if(subs[0]) o[subs[0].k]=p.a; if(subs[1]) o[subs[1].k]=p.b; return o; }); }
       else if(li) d[li.k]=s.bullets; }
   }
+  /* imagens do roteiro: Imagem/Fundo/Figura/Antes/Depois/Foto/Logo */
+  if(IMGS.length){ const tp=T[t]; const top=tp.fields.filter(f=>f.t==='image').map(f=>f.k); const itf=tp.fields.find(f=>f.t==='items'&&f.sub.some(x=>x.t==='image'));
+    const want={fundo:['bg','image'],figura:['subject','image','peek'],antes:['before'],depois:['after'],tela:['screen','image'],imagem:['image','screen','bg','before','after']};
+    let seq=0; IMGS.forEach(im=>{ if(im.kind==='logo'){ d.__logo=im.url; return; }
+      if((im.kind==='foto'||im.kind==='imagem')&&itf){ const ik=itf.sub.find(x=>x.t==='image').k; d[itf.k]=d[itf.k]||[]; const it=d[itf.k][seq]||(d[itf.k][seq]={}); if(!it[ik]){ it[ik]=im.url; seq++; return; } }
+      const k=(want[im.kind]||want.imagem).find(x=>top.includes(x)&&!d[x]); if(k) d[k]=im.url; else if(top.length&&!d[top[0]]) d[top[0]]=im.url; }); }
   if(tones.length){ const k=Object.keys(d).find(x=>Array.isArray(d[x])&&d[x].length&&typeof d[x][0]==='object'); if(k) d[k].forEach((it,j)=>{ if(tones[j]) it.tone=tones[j]; }); }
-  const sl=D.fillDefaults({id:uid(),t,d});
+  const lg=d.__logo; delete d.__logo; const sl=D.fillDefaults({id:uid(),t,d}); if(lg) sl.__logo=lg;
   if(s.story&&s.story.length&&STORY_T.includes(t)){ const labs=storyLabels(sl).map(x=>plain(x).toLowerCase()); sl.story=s.story.map(x=>{ const zoom=/\(zoom\)\s*$/i.test(x); x=x.replace(/\s*\(zoom\)\s*$/i,''); const p=/^(.+?)\s+[—–-]\s+(.+)$/.exec(x); const i=p?labs.indexOf(plain(p[1]).toLowerCase()):-1; return {i,text:i>=0?p[2]:x,zoom}; }); }
   if(s.notes.length) sl.notes=s.notes.join('\n'); if(s.hidden) sl.hidden=true; return sl;
 }

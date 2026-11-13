@@ -220,3 +220,8 @@ ESTÚDIO MOTION 2.0
   campo "Cor de status" em cada item: 🔴 Alerta, 🟠 Atenção, 🟢 Conformidade.
   No texto: !!palavra!! vermelho, ??palavra?? laranja, ++palavra++ verde.
   Ao criar por texto: termine o item com (alerta), (atenção) ou (ok).
+- Imagens no roteiro/texto: linhas "Imagem: link", "Fundo: link", "Figura: link", "Antes:/Depois:",
+  "Foto: link" (equipe) e "Logo: link". Use o link do ARQUIVO da imagem (botão direito na imagem >
+  Copiar endereço da imagem). O sistema confere os links e avisa se algum não carregar.
+  O guia "Como marcar" mostra o formato ideal de cada imagem (16:9, 4:5, quadrada, PNG).
+- Apresentação nova (texto/roteiro) começa com tema limpo, sem logo da apresentação anterior.
